@@ -1,0 +1,400 @@
+﻿@page "/page/recepcion"
+
+@inject IPisoServicio _pisoServicio
+@inject IHabitacionServicio _habitacionServicio
+@inject IReservaServicio _reservaServicio
+@inject NavigationManager _navManager
+@inject SweetAlertService Swal
+@inject ISnackbar _snackBar
+@inject IReservaServicio _reservaServicio
+
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+        <MudText Typo="Typo.h5">Recepción</MudText>
+    </MudStack>
+
+    <MudTabs Rounded="true" Elevation="1" Class="mt-3">
+
+        <!-- ========================= -->
+        <!-- TAB 1: HABITACIONES       -->
+        <!-- ========================= -->
+        <MudTabPanel Text="Habitaciones">
+
+            <MudPaper Elevation="3" Class="pa-4" Width="100%">
+
+                <MudGrid>
+                    <MudItem xs="12" lg="3" md="4" sm="6">
+                        <MudSelect T="PisoDTO"
+                                   Label="Piso"
+                                   Variant="Variant.Outlined"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Class="mb-3"
+                                   Value="pisoSeleccionado"
+                                   Margin="Margin.Dense"
+                                   ValueChanged="OnSelectedValueChanged"
+                                   Disabled="@(listaPisos == null || !listaPisos.Any())">
+
+                            @if (listaPisos != null && listaPisos.Any())
+                            {
+                                foreach (var item in listaPisos)
+                                {
+                                    <MudSelectItem Value="@item">@item.Descripcion</MudSelectItem>
+                                }
+                            }
+
+                        </MudSelect>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-2" />
+
+                <MudGrid>
+
+                    @if (cargando)
+                    {
+                        <MudItem xs="12" Class="d-flex justify-center">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        </MudItem>
+                    }
+                    else if (listaHabitaciones == null || !listaHabitaciones.Any())
+                    {
+                        <MudItem xs="12">
+                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                No hay habitaciones para mostrar en este piso.
+                            </MudAlert>
+                        </MudItem>
+                    }
+                    else
+                    {
+                        foreach (var item in listaHabitaciones)
+                        {
+                            string borderTarjeta =
+                            item.IdEstadoHabitacion == 1 ? "mud-border-success" :
+                            item.IdEstadoHabitacion == 2 ? "mud-border-info" :
+                                            "mud-border-error";
+
+                            Color colorTarjeta =
+                            item.IdEstadoHabitacion == 1 ? Color.Success :
+                            item.IdEstadoHabitacion == 2 ? Color.Info :
+                            Color.Error;
+
+                            string icono =
+                            item.IdEstadoHabitacion == 1 ? Icons.Material.Filled.KingBed :
+                            item.IdEstadoHabitacion == 2 ? Icons.Material.Filled.CleaningServices :
+                            Icons.Material.Filled.EventBusy;
+
+                            <MudItem xs="12" lg="3" md="4" sm="6">
+                                <MudCard Class="@(borderTarjeta + " border-solid border-1")">
+
+                                    <MudCardContent Class="d-flex flex-row justify-space-between">
+                                        <div>
+                                            <MudText Typo="Typo.h5">@item.Numero</MudText>
+                                            <MudText Typo="Typo.body1">
+                                                Categoría: @item.IdCategoriaNavigation?.Descripcion
+                                            </MudText>
+                                        </div>
+
+                                        <MudIcon Icon="@icono"
+                                                 Color="colorTarjeta"
+                                                 Class="mx-4"
+                                                 Style="width:54px; height:54px;" />
+                                    </MudCardContent>
+
+                                    <MudCardActions>
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="colorTarjeta"
+                                                   FullWidth="true"
+                                                   OnClick="@(() => VerDetalle(item))">
+                                            @item.IdEstadoHabitacionNavigation?.Descripcion
+                                        </MudButton>
+                                    </MudCardActions>
+
+                                </MudCard>
+                            </MudItem>
+                        }
+                    }
+
+                </MudGrid>
+
+            </MudPaper>
+
+        </MudTabPanel>
+
+        <!-- ========================= -->
+        <!-- TAB 2: RESERVAS           -->
+        <!-- ========================= -->
+        <MudTabPanel Text="Reservas">
+
+            <MudPaper Class="pa-4 mb-4" Elevation="3">
+                <MudGrid AlignItems="AlignItems.FlexEnd" Spacing="2">
+
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker Label="Desde"
+                                       Date="@fechaInicio"
+                                       DateChanged="OnFechaInicioChanged"
+                                       DateFormat="dd/MM/yyyy"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker Label="Hasta"
+                                       Date="@fechaFin"
+                                       DateChanged="OnFechaFinChanged"
+                                       DateFormat="dd/MM/yyyy"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4" Class="d-flex gap-2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="BuscarReservas"
+                                   FullWidth="true"
+                                   Disabled="@cargandoReservas">
+                            Buscar
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Secondary"
+                                   OnClick="LimpiarReservas"
+                                   FullWidth="true"
+                                   Disabled="@cargandoReservas">
+                            Limpiar
+                        </MudButton>
+                    </MudItem>
+
+                </MudGrid>
+            </MudPaper>
+
+            <MudPaper Class="pa-4" Elevation="3">
+
+                @if (cargandoReservas)
+                {
+                    <div class="d-flex justify-center pa-6">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    </div>
+                }
+                else
+                {
+                    <MudTable Items="@listaReservas" Hover="true" Dense="true" Bordered="true" Striped="true">
+
+                        <HeaderContent>
+                            <MudTh>Cliente</MudTh>
+                            <MudTh>Habitación</MudTh>
+                            <MudTh>Entrada</MudTh>
+                            <MudTh>Salida</MudTh>
+                            <MudTh class="text-right">Total</MudTh>
+                            <MudTh class="text-right">Cancelado</MudTh>
+                            <MudTh class="text-right">Pendiente</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd DataLabel="Cliente">@context.NombreCliente</MudTd>
+                            <MudTd DataLabel="Habitación">@context.NroHabitacion</MudTd>
+                            <MudTd DataLabel="Entrada">@context.FechaEntrada</MudTd>
+                            <MudTd DataLabel="Salida">@context.FechaSalida</MudTd>
+
+                            <MudTd DataLabel="Total" Class="text-right">
+                                @context.Total.ToString("N2")
+                            </MudTd>
+
+                            <MudTd DataLabel="Cancelado" Class="text-right">
+                                @context.ValorCancelado.ToString("N2")
+                            </MudTd>
+
+                            <MudTd DataLabel="Pendiente" Class="text-right">
+                                @context.ValorPendiente.ToString("N2")
+                            </MudTd>
+                        </RowTemplate>
+
+                        <NoRecordsContent>
+                            <MudText Class="pa-4">No hay reservas para el rango seleccionado.</MudText>
+                        </NoRecordsContent>
+
+                    </MudTable>
+                }
+
+            </MudPaper>
+
+        </MudTabPanel>
+
+    </MudTabs>
+
+</MudContainer>
+
+@code {
+
+    private List<PisoDTO> listaPisos = new();
+    private PisoDTO? pisoSeleccionado;
+
+    private List<HabitacionDTO>? listaHabitaciones = null;
+    private bool cargando = false;
+
+    // Reservas
+    private DateTime? fechaInicio = DateTime.Today;
+    private DateTime? fechaFin = DateTime.Today.AddDays(1);
+    private bool cargandoReservas = false;
+    private List<ReservaReporteDTO> listaReservas = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        cargando = true;
+
+        var responsePiso = await _pisoServicio.Lista();
+        if (responsePiso.status && responsePiso.value != null)
+        {
+            listaPisos = (List<PisoDTO>)responsePiso.value;
+
+            if (listaPisos.Any())
+            {
+                pisoSeleccionado = listaPisos.First();
+                await ObtenerHabitaciones(pisoSeleccionado.IdPiso);
+            }
+            else
+            {
+                listaHabitaciones = new();
+            }
+        }
+        else
+        {
+            listaHabitaciones = new();
+            _snackBar.Add("No se pudo cargar pisos.", Severity.Error, a => a.VisibleStateDuration = 1500);
+        }
+
+        cargando = false;
+
+        // (Opcional) cargar reservas al abrir
+        await BuscarReservas();
+    }
+
+    private async Task ObtenerHabitaciones(int idPiso)
+    {
+        cargando = true;
+
+        var response = await _habitacionServicio.Lista();
+
+        if (response.status && response.value != null)
+        {
+            // ✅ Mostrar disponibles (1) y limpieza (2), excluir ocupadas (3)
+            listaHabitaciones = ((List<HabitacionDTO>)response.value)
+                .Where(h => h.IdEstadoHabitacion != 3 && h.IdPiso == idPiso)
+                .ToList();
+        }
+        else
+        {
+            listaHabitaciones = new();
+            _snackBar.Add("No se pudo cargar habitaciones.", Severity.Error, a => a.VisibleStateDuration = 1500);
+        }
+
+        cargando = false;
+    }
+
+    private async Task OnSelectedValueChanged(PisoDTO value)
+    {
+        pisoSeleccionado = value;
+        await ObtenerHabitaciones(value.IdPiso);
+    }
+
+    private async Task VerDetalle(HabitacionDTO modelo)
+    {
+        if (modelo.IdEstadoHabitacion == 2)
+        {
+            SweetAlertResult result = await Swal.FireAsync(new SweetAlertOptions
+            {
+                Title = "¿Estás seguro?",
+                Text = "Cambiar habitación a disponible",
+                Icon = SweetAlertIcon.Warning,
+                ShowCancelButton = true,
+                ConfirmButtonText = "Sí, actualizar",
+                CancelButtonText = "No, volver"
+            });
+
+            if (result.IsConfirmed)
+            {
+                modelo.IdEstadoHabitacion = 1;
+
+                if (modelo.IdEstadoHabitacionNavigation != null)
+                {
+                    modelo.IdEstadoHabitacionNavigation.IdEstadoHabitacion = 1;
+                    modelo.IdEstadoHabitacionNavigation.Descripcion = "Disponible";
+                }
+
+                var ok = await _habitacionServicio.Editar(modelo);
+
+                if (ok)
+                    _snackBar.Add("Se cambió el estado a disponible.", Severity.Success, a => a.VisibleStateDuration = 1200);
+                else
+                    _snackBar.Add("No se pudo actualizar la habitación.", Severity.Error, a => a.VisibleStateDuration = 1500);
+
+                if (pisoSeleccionado != null)
+                    await ObtenerHabitaciones(pisoSeleccionado.IdPiso);
+            }
+
+            return;
+        }
+
+        _navManager.NavigateTo($"/page/detalle/{modelo.IdHabitacion}");
+    }
+
+    private Task OnFechaInicioChanged(DateTime? value)
+    {
+        fechaInicio = value ?? DateTime.Today;
+
+        if (fechaFin == null || fechaFin.Value.Date <= fechaInicio.Value.Date)
+            fechaFin = fechaInicio.Value.Date.AddDays(1);
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnFechaFinChanged(DateTime? value)
+    {
+        fechaFin = value ?? (fechaInicio?.Date.AddDays(1) ?? DateTime.Today.AddDays(1));
+        return Task.CompletedTask;
+    }
+
+    private async Task BuscarReservas()
+    {
+        if (fechaInicio == null || fechaFin == null)
+        {
+            await Swal.FireAsync("Error", "Seleccione las fechas", "warning");
+            return;
+        }
+
+        if (fechaFin.Value.Date < fechaInicio.Value.Date)
+        {
+            await Swal.FireAsync("Error", "La fecha 'Hasta' no puede ser menor que 'Desde'", "warning");
+            return;
+        }
+
+        try
+        {
+            cargando = true;
+
+            var fi = fechaInicio.Value.ToString("dd/MM/yyyy");
+            var ff = fechaFin.Value.ToString("dd/MM/yyyy");
+
+            var resp = await _reservaServicio.FiltrarListado(fi, ff);
+
+            if (resp.status)
+                listaReservas = resp.value ?? new();
+            else
+                await Swal.FireAsync("Error", resp.msg, "error");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private Task LimpiarReservas()
+    {
+        fechaInicio = DateTime.Today;
+        fechaFin = DateTime.Today.AddDays(1);
+        listaReservas = new();
+        return Task.CompletedTask;
+    }
+}

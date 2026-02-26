@@ -1,0 +1,195 @@
+﻿@page "/page/listado-reservas"
+@using SistemaHotel.Shared
+@inject NavigationManager _navManager
+
+@inject IReservaServicio _reservaServicio
+@inject SweetAlertService Swal
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+
+    @* <MudText Typo="Typo.h5" GutterBottom="true">
+        Listado de reservas
+    </MudText> *@
+    <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+        <MudIconButton Icon="@Icons.Material.Filled.ArrowBack"
+                       Color="Color.Primary"
+                       Size="Size.Medium"
+                       OnClick="@VolverReservas" />
+
+        <MudText Typo="Typo.h5" GutterBottom="false">Listado de reservas</MudText>
+    </MudStack>
+
+    <!-- FILTROS -->
+    <MudPaper Class="pa-4 mb-4" Elevation="3">
+        <MudGrid AlignItems="AlignItems.FlexEnd" Spacing="2">
+
+            <MudItem xs="12" sm="4">
+                <MudDatePicker Label="Desde"
+                               Date="@fechaInicio"
+                               DateChanged="OnFechaInicioChanged"
+                               DateFormat="dd/MM/yyyy"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="4">
+                <MudDatePicker Label="Hasta"
+                               Date="@fechaFin"
+                               DateChanged="OnFechaFinChanged"
+                               DateFormat="dd/MM/yyyy"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense" />
+            </MudItem>
+
+            <MudItem xs="12" sm="4" Class="d-flex gap-2">
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           OnClick="BuscarReservas"
+                           FullWidth="true"
+                           Disabled="@cargando">
+                    Buscar
+                </MudButton>
+
+                <MudButton Variant="Variant.Outlined"
+                           Color="Color.Secondary"
+                           OnClick="Limpiar"
+                           FullWidth="true"
+                           Disabled="@cargando">
+                    Limpiar
+                </MudButton>
+            </MudItem>
+
+        </MudGrid>
+    </MudPaper>
+
+    <!-- TABLA -->
+    <MudPaper Class="pa-4" Elevation="3">
+
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-6">
+                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            </div>
+        }
+        else
+        {
+            <MudTable Items="listaReservas" Hover="true" Dense="true" Bordered="true" Striped="true">
+
+                <HeaderContent>
+                    <MudTh>Cliente</MudTh>
+                    <MudTh>Habitación</MudTh>
+                    <MudTh>Entrada</MudTh>
+                    <MudTh>Salida</MudTh>
+                    <MudTh class="text-right">Total</MudTh>
+                    <MudTh class="text-right">Cancelado</MudTh>
+                    <MudTh class="text-right">Pendiente</MudTh>
+                </HeaderContent>
+
+                <RowTemplate>
+                    <MudTd DataLabel="Cliente">@context.NombreCliente</MudTd>
+                    <MudTd DataLabel="Habitación">@context.NroHabitacion</MudTd>
+                    <MudTd DataLabel="Entrada">@context.FechaEntrada</MudTd>
+                    <MudTd DataLabel="Salida">@context.FechaSalida</MudTd>
+
+                    <MudTd DataLabel="Total" Class="text-right">
+                        @context.Total.ToString("N2")
+                    </MudTd>
+
+                    <MudTd DataLabel="Cancelado" Class="text-right">
+                        @context.ValorCancelado.ToString("N2")
+                    </MudTd>
+
+                    <MudTd DataLabel="Pendiente" Class="text-right">
+                        @context.ValorPendiente.ToString("N2")
+                    </MudTd>
+                </RowTemplate>
+
+                <NoRecordsContent>
+                    <MudText Class="pa-4">No hay reservas para el rango seleccionado.</MudText>
+                </NoRecordsContent>
+
+            </MudTable>
+        }
+
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    private DateTime? fechaInicio = DateTime.Today;
+    private DateTime? fechaFin = DateTime.Today;
+
+    private bool cargando = false;
+    private List<ReservaReporteDTO> listaReservas = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Si quieres que cargue automáticamente al abrir la pantalla (hoy)
+        await BuscarReservas();
+    }
+
+    private Task OnFechaInicioChanged(DateTime? value)
+    {
+        fechaInicio = value ?? DateTime.Today;
+        return Task.CompletedTask;
+    }
+
+    private Task OnFechaFinChanged(DateTime? value)
+    {
+        fechaFin = value ?? DateTime.Today;
+        return Task.CompletedTask;
+    }
+
+    private async Task Limpiar()
+    {
+        fechaInicio = DateTime.Today;
+        fechaFin = DateTime.Today;
+        listaReservas = new();
+        await Task.CompletedTask;
+    }
+
+    private async Task BuscarReservas()
+    {
+        if (fechaInicio == null || fechaFin == null)
+        {
+            await Swal.FireAsync("Error", "Seleccione las fechas", "warning");
+            return;
+        }
+
+        if (fechaFin.Value.Date < fechaInicio.Value.Date)
+        {
+            await Swal.FireAsync("Error", "La fecha 'Hasta' no puede ser menor que 'Desde'", "warning");
+            return;
+        }
+
+        try
+        {
+            cargando = true;
+
+            var fi = fechaInicio.Value.ToString("dd/MM/yyyy");
+            var ff = fechaFin.Value.ToString("dd/MM/yyyy");
+
+            // IMPORTANTE:
+            // Esto requiere que tengas este método en tu IReservaServicio y ReservaServicio:
+            // Task<ResponseDTO<List<ReservaReporteDTO>>> FiltrarListado(string fechaInicio, string fechaFin);
+            var response = await _reservaServicio.FiltrarListado(fi, ff);
+
+            if (response.status)
+                listaReservas = response.value ?? new();
+            else
+                await Swal.FireAsync("Error", response.msg, "error");
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", ex.Message, "error");
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+    private void VolverReservas()
+    {
+        _navManager.NavigateTo("/page/reservas");
+    }
+}

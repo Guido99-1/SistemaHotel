@@ -1,0 +1,420 @@
+﻿@page "/page/detallereserva/{idHabitacion:int}"
+
+@inject IHabitacionServicio _habitacionServicio
+@inject IReservaServicio _reservaServicio
+@inject IDialogService _dialogServicio
+@inject SweetAlertService Swal
+@inject NavigationManager navManager
+@inject IClienteServicio _clienteServicio
+@inject IDialogService DialogService
+@using SistemaHotel.Client.Servicios
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+
+    <MudText Typo="Typo.h5" GutterBottom="true">Detalle Reserva</MudText>
+
+    <MudPaper Elevation="3" Class="pa-4" Width="100%">
+
+        <!-- HABITACION -->
+        <MudGrid>
+            <MudItem xs="12">
+                <MudCard>
+                    <MudCardHeader Class="pb-0">
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Habitación</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+
+                    <MudCardContent>
+                        <MudGrid>
+                            <MudItem xs="12" lg="6">
+                                <MudTextField Value="_habitacionDTO.Numero"
+                                              Label="Numero"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+
+                            <MudItem xs="12" lg="6">
+                                <MudTextField Value="_habitacionDTO.IdCategoriaNavigation?.Descripcion"
+                                              Label="Categoria"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+
+                            <MudItem xs="12" lg="6">
+                                <MudTextField Value="_habitacionDTO.Detalle"
+                                              Label="Detalle"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+
+                            <MudItem xs="12" lg="6">
+                                <MudTextField Value="_habitacionDTO.IdPisoNavigation?.Descripcion"
+                                              Label="Piso"
+                                              ReadOnly="true"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+        </MudGrid>
+
+
+        <MudGrid>
+
+            <!-- CLIENTE -->
+            <MudItem xs="12" lg="6">
+                <MudCard>
+                    <MudCardHeader Class="pb-0">
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Cliente</MudText>
+                        </CardHeaderContent>
+                    </MudCardHeader>
+
+                    <MudCardContent>
+                        <MudGrid>
+
+                            <MudItem xs="12">
+                                <MudGrid>
+                                    <MudItem xs="6">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Info"
+                                                   FullWidth="true"
+                                                   Size="Size.Small"
+                                                   OnClick="Buscar">
+                                            Buscar
+                                        </MudButton>
+                                    </MudItem>
+
+                                    <MudItem xs="6">
+                                        <MudButton Variant="Variant.Filled"
+                                                   Color="Color.Success"
+                                                   FullWidth="true"
+                                                   Size="Size.Small"
+                                                   OnClick="CrearCliente">
+                                            Crear
+                                        </MudButton>
+                                    </MudItem>
+                                </MudGrid>
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.TipoDocumento"
+                                              Label="Tipo Documento"
+                                              Disabled="@(!_crearCliente)"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Documento"
+                                              Label="Documento"
+                                              Disabled="@(!_crearCliente)"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.NombreCompleto"
+                                              Label="Nombre Completo"
+                                              Disabled="@(!_crearCliente)"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Correo"
+                                              Label="Correo"
+                                              Disabled="@(!_crearCliente)"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Telefono"
+                                              Label="Telefono"
+                                              Disabled="@(!_crearCliente)"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Direccion"
+                                              Label="Direccion"
+                                              Disabled="@(!_crearCliente)"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+
+                        </MudGrid>
+                    </MudCardContent>
+                </MudCard>
+            </MudItem>
+
+
+            <!-- RESERVA -->
+            <MudItem xs="12" lg="6">
+                <MudCard>
+
+                    <MudCardHeader Class="pb-0">
+                        <CardHeaderContent>
+                            <MudText Typo="Typo.h6">Reserva</MudText>
+                        </CardHeaderContent>
+
+                        <CardHeaderActions>
+                            <MudButton Variant="Variant.Filled"
+                                       StartIcon="@Icons.Material.Filled.Save"
+                                       OnClick="RegistrarReserva"
+                                       Color="Color.Primary"
+                                       Size="Size.Small">
+                                Reservar
+                            </MudButton>
+                        </CardHeaderActions>
+                    </MudCardHeader>
+
+                    <MudCardContent>
+                        <MudGrid>
+
+                            <MudItem xs="12">
+                                <MudDatePicker Label="Fecha inicio"
+                                               MinDate="DateTime.Today"
+                                               Variant="Variant.Outlined"
+                                               Margin="Margin.Dense"
+                                               DateFormat="dd/MM/yyyy"
+                                               Date="fechaInicio"
+                                               DateChanged="OnFechaInicioChanged" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudDatePicker Label="Fecha fin"
+                                               MinDate="DateTime.Today"
+                                               Variant="Variant.Outlined"
+                                               Margin="Margin.Dense"
+                                               DateFormat="dd/MM/yyyy"
+                                               Date="fechaFin"
+                                               DateChanged="OnFechaFinChanged" />
+                            </MudItem>
+
+                            <!-- editable pero calculado automáticamente -->
+                            <MudItem xs="12">
+                                <MudNumericField T="decimal?"
+                                                 @bind-Value="precioEstimado"
+                                                 Label="Precio estimado"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 Min="0" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudNumericField T="decimal?"
+                                                 @bind-Value="_reservaDTO.Adelanto"
+                                                 Label="Adelanto"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 Min="0" />
+                            </MudItem>
+
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_reservaDTO.Observacion"
+                                              Label="Observación"
+                                              Variant="Variant.Outlined"
+                                              Margin="Margin.Dense" />
+                            </MudItem>
+
+                        </MudGrid>
+                    </MudCardContent>
+
+                </MudCard>
+            </MudItem>
+
+        </MudGrid>
+
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+
+    [Parameter]
+    public int idHabitacion { get; set; }
+
+    private ClienteDTO _clienteDTO = new();
+    private ReservaDTO _reservaDTO = new();
+
+    private bool _crearCliente = false;
+
+    private DateTime? fechaInicio = DateTime.Today;
+    private DateTime? fechaFin = DateTime.Today;
+
+    private decimal? precioEstimado = 0;
+
+    private HabitacionDTO _habitacionDTO = new()
+    {
+        IdEstadoHabitacionNavigation = new EstadoHabitacionDTO(),
+        IdCategoriaNavigation = new CategoriaDTO(),
+        IdPisoNavigation = new PisoDTO()
+    };
+
+    protected override async Task OnParametersSetAsync()
+    {
+        var response = await _habitacionServicio.Obtener(idHabitacion);
+
+        if (response.status && response.value != null)
+        {
+            _habitacionDTO = response.value;
+
+            // valores por defecto
+            fechaInicio = DateTime.Today;
+            fechaFin = DateTime.Today.AddDays(1);
+
+            RecalcularPrecio();
+        }
+    }
+
+    private Task CrearCliente()
+    {
+        _crearCliente = true;
+        _clienteDTO = new ClienteDTO();
+        return Task.CompletedTask;
+    }
+
+    private async Task Buscar()
+    {
+        DialogOptions options = new()
+        {
+            Position = DialogPosition.TopCenter,
+            NoHeader = true
+        };
+
+        var dialogo = _dialogServicio.Show<MdClientes>("", options);
+        var resultado = await dialogo.Result;
+
+        if (!resultado.Canceled && resultado.Data is ClienteDTO cliente)
+        {
+            _crearCliente = false;
+            _clienteDTO = cliente;
+        }
+    }
+
+    private void OnFechaInicioChanged(DateTime? value)
+    {
+        fechaInicio = value;
+
+        if (fechaInicio != null && fechaFin != null && fechaFin.Value.Date <= fechaInicio.Value.Date)
+            fechaFin = fechaInicio.Value.AddDays(1);
+
+        RecalcularPrecio();
+    }
+
+    private void OnFechaFinChanged(DateTime? value)
+    {
+        fechaFin = value;
+        RecalcularPrecio();
+    }
+
+    private void RecalcularPrecio()
+    {
+        if (fechaInicio == null || fechaFin == null || _habitacionDTO.Precio == null)
+            return;
+
+        // Hotel real: se cobra por NOCHES
+        var noches = (fechaFin.Value.Date - fechaInicio.Value.Date).Days;
+
+        // Si aún no es válido (misma fecha o fecha fin menor), no calculamos
+        if (noches <= 0)
+        {
+            precioEstimado = 0;
+            return;
+        }
+
+        precioEstimado = _habitacionDTO.Precio.Value * noches;
+    }
+
+    
+    private async Task RegistrarReserva()
+    {
+        if (fechaInicio == null || fechaFin == null)
+        {
+            await Swal.FireAsync("Error", "Debe ingresar las fechas de la reserva.", "warning");
+            return;
+        }
+        if (fechaFin.Value.Date <= fechaInicio.Value.Date)
+        {
+            await Swal.FireAsync("Error", "La fecha de salida debe ser mayor a la fecha de entrada.", "warning");
+            return;
+        }
+
+
+        if (_clienteDTO == null || string.IsNullOrWhiteSpace(_clienteDTO.NombreCompleto))
+        {
+            await Swal.FireAsync("Error", "Debe seleccionar o crear un cliente.", "warning");
+            return;
+        }
+
+        // 👉 Si es cliente nuevo, lo guardamos primero
+        if (_crearCliente)
+        {
+            var respCliente = await _clienteServicio.Crear(_clienteDTO);
+
+            if (!respCliente.status)
+            {
+                await Swal.FireAsync("Error", "No se pudo registrar el cliente.", "error");
+                return;
+            }
+
+            // Aquí ya viene el IdCliente desde la API
+            _clienteDTO = respCliente.value;
+        }
+        // ================================
+        // ✅ CONTROL ADELANTO vs ESTIMADO
+        // ================================
+        // precioEstimado viene de tu UI (según tu código)
+        // Ajusta esta línea al nombre real del adelanto en tu DTO:
+        var adelanto = _reservaDTO.Adelanto ??0m; // <- CAMBIA si tu propiedad se llama distinto
+
+        if (precioEstimado <= 0)
+        {
+            await Swal.FireAsync("Error", "El valor estimado debe ser mayor a 0.", "warning");
+            return;
+        }
+
+        if (adelanto <= 0)
+        {
+            await Swal.FireAsync("Error", "Debe ingresar un Adelanto.", "warning");
+            return;
+        }
+
+        if (adelanto > precioEstimado)
+        {
+            await Swal.FireAsync("Error", "El adelanto no puede ser mayor al valor estimado.", "warning");
+            return;
+        }
+        //
+        // 👉 Armamos la reserva
+        _reservaDTO.IdHabitacion = idHabitacion;
+        _reservaDTO.IdCliente = _clienteDTO.IdCliente;
+
+        _reservaDTO.FechaEntrada = fechaInicio;
+        _reservaDTO.FechaSalidaReserva = fechaFin;
+        _reservaDTO.PrecioInicial = precioEstimado;
+
+        var response = await _reservaServicio.Crear(_reservaDTO);
+
+        if (response.status)
+        {
+            await Swal.FireAsync("Éxito", "Reserva registrada correctamente", "success");
+            navManager.NavigateTo("/page/reservas");
+        }
+        else
+        {
+            await Swal.FireAsync("No disponible", response.msg, "warning");
+        }
+
+    }
+
+
+}
+

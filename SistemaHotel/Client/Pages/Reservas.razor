@@ -1,0 +1,562 @@
+﻿@page "/page/reservas"
+
+@inject IPisoServicio _pisoServicio
+@inject IHabitacionServicio _habitacionServicio
+@inject IReservaServicio _reservaServicio
+@inject NavigationManager _navManager
+@inject SweetAlertService Swal
+@inject ISnackbar _snackBar
+@using ClosedXML.Excel
+@inject IJSRuntime _jsServicio
+
+@attribute [Authorize]
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+
+    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+        <MudText Typo="Typo.h5">Reservas</MudText>
+    </MudStack>
+
+    <MudTabs Rounded="true" Elevation="1" Class="mt-3" @bind-ActivePanelIndex="_tabIndex">
+
+        <!-- ========================= -->
+        <!-- TAB 1: HABITACIONES       -->
+        <!-- ========================= -->
+        <MudTabPanel Text="Habitaciones">
+
+            <MudPaper Elevation="3" Class="pa-4" Width="100%">
+
+                <MudGrid>
+                    <MudItem xs="12" sm="3">
+                        <MudSelect T="PisoDTO"
+                                   Label="Piso"
+                                   Variant="Variant.Outlined"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   Class="mb-3"
+                                   Value="pisoSeleccionado"
+                                   Margin="Margin.Dense"
+                                   ValueChanged="OnSelectedValueChanged">
+                            @if (listaPisos.Any())
+                            {
+                                foreach (var item in listaPisos)
+                                {
+                                    <MudSelectItem Value="@item">@item.Descripcion</MudSelectItem>
+                                }
+                            }
+                        </MudSelect>
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3">
+                        <MudDatePicker Label="Desde"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       DateFormat="dd/MM/yyyy"
+                                       Date="fechaInicioFiltro"
+                                       DateChanged="OnFechaInicioChanged" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3">
+                        <MudDatePicker Label="Hasta"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense"
+                                       DateFormat="dd/MM/yyyy"
+                                       Date="fechaFinFiltro"
+                                       DateChanged="OnFechaFinChanged" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="3" Class="d-flex align-center">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   FullWidth="true"
+                                   Style="height:53px"
+                                   Disabled="@(!PuedeAplicar)"
+                                   OnClick="AplicarFiltroFechas">
+                            Aplicar
+                        </MudButton>
+                    </MudItem>
+                </MudGrid>
+
+                <MudDivider Class="my-2" />
+
+                <MudGrid>
+                    @if (listaHabitaciones != null)
+                    {
+                        foreach (var item in listaHabitaciones)
+                        {
+                            bool bloqueada = habitacionesBloqueadas.Contains(item.IdHabitacion);
+
+                            string borderTarjeta =
+                            item.IdEstadoHabitacion == 1 ? "mud-border-success" :
+                            item.IdEstadoHabitacion == 2 ? "mud-border-info" :
+                                                    "mud-border-error";
+
+                            Color colorTarjeta =
+                            item.IdEstadoHabitacion == 1 ? Color.Success :
+                            item.IdEstadoHabitacion == 2 ? Color.Info :
+                            Color.Error;
+
+                            string icono =
+                            item.IdEstadoHabitacion == 1 ? Icons.Material.Filled.KingBed :
+                            Icons.Material.Filled.EventBusy;
+
+                            <MudItem xs="12" lg="3" md="4" sm="6">
+                                <MudCard Class="@(borderTarjeta + " border-solid border-1")">
+                                    <MudCardContent Class="d-flex flex-row justify-space-between">
+                                        <div>
+                                            <MudText Typo="Typo.h5">@item.Numero</MudText>
+                                            <MudText Typo="Typo.body1">
+                                                Categoria: @item.IdCategoriaNavigation?.Descripcion
+                                            </MudText>
+                                        </div>
+
+                                        <MudIcon Icon="@icono"
+                                                 Color="colorTarjeta"
+                                                 Class="mx-4"
+                                                 Style="width:54px; height:54px;" />
+                                    </MudCardContent>
+
+                                    <MudCardActions>
+                                        <MudButton Variant="Variant.Text"
+                                                   Color="colorTarjeta"
+                                                   FullWidth="true"
+                                                   Disabled="@bloqueada"
+                                                   OnClick="@(() => Reservar(item))">
+                                            @(bloqueada ? "No disponible en rango" : "Reservar")
+                                        </MudButton>
+                                    </MudCardActions>
+                                </MudCard>
+                            </MudItem>
+                        }
+                    }
+                    else
+                    {
+                        <MudItem xs="12" Class="d-flex justify-center">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        </MudItem>
+                    }
+                </MudGrid>
+
+            </MudPaper>
+        </MudTabPanel>
+
+        <!-- ========================= -->
+        <!-- TAB 2: LISTADO            -->
+        <!-- ========================= -->
+        <MudTabPanel Text="Listado">
+
+            <MudPaper Class="pa-4 mb-4" Elevation="3">
+                <MudGrid AlignItems="AlignItems.FlexEnd" Spacing="2">
+
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker Label="Desde"
+                                       Date="@fechaInicioListado"
+                                       DateChanged="@(v => fechaInicioListado = v)"
+                                       DateFormat="dd/MM/yyyy"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4">
+                        <MudDatePicker Label="Hasta"
+                                       Date="@fechaFinListado"
+                                       DateChanged="@(v => fechaFinListado = v)"
+                                       DateFormat="dd/MM/yyyy"
+                                       Variant="Variant.Outlined"
+                                       Margin="Margin.Dense" />
+                    </MudItem>
+
+                    <MudItem xs="12" sm="4" Class="d-flex gap-2">
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Primary"
+                                   OnClick="BuscarReservasListado"
+                                   FullWidth="true"
+                                   Disabled="@cargandoListado">
+                            Buscar
+                        </MudButton>
+
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Secondary"
+                                   OnClick="LimpiarListado"
+                                   FullWidth="true"
+                                   Disabled="@cargandoListado">
+                            Limpiar
+                        </MudButton>
+                    </MudItem>
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3">
+                        <MudText Typo="Typo.h6">Listado de reservas</MudText>
+
+                        <MudButton Variant="Variant.Filled"
+                                   Color="Color.Success"
+                                   StartIcon="@Icons.Material.Filled.FileDownload"
+                                   Disabled="@(cargandoListado || listaReservasListado == null || !listaReservasListado.Any())"
+                                   OnClick="ExportarExcelListado">
+                            Exportar Excel
+                        </MudButton>
+                    </MudStack>
+                </MudGrid>
+            </MudPaper>
+
+            <MudPaper Class="pa-4" Elevation="3">
+
+                @if (cargandoListado)
+                {
+                    <div class="d-flex justify-center pa-6">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    </div>
+                }
+                else
+                {
+                    <MudTable Items="@listaReservasListado" Hover="true" Dense="true" Bordered="true" Striped="true">
+                        <HeaderContent>
+                            <MudTh>Cliente</MudTh>
+                            <MudTh>Habitación</MudTh>
+                            <MudTh>Entrada</MudTh>
+                            <MudTh>Salida</MudTh>
+                            <MudTh class="text-right">Total</MudTh>
+                            <MudTh class="text-right">Cancelado</MudTh>
+                            <MudTh class="text-right">Pendiente</MudTh>
+                        </HeaderContent>
+
+                        <RowTemplate>
+                            <MudTd DataLabel="Cliente">@context.NombreCliente</MudTd>
+                            <MudTd DataLabel="Habitación">@context.NroHabitacion</MudTd>
+                            <MudTd DataLabel="Entrada">@context.FechaEntrada</MudTd>
+                            <MudTd DataLabel="Salida">@context.FechaSalida</MudTd>
+
+                            <MudTd DataLabel="Total" Class="text-right">@context.Total.ToString("N2")</MudTd>
+                            <MudTd DataLabel="Cancelado" Class="text-right">@context.ValorCancelado.ToString("N2")</MudTd>
+                            <MudTd DataLabel="Pendiente" Class="text-right">@context.ValorPendiente.ToString("N2")</MudTd>
+                        </RowTemplate>
+
+                        <NoRecordsContent>
+                            <MudText Class="pa-4">No hay reservas para el rango seleccionado.</MudText>
+                        </NoRecordsContent>
+                    </MudTable>
+                }
+
+            </MudPaper>
+
+        </MudTabPanel>
+
+    </MudTabs>
+
+</MudContainer>
+
+@code {
+
+    // =========================
+    // Tabs
+    // =========================
+    private int _tabIndex = 0;
+
+    // =========================
+    // HABITACIONES (lo tuyo)
+    // =========================
+    private DateTime? fechaInicioFiltro = DateTime.Today;
+    private DateTime? fechaFinFiltro = DateTime.Today.AddDays(1);
+
+    private DateTime? _fiInicial;
+    private DateTime? _ffInicial;
+    private bool _fechasTocadas = false;
+
+    private bool RangoValido =>
+        fechaInicioFiltro.HasValue &&
+        fechaFinFiltro.HasValue &&
+        fechaFinFiltro.Value.Date > fechaInicioFiltro.Value.Date;
+
+    private bool PuedeAplicar => _fechasTocadas && RangoValido;
+
+    private HashSet<int> habitacionesBloqueadas = new();
+
+    List<PisoDTO> listaPisos = new();
+    PisoDTO? pisoSeleccionado;
+    List<HabitacionDTO>? listaHabitaciones = new();
+
+    // =========================
+    // LISTADO (nuevo)
+    // =========================
+    private DateTime? fechaInicioListado = DateTime.Today;
+    private DateTime? fechaFinListado = DateTime.Today;
+    private bool cargandoListado = false;
+    private List<ReservaReporteDTO> listaReservasListado = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _fiInicial = fechaInicioFiltro?.Date;
+        _ffInicial = fechaFinFiltro?.Date;
+
+        var responsePiso = await _pisoServicio.Lista();
+        if (!responsePiso.status || responsePiso.value is null)
+        {
+            listaPisos = new();
+            listaHabitaciones = new();
+            return;
+        }
+
+        listaPisos = responsePiso.value as List<PisoDTO> ?? new List<PisoDTO>();
+
+        if (!listaPisos.Any())
+        {
+            listaHabitaciones = new();
+            return;
+        }
+
+        pisoSeleccionado = listaPisos.First();
+        await ObtenerHabitaciones(pisoSeleccionado.IdPiso);
+    }
+
+    private async Task ObtenerHabitaciones(int idPiso)
+    {
+        var response = await _habitacionServicio.Lista();
+        if (!response.status)
+        {
+            await Swal.FireAsync("Error en habitaciones", response.msg, "error");
+            listaHabitaciones = new();
+            return;
+        }
+
+        var todas = response.value as List<HabitacionDTO> ?? new List<HabitacionDTO>();
+        listaHabitaciones = todas.Where(h => h.IdPiso == idPiso).ToList();
+    }
+
+    private async Task OnSelectedValueChanged(PisoDTO value)
+    {
+        pisoSeleccionado = value;
+        await ObtenerHabitaciones(value.IdPiso);
+    }
+
+    private async Task AplicarFiltroFechas()
+    {
+        if (pisoSeleccionado is null)
+        {
+            await Swal.FireAsync("Sin piso", "Selecciona un piso primero.", "warning");
+            return;
+        }
+
+        if (fechaInicioFiltro == null || fechaFinFiltro == null)
+        {
+            await Swal.FireAsync("Fechas requeridas", "Selecciona Desde y Hasta.", "warning");
+            return;
+        }
+
+        var fi = fechaInicioFiltro.Value.Date;
+        var ff = fechaFinFiltro.Value.Date;
+
+        if (ff <= fi)
+        {
+            await Swal.FireAsync("Rango inválido", "La fecha Hasta debe ser mayor que Desde.", "warning");
+            return;
+        }
+
+        var resp = await _habitacionServicio.OcupacionPorRango(
+            fi.ToString("yyyy-MM-dd"),
+            ff.ToString("yyyy-MM-dd")
+        );
+
+        if (!resp.status)
+        {
+            await Swal.FireAsync("Error", resp.msg, "error");
+            return;
+        }
+
+        habitacionesBloqueadas = (resp.value ?? new List<int>()).ToHashSet();
+        await ObtenerHabitaciones(pisoSeleccionado.IdPiso);
+    }
+
+    private void Reservar(HabitacionDTO modelo)
+    {
+        _navManager.NavigateTo($"/page/detallereserva/{modelo.IdHabitacion}");
+    }
+
+    private Task OnFechaInicioChanged(DateTime? value)
+    {
+        fechaInicioFiltro = value;
+        MarcarFechasTocadas();
+        return Task.CompletedTask;
+    }
+
+    private Task OnFechaFinChanged(DateTime? value)
+    {
+        fechaFinFiltro = value;
+        MarcarFechasTocadas();
+        return Task.CompletedTask;
+    }
+
+    private void MarcarFechasTocadas()
+    {
+        var fi = fechaInicioFiltro?.Date;
+        var ff = fechaFinFiltro?.Date;
+        _fechasTocadas = (fi != _fiInicial) || (ff != _ffInicial);
+    }
+
+    // =========================
+    // LISTADO métodos
+    // =========================
+    private async Task BuscarReservasListado()
+    {
+        if (fechaInicioListado == null || fechaFinListado == null)
+        {
+            await Swal.FireAsync("Error", "Seleccione las fechas", "warning");
+            return;
+        }
+
+        if (fechaFinListado.Value.Date < fechaInicioListado.Value.Date)
+        {
+            await Swal.FireAsync("Error", "La fecha 'Hasta' no puede ser menor que 'Desde'", "warning");
+            return;
+        }
+
+        try
+        {
+            cargandoListado = true;
+
+            var fi = fechaInicioListado.Value.ToString("dd/MM/yyyy");
+            var ff = fechaFinListado.Value.ToString("dd/MM/yyyy");
+
+            var response = await _reservaServicio.FiltrarListado(fi, ff);
+
+            if (response.status)
+                listaReservasListado = response.value ?? new();
+            else
+                await Swal.FireAsync("Error", response.msg, "error");
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", ex.Message, "error");
+        }
+        finally
+        {
+            cargandoListado = false;
+        }
+    }
+
+    private Task LimpiarListado()
+    {
+        fechaInicioListado = DateTime.Today;
+        fechaFinListado = DateTime.Today;
+        listaReservasListado = new();
+        return Task.CompletedTask;
+    }
+    private async Task ExportarExcelListado()
+    {
+        if (listaReservasListado == null || !listaReservasListado.Any())
+        {
+            await Swal.FireAsync("Sin datos", "No hay reservas para exportar.", "warning");
+            return;
+        }
+
+        try
+        {
+            using var libro = new XLWorkbook();
+            var hoja = libro.Worksheets.Add("Listado Reservas");
+
+            // ====== Encabezado ======
+            hoja.Cell(1, 1).Value = "LISTADO DE RESERVAS";
+            hoja.Range(1, 1, 1, 7).Merge();
+            hoja.Cell(1, 1).Style.Font.Bold = true;
+            hoja.Cell(1, 1).Style.Font.FontSize = 16;
+            hoja.Cell(1, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+            var desde = fechaInicioListado?.ToString("dd/MM/yyyy") ?? "";
+            var hasta = fechaFinListado?.ToString("dd/MM/yyyy") ?? "";
+
+            hoja.Cell(2, 1).Value = $"Rango: {desde} - {hasta}";
+            hoja.Range(2, 1, 2, 7).Merge();
+            hoja.Cell(2, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            hoja.Cell(2, 1).Style.Font.Italic = true;
+
+            // ====== Cabecera tabla ======
+            int filaHeader = 4;
+
+            hoja.Cell(filaHeader, 1).Value = "Cliente";
+            hoja.Cell(filaHeader, 2).Value = "Habitación";
+            hoja.Cell(filaHeader, 3).Value = "Entrada";
+            hoja.Cell(filaHeader, 4).Value = "Salida";
+            hoja.Cell(filaHeader, 5).Value = "Total";
+            hoja.Cell(filaHeader, 6).Value = "Cancelado";
+            hoja.Cell(filaHeader, 7).Value = "Pendiente";
+
+            var rangoHeader = hoja.Range(filaHeader, 1, filaHeader, 7);
+            rangoHeader.Style.Font.Bold = true;
+            rangoHeader.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+            rangoHeader.Style.Fill.BackgroundColor = XLColor.LightGray;
+            rangoHeader.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            rangoHeader.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            // ====== Filas ======
+            int fila = filaHeader + 1;
+
+            foreach (var r in listaReservasListado)
+            {
+                hoja.Cell(fila, 1).Value = r.NombreCliente;
+                hoja.Cell(fila, 2).Value = r.NroHabitacion;
+                hoja.Cell(fila, 3).Value = r.FechaEntrada;
+                hoja.Cell(fila, 4).Value = r.FechaSalida;
+
+                hoja.Cell(fila, 5).Value = r.Total;
+                hoja.Cell(fila, 6).Value = r.ValorCancelado;
+                hoja.Cell(fila, 7).Value = r.ValorPendiente;
+
+                fila++;
+            }
+
+            // Formato numérico para dinero
+            hoja.Range(filaHeader + 1, 5, fila - 1, 7).Style.NumberFormat.Format = "#,##0.00";
+
+            // Bordes al bloque de datos
+            var rangoTabla = hoja.Range(filaHeader, 1, fila - 1, 7);
+            rangoTabla.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            rangoTabla.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+            rangoTabla.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+            // ====== FILA DE TOTALES (SUMA) ======
+            int filaTotales = fila + 1;
+
+            hoja.Cell(filaTotales, 1).Value = "TOTALES";
+            hoja.Range(filaTotales, 1, filaTotales, 4).Merge();
+            hoja.Cell(filaTotales, 1).Style.Font.Bold = true;
+            hoja.Cell(filaTotales, 1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+            // Fórmulas de suma (siempre se recalculan en Excel)
+            hoja.Cell(filaTotales, 5).FormulaA1 = $"SUM(E{filaHeader + 1}:E{fila - 1})";
+            hoja.Cell(filaTotales, 6).FormulaA1 = $"SUM(F{filaHeader + 1}:F{fila - 1})";
+            hoja.Cell(filaTotales, 7).FormulaA1 = $"SUM(G{filaHeader + 1}:G{fila - 1})";
+
+            var rangoTotales = hoja.Range(filaTotales, 1, filaTotales, 7);
+            rangoTotales.Style.Font.Bold = true;
+            rangoTotales.Style.Fill.BackgroundColor = XLColor.LightGreen;
+            rangoTotales.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+            rangoTotales.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+            hoja.Range(filaTotales, 5, filaTotales, 7).Style.NumberFormat.Format = "#,##0.00";
+            hoja.Range(filaTotales, 5, filaTotales, 7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+            // Congelar cabecera
+            hoja.SheetView.FreezeRows(filaHeader);
+
+            // Anchos fijos (evita fuentes)
+            hoja.Column(1).Width = 35;
+            hoja.Column(2).Width = 12;
+            hoja.Column(3).Width = 14;
+            hoja.Column(4).Width = 14;
+            hoja.Column(5).Width = 14;
+            hoja.Column(6).Width = 14;
+            hoja.Column(7).Width = 14;
+
+            using var memoria = new MemoryStream();
+            libro.SaveAs(memoria);
+
+            var nombreExcel = $"ListadoReservas_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+
+            await _jsServicio.InvokeAsync<object>(
+                "DescargarExcel",
+                nombreExcel,
+                Convert.ToBase64String(memoria.ToArray())
+            );
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", ex.Message, "error");
+        }
+    }
+}

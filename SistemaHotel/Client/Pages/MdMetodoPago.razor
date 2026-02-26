@@ -1,0 +1,57 @@
+﻿@using MudBlazor
+@inject ISnackbar Snackbar
+
+<MudDialog>
+    <DialogContent>
+        <MudStack Spacing="2">
+            <MudText Typo="Typo.h6">Selecciona método de pago</MudText>
+
+            <MudRadioGroup T="string" @bind-SelectedOption="metodo">
+                <MudRadio T="string" Option="@("EFECTIVO")" Color="Color.Primary">Efectivo</MudRadio>
+                <MudRadio T="string" Option="@("TRANSFERENCIA")" Color="Color.Primary">Transferencia</MudRadio>
+                <MudRadio T="string" Option="@("OTRO")" Color="Color.Primary">Otro</MudRadio>
+            </MudRadioGroup>
+
+            @if (metodo == "OTRO")
+            {
+                <MudTextField @bind-Value="nota"
+                              Label="¿Cuál?"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Placeholder="Ej: Tarjeta, PayPhone..." />
+            }
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="Cancel">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Ok">Aceptar</MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
+
+    private string metodo = "EFECTIVO";
+    private string? nota;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private void Ok()
+    {
+        // regla simple: si OTRO y está vacío, no obligamos, pero puedes obligar si quieres
+        var result = new MetodoPagoResult
+        {
+            MetodoPago = metodo,
+            NotaMetodoPago = string.IsNullOrWhiteSpace(nota) ? null : nota.Trim()
+        };
+
+        MudDialog.Close(DialogResult.Ok(result));
+    }
+
+    public class MetodoPagoResult
+    {
+        public string MetodoPago { get; set; } = "EFECTIVO";
+        public string? NotaMetodoPago { get; set; }
+    }
+}

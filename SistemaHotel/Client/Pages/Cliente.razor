@@ -1,0 +1,337 @@
+﻿@page "/page/cliente"
+@attribute [Authorize]
+
+@using ClosedXML.Excel
+@using System.IO
+
+@inject IClienteServicio _clienteServicio
+@inject IDialogService _dialogServicio
+@inject ISnackbar _snackBar
+@inject SweetAlertService Swal
+@inject IJSRuntime _jsServicio
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+
+    <MudText Typo="Typo.h5" GutterBottom="true">Clientes</MudText>
+
+    <MudPaper Elevation="3" Class="pa-4" Width="100%">
+        <MudGrid>
+            <MudItem xs="12" Class="d-flex gap-2">
+                <MudButton Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.Add"
+                           Color="Color.Primary"
+                           OnClick="AbrirNuevoModelo">
+                    Nuevo Cliente
+                </MudButton>
+
+                <MudButton Variant="Variant.Filled"
+                           StartIcon="@Icons.Material.Filled.DataThresholding"
+                           Color="Color.Success"
+                           Disabled="@desactivarBoton"
+                           OnClick="ExportarExcelClientes">
+                    Exportar Excel
+                </MudButton>
+            </MudItem>
+
+            <MudItem xs="12">
+
+                <MudTable Items="@listaModelos"
+                          Dense="true"
+                          Striped="true" Bordered="true"
+                          Filter="new Func<ClienteDTO, bool>(FilterFunc1)"
+                          @bind-SelectedItem="selectedItem1"
+                          Loading="@_loading" LoadingProgressColor="Color.Info">
+
+                    <ToolBarContent>
+                        <MudSpacer />
+                        <MudTextField @bind-Value="searchString1"
+                                      Placeholder="Buscar"
+                                      Adornment="Adornment.Start"
+                                      AdornmentIcon="@Icons.Material.Filled.Search"
+                                      IconSize="Size.Medium"
+                                      Class="mt-0" />
+                    </ToolBarContent>
+
+                    <HeaderContent>
+                        <MudTh>Tipo Documento</MudTh>
+                        <MudTh>Documento</MudTh>
+                        <MudTh>Nombre Completo</MudTh>
+                        <MudTh>Correo</MudTh>
+                        <MudTh>Teléfono</MudTh>
+                        <MudTh>Dirección</MudTh>
+                        <MudTh></MudTh>
+                    </HeaderContent>
+
+                    <RowTemplate Context="modeloRow">
+                        <MudTd DataLabel="Tipo Documento">@modeloRow.TipoDocumento</MudTd>
+                        <MudTd DataLabel="Documento">@modeloRow.Documento</MudTd>
+                        <MudTd DataLabel="Nombre Completo">@modeloRow.NombreCompleto</MudTd>
+                        <MudTd DataLabel="Correo">@modeloRow.Correo</MudTd>
+
+                        @* ✅ CORREGIDO: antes estabas mostrando Correo *@
+                        <MudTd DataLabel="Teléfono">@modeloRow.Telefono</MudTd>
+                        <MudTd DataLabel="Dirección">@modeloRow.Direccion</MudTd>
+
+                        <MudTd DataLabel="">
+                            <MudFab Color="Color.Primary"
+                                    StartIcon="@Icons.Material.Filled.Edit"
+                                    Size="Size.Small"
+                                    IconSize="Size.Small"
+                                    OnClick="@(() => AbrirEditarModelo(modeloRow))" />
+                            <MudFab Color="Color.Error"
+                                    StartIcon="@Icons.Material.Filled.Delete"
+                                    Size="Size.Small"
+                                    IconSize="Size.Small"
+                                    OnClick="@(() => EliminarModelo(modeloRow))" />
+                        </MudTd>
+                    </RowTemplate>
+
+                    <PagerContent>
+                        <MudTablePager />
+                    </PagerContent>
+
+                </MudTable>
+
+            </MudItem>
+        </MudGrid>
+    </MudPaper>
+
+</MudContainer>
+
+@code {
+    List<ClienteDTO> listaModelos = new();
+    private string searchString1 = "";
+    private ClienteDTO selectedItem1 = null;
+    private bool _loading = true;
+
+    // ✅ igual que Reportes.razor
+    private bool desactivarBoton = true;
+
+    private async Task ObtenerData()
+    {
+        var result = await _clienteServicio.Lista();
+
+        if (result.status && result.value != null)
+            listaModelos = (List<ClienteDTO>)result.value!;
+        else
+            listaModelos = new();
+
+        // ✅ habilita/deshabilita Excel
+        desactivarBoton = !listaModelos.Any();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ObtenerData();
+        _loading = false;
+    }
+
+    private bool FilterFunc1(ClienteDTO element) => FilterFunc(element, searchString1);
+
+    private bool FilterFunc(ClienteDTO element, string searchString)
+    {
+        if (string.IsNullOrWhiteSpace(searchString))
+            return true;
+
+        searchString = searchString.Trim();
+
+        if ((element.TipoDocumento ?? "").Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if ((element.Documento ?? "").Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if ((element.NombreCompleto ?? "").Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if ((element.Correo ?? "").Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if ((element.Telefono ?? "").Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if ((element.Direccion ?? "").Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+
+        return false;
+    }
+
+    private async Task AbrirNuevoModelo()
+    {
+        var dialogo = _dialogServicio.Show<MdCliente>("Nuevo Cliente");
+        var resultado = await dialogo.Result;
+
+        if (!resultado.Canceled)
+            await ObtenerData();
+    }
+
+    private async Task AbrirEditarModelo(ClienteDTO modelo)
+    {
+        var parametros = new DialogParameters { ["_cliente"] = modelo };
+        var dialogo = _dialogServicio.Show<MdCliente>("Editar Cliente", parametros);
+        var resultado = await dialogo.Result;
+
+        if (!resultado.Canceled)
+            await ObtenerData();
+    }
+
+    private async Task EliminarModelo(ClienteDTO modelo)
+    {
+        SweetAlertResult result = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Esta seguro?",
+            Text = $"Eliminar cliente: {modelo.NombreCompleto}",
+            Icon = SweetAlertIcon.Warning,
+            ShowCancelButton = true,
+            ConfirmButtonText = "Si, eliminar",
+            CancelButtonText = "No, volver"
+        });
+
+        if (result.IsConfirmed)
+        {
+            var ok = await _clienteServicio.Eliminar(modelo.IdCliente);
+
+            if (ok)
+            {
+                _snackBar.Add("El cliente fue eliminado", Severity.Success, a => a.VisibleStateDuration = 1000);
+                await ObtenerData();
+            }
+            else
+                _snackBar.Add("No se pudo eliminar", Severity.Error, a => a.VisibleStateDuration = 1000);
+        }
+    }
+
+    // ✅ NUEVO: Exportar Excel igual que Reportes.razor
+    private async Task ExportarExcelClientes()
+    {
+        var data = string.IsNullOrWhiteSpace(searchString1)
+            ? listaModelos
+            : listaModelos.Where(c => FilterFunc(c, searchString1)).ToList();
+
+        if (data == null || data.Count == 0)
+        {
+            await Swal.FireAsync("Sin datos", "No hay clientes para exportar.", "info");
+            return;
+        }
+
+        using var libro = new XLWorkbook();
+        var hoja = libro.Worksheets.Add("Clientes");
+
+        // =========================
+        // 1) Título + metadata
+        // =========================
+        hoja.Cell("A1").Value = "REPORTE DE CLIENTES";
+        hoja.Range("A1:F1").Merge();
+
+        hoja.Cell("A2").Value = $"Generado: {DateTime.Now:dd/MM/yyyy HH:mm}";
+        hoja.Range("A2:F2").Merge();
+
+        hoja.Cell("A3").Value = $"Total clientes: {data.Count}";
+        hoja.Range("A3:F3").Merge();
+
+        var titulo = hoja.Range("A1:F1");
+        titulo.Style.Font.Bold = true;
+        titulo.Style.Font.FontSize = 16;
+        titulo.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        titulo.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+        var meta = hoja.Range("A2:F3");
+        meta.Style.Font.FontSize = 11;
+        meta.Style.Font.Italic = true;
+        meta.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+
+        hoja.Row(1).Height = 26;
+        hoja.Row(2).Height = 18;
+        hoja.Row(3).Height = 18;
+
+        // =========================
+        // 2) Encabezados (fila 5)
+        // =========================
+        int headerRow = 5;
+
+        hoja.Cell(headerRow, 1).Value = "Tipo Documento";
+        hoja.Cell(headerRow, 2).Value = "Documento";
+        hoja.Cell(headerRow, 3).Value = "Nombre Completo";
+        hoja.Cell(headerRow, 4).Value = "Correo";
+        hoja.Cell(headerRow, 5).Value = "Teléfono";
+        hoja.Cell(headerRow, 6).Value = "Dirección";
+
+        var headerRange = hoja.Range(headerRow, 1, headerRow, 6);
+        headerRange.Style.Font.Bold = true;
+        headerRange.Style.Font.FontSize = 12;
+        headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#5B4BDB"); // morado pro
+        headerRange.Style.Font.FontColor = XLColor.White;
+        headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+        hoja.Row(headerRow).Height = 20;
+
+        // =========================
+        // 3) Datos (desde fila 6)
+        // =========================
+        var export = data.Select(c => new
+        {
+            TipoDocumento = c.TipoDocumento ?? "",
+            Documento = c.Documento ?? "",
+            NombreCompleto = c.NombreCompleto ?? "",
+            Correo = c.Correo ?? "",
+            Telefono = c.Telefono ?? "",
+            Direccion = c.Direccion ?? ""
+        }).ToList();
+
+        int startDataRow = headerRow + 1;
+        hoja.Cell(startDataRow, 1).InsertData(export);
+
+        // =========================
+        // 4) Formatos pro
+        // =========================
+        int endRow = startDataRow + export.Count - 1;
+        var tableRange = hoja.Range(headerRow, 1, endRow, 6);
+
+        // Bordes tabla completa
+        tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+
+        // Congelar encabezado
+        hoja.SheetView.FreezeRows(headerRow);
+
+        // AutoFilter
+        tableRange.SetAutoFilter();
+        // Ajuste de columnas (con mínimos para que se vea bien)
+        hoja.Column(1).Width = 16; // Tipo Documento
+        hoja.Column(2).Width = 16; // Documento
+        hoja.Column(3).Width = 28; // Nombre
+        hoja.Column(4).Width = 28; // Correo
+        hoja.Column(5).Width = 16; // Teléfono
+        hoja.Column(6).Width = 28; // Dirección
+
+        // Formato texto para Documento y Teléfono (evita perder ceros)
+        hoja.Column(2).Style.NumberFormat.Format = "@";
+        hoja.Column(5).Style.NumberFormat.Format = "@";
+
+        
+
+        SetMinWidth(hoja.Column(1), 16);
+        SetMinWidth(hoja.Column(2), 16);
+        SetMinWidth(hoja.Column(3), 26);
+        SetMinWidth(hoja.Column(4), 26);
+        SetMinWidth(hoja.Column(5), 16);
+        SetMinWidth(hoja.Column(6), 24);
+
+        // Margen visual
+        hoja.Range(headerRow, 1, endRow, 6).Style.Alignment.WrapText = true;
+        hoja.Range(headerRow, 1, endRow, 6).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+        // =========================
+        // 5) Descargar
+        // =========================
+        using var memoria = new MemoryStream();
+        libro.SaveAs(memoria);
+
+        var nombreExcel = $"Clientes_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
+
+        await _jsServicio.InvokeAsync<object>(
+            "DescargarExcel",
+            nombreExcel,
+            Convert.ToBase64String(memoria.ToArray())
+        );
+    }
+
+    // helper para anchos mínimos
+    private static void SetMinWidth(IXLColumn col, double minWidth)
+    {
+        if (col.Width < minWidth)
+            col.Width = minWidth;
+    }
+}
