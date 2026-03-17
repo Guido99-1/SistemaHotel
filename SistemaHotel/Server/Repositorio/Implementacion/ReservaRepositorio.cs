@@ -1,9 +1,10 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SistemaHotel.Server.Models;
 using SistemaHotel.Server.Repositorio.Contratos;
+using System.ComponentModel.DataAnnotations;
+using System.Data;
 using System.Globalization;
 using System.Linq.Expressions;
-using System.Data;
 
 
 namespace SistemaHotel.Server.Repositorio.Implementacion
@@ -100,65 +101,65 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 .AnyAsync(h => h.IdHabitacion == idHabitacion && h.IdEstadoHabitacion == 3);
         }
 
-        public async Task<bool> Editar(Reserva entidad)
-        {
-            await using var transaction = await _dbContext.Database
-                .BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
+        //public async Task<bool> Editar(Reserva entidad)
+        //{
+        //    await using var transaction = await _dbContext.Database
+        //        .BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
-            try
-            {
-                if (entidad.IdReserva <= 0)
-                    throw new InvalidOperationException("IdReserva inválido.");
+        //    try
+        //    {
+        //        if (entidad.IdReserva <= 0)
+        //            throw new InvalidOperationException("IdReserva inválido.");
 
-                if (entidad.IdHabitacion == null || entidad.IdHabitacion <= 0)
-                    throw new InvalidOperationException("Debe seleccionar una habitación.");
+        //        if (entidad.IdHabitacion == null || entidad.IdHabitacion <= 0)
+        //            throw new InvalidOperationException("Debe seleccionar una habitación.");
 
-                if (entidad.IdCliente == null || entidad.IdCliente <= 0)
-                    throw new InvalidOperationException("Debe seleccionar un cliente.");
+        //        if (entidad.IdCliente == null || entidad.IdCliente <= 0)
+        //            throw new InvalidOperationException("Debe seleccionar un cliente.");
 
-                if (!entidad.FechaEntrada.HasValue || !entidad.FechaSalidaReserva.HasValue)
-                    throw new InvalidOperationException("Debe enviar FechaEntrada y FechaSalidaReserva.");
+        //        if (!entidad.FechaEntrada.HasValue || !entidad.FechaSalidaReserva.HasValue)
+        //            throw new InvalidOperationException("Debe enviar FechaEntrada y FechaSalidaReserva.");
 
-                var entrada = entidad.FechaEntrada.Value.Date;
-                var salida = entidad.FechaSalidaReserva.Value.Date;
+        //        var entrada = entidad.FechaEntrada.Value.Date;
+        //        var salida = entidad.FechaSalidaReserva.Value.Date;
 
-                if (salida <= entrada)
-                    throw new InvalidOperationException("La fecha de salida debe ser mayor a la fecha de entrada.");
+        //        if (salida <= entrada)
+        //            throw new InvalidOperationException("La fecha de salida debe ser mayor a la fecha de entrada.");
 
-                // ✅ Solapamiento excluyendo esta misma reserva
-                var haySolapamiento = await ExisteSolapamiento(
-                    entidad.IdHabitacion.Value,
-                    entrada,
-                    salida,
-                    excluirIdReserva: entidad.IdReserva
-                );
+        //        // ✅ Solapamiento excluyendo esta misma reserva
+        //        var haySolapamiento = await ExisteSolapamiento(
+        //            entidad.IdHabitacion.Value,
+        //            entrada,
+        //            salida,
+        //            excluirIdReserva: entidad.IdReserva
+        //        );
 
-                if (haySolapamiento)
-                    throw new InvalidOperationException(
-                        $"Habitación no disponible. Ya está ocupada o reservada entre {entrada:dd/MM/yyyy} y {salida:dd/MM/yyyy}. " +
-                        "Elige otras fechas o selecciona otra habitación."
-                    );
+        //        if (haySolapamiento)
+        //            throw new InvalidOperationException(
+        //                $"Habitación no disponible. Ya está ocupada o reservada entre {entrada:dd/MM/yyyy} y {salida:dd/MM/yyyy}. " +
+        //                "Elige otras fechas o selecciona otra habitación."
+        //            );
 
-                // No navegar
-                entidad.IdHabitacionNavigation = null;
-                entidad.IdClienteNavigation = null;
+        //        // No navegar
+        //        entidad.IdHabitacionNavigation = null;
+        //        entidad.IdClienteNavigation = null;
 
-                entidad.Adelanto ??= 0;
-                entidad.Estado = true;
-                entidad.EstadoReserva = string.IsNullOrWhiteSpace(entidad.EstadoReserva) ? "RESERVADA" : entidad.EstadoReserva;
+        //        entidad.Adelanto ??= 0;
+        //        entidad.Estado = true;
+        //        entidad.EstadoReserva = string.IsNullOrWhiteSpace(entidad.EstadoReserva) ? "RESERVADA" : entidad.EstadoReserva;
 
-                _dbContext.Reservas.Update(entidad);
-                await _dbContext.SaveChangesAsync();
+        //        _dbContext.Reservas.Update(entidad);
+        //        await _dbContext.SaveChangesAsync();
 
-                await transaction.CommitAsync();
-                return true;
-            }
-            catch
-            {
-                await transaction.RollbackAsync();
-                throw;
-            }
-        }
+        //        await transaction.CommitAsync();
+        //        return true;
+        //    }
+        //    catch
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
 
 
 
@@ -257,7 +258,175 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
             return hayReservaCruce;
         }
 
+        public async Task<bool> EditarReserva(Reserva entidad)
+        {
+            await using var transaction = await _dbContext.Database
+                .BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
+            try
+            {
+                if (entidad.IdReserva <= 0)
+                    throw new InvalidOperationException("IdReserva inválido.");
 
+                var reserva = await _dbContext.Reservas
+                    .FirstOrDefaultAsync(r => r.IdReserva == entidad.IdReserva);
+
+                if (reserva == null)
+                    throw new Exception("No se encontró la reserva.");
+                // ✅ Cambiar habitación (permitido solo si viene)
+                if (entidad.IdHabitacion is not null && entidad.IdHabitacion > 0)
+                {
+                    if (!entidad.FechaEntrada.HasValue || !entidad.FechaSalidaReserva.HasValue)
+                        throw new InvalidOperationException("Debe enviar FechaEntrada y FechaSalidaReserva.");
+
+                    var entrada = entidad.FechaEntrada.Value.Date;
+                    var salida = entidad.FechaSalidaReserva.Value.Date;
+
+                    if (salida <= entrada)
+                        throw new InvalidOperationException("La fecha de salida debe ser mayor a la fecha de entrada.");
+
+                    // ✅ VALIDAR CON LA HABITACIÓN NUEVA
+                    var haySolapamiento = await ExisteSolapamiento(
+                        entidad.IdHabitacion.Value,      // ✅ AQUÍ
+                        entrada,
+                        salida,
+                        excluirIdReserva: reserva.IdReserva
+                    );
+
+                    // ✅ VALIDAR CON LA HABITACIÓN NUEVA
+
+                    if (haySolapamiento)
+                    {
+                        // Traer número de la habitación (C02)
+                        var hab = await _dbContext.Habitacions
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(h => h.IdHabitacion == entidad.IdHabitacion.Value);
+
+                        var nroHab = hab?.Numero ?? entidad.IdHabitacion.Value.ToString();
+
+                        // 1) Buscar si el cruce viene de una RECEPCIÓN ACTIVA
+                        var recepcionCruce = await _dbContext.Recepcions
+                            .AsNoTracking()
+                            .Include(r => r.IdClienteNavigation)
+                            .Where(r =>
+                                r.IdHabitacion == entidad.IdHabitacion.Value &&
+                                r.Estado == true &&
+                                r.FechaEntrada.HasValue &&
+                                r.FechaSalida.HasValue &&
+                                entrada < r.FechaSalida.Value.Date &&
+                                salida > r.FechaEntrada.Value.Date
+                            )
+                            .OrderByDescending(r => r.IdRecepcion)
+                            .FirstOrDefaultAsync();
+
+                        if (recepcionCruce != null)
+                        {
+                            var cli = recepcionCruce.IdClienteNavigation?.NombreCompleto ?? "otro huésped";
+                            var fi = recepcionCruce.FechaEntrada!.Value.ToString("dd/MM/yyyy");
+                            var ff = recepcionCruce.FechaSalida!.Value.ToString("dd/MM/yyyy");
+
+                            throw new InvalidOperationException(
+                                $"No se puede cambiar a la habitación {nroHab} porque está OCUPADA (recepción activa) " +
+                                $"por {cli} en el rango {fi} - {ff}. " +
+                                $"Selecciona otra habitación o cambia las fechas."
+                            );
+                        }
+
+                        // 2) Si no es recepción, entonces es una RESERVA ACTIVA
+                        var reservaCruce = await _dbContext.Reservas
+                            .AsNoTracking()
+                            .Include(r => r.IdClienteNavigation)
+                            .Where(r =>
+                                r.IdHabitacion == entidad.IdHabitacion.Value &&
+                                r.Estado == true &&
+                                r.IdReserva != reserva.IdReserva &&
+                                r.FechaEntrada.HasValue &&
+                                r.FechaSalidaReserva.HasValue &&
+                                entrada < r.FechaSalidaReserva.Value.Date &&
+                                salida > r.FechaEntrada.Value.Date
+                            )
+                            .OrderByDescending(r => r.IdReserva)
+                            .FirstOrDefaultAsync();
+
+                        if (reservaCruce != null)
+                        {
+                            var cli = reservaCruce.IdClienteNavigation?.NombreCompleto ?? "otro cliente";
+                            var fi = reservaCruce.FechaEntrada!.Value.ToString("dd/MM/yyyy");
+                            var ff = reservaCruce.FechaSalidaReserva!.Value.ToString("dd/MM/yyyy");
+
+                            throw new InvalidOperationException(
+                                $"No se puede cambiar a la habitación {nroHab} porque ya existe una RESERVA " +
+                                $"para {cli} en el rango {fi} - {ff}. " +
+                                $"Selecciona otra habitación o cambia las fechas."
+                            );
+                        }
+
+                        // fallback (por si no encuentra el causante)
+                        throw new InvalidOperationException(
+                            $"No se puede cambiar a la habitación {nroHab} porque no está disponible " +
+                            $"para el rango {entrada:dd/MM/yyyy} - {salida:dd/MM/yyyy}."
+                        );
+                    }
+
+                    // ✅ ACTUALIZAR HABITACIÓN
+                    reserva.IdHabitacion = entidad.IdHabitacion.Value;  // ✅ AQUÍ
+
+                    // ✅ Actualizar campos permitidos
+                    reserva.FechaEntrada = entrada;
+                    reserva.FechaSalidaReserva = salida;
+
+                    var precio = entidad.PrecioInicial ?? 0m;
+                    var adelanto = entidad.Adelanto ?? 0m;
+
+                    if (precio < 0m) precio = 0m;
+                    if (adelanto < 0m) adelanto = 0m;
+                    if (adelanto > precio) adelanto = precio;
+
+                    reserva.PrecioInicial = precio;
+                    reserva.Adelanto = adelanto;
+
+                    reserva.PrecioRestante = Math.Max(0m, precio - adelanto);
+
+                    reserva.Observacion = entidad.Observacion;
+                }
+                // EstadoReserva (si lo manejas)
+                if (!string.IsNullOrWhiteSpace(entidad.EstadoReserva))
+                    reserva.EstadoReserva = entidad.EstadoReserva;
+
+                // ⚠️ NO recomiendo cambiar Estado aquí a true siempre.
+                // Si quieres permitirlo:
+                // reserva.Estado = entidad.Estado;
+
+                await _dbContext.SaveChangesAsync();
+                await transaction.CommitAsync();
+                return true;
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
+        }
+        public async Task<bool> Eliminar(int idReserva)
+        {
+            try
+            {
+                var reserva = await _dbContext.Reservas
+                    .FirstOrDefaultAsync(r => r.IdReserva == idReserva);
+
+                if (reserva == null)
+                    throw new Exception("No se encontró la reserva.");
+
+                _dbContext.Reservas.Remove(reserva);
+                await _dbContext.SaveChangesAsync();
+                return true;
+            }
+            catch (DbUpdateException ex)
+            {
+                // Esto normalmente es FK constraint
+                var msg = ex.InnerException?.Message ?? ex.Message;
+                throw new Exception("No se puede eliminar porque la reserva tiene registros relacionados. Detalle: " + msg);
+            }
+        }
     }
 }

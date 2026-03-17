@@ -1,33 +1,61 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
+
 <MudNavMenu>
-    <MudNavLink Href="/page/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">DashBoard</MudNavLink>
-     <AuthorizeView Roles="Administrador">
-            <Authorized>
-
-                <MudNavLink Href="/page/usuario" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person2">Usuarios</MudNavLink>
-                <MudNavGroup Icon="@Icons.Material.Filled.Settings" Title="Mantenimiento">
-                    <MudNavLink Href="/page/categoria">Categoria</MudNavLink>
-                    <MudNavLink Href="/page/piso">Piso</MudNavLink>
-                    <MudNavLink Href="/page/habitacion">Habitacion</MudNavLink>
-                </MudNavGroup>
 
 
-            </Authorized>
-      </AuthorizeView>
-    
-   
-    <MudNavLink Href="/page/cliente" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Group">Clientes</MudNavLink>
-    <MudNavLink Href="/page/recepcion" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AllInbox">Recepcion</MudNavLink>
-    <MudNavLink Href="/page/reservas" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Event">Reservas</MudNavLink>
+    <!-- Dashboard: todos los roles -->
+    <AuthorizeView Roles="Administrador,Empleado,Recepcionista,Reservas,Gerencia">
+        <MudNavLink Href="/page/dashboard" Match="NavLinkMatch.All" Icon="@Icons.Material.Filled.Dashboard">
+            DashBoard
+        </MudNavLink>
+    </AuthorizeView>
 
-    <MudNavLink Href="/page/salida" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PriceCheck">Salida</MudNavLink>
+    <!-- Usuarios + Mantenimiento: SOLO Administrador + Gerencia -->
+    <AuthorizeView Roles="Administrador,Gerencia">
+        <MudNavLink Href="/page/usuario" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Person2">
+            Usuarios
+        </MudNavLink>
 
-    <AuthorizeView Roles="Administrador">
-            <Authorized>
-                <MudNavLink Href="/page/reporte" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PlaylistAddCheckCircle">Reportes</MudNavLink>
-            </Authorized>
-     </AuthorizeView>
-    
+        <MudNavGroup Icon="@Icons.Material.Filled.Settings" Title="Mantenimiento">
+            <MudNavLink Href="/page/categoria">Categoria</MudNavLink>
+            <MudNavLink Href="/page/piso">Piso</MudNavLink>
+            <MudNavLink Href="/page/habitacion">Habitacion</MudNavLink>
+        </MudNavGroup>
+    </AuthorizeView>
+
+    <!-- Clientes -->
+    <AuthorizeView Roles="Administrador,Empleado,Recepcionista,Reservas,Gerencia">
+        <MudNavLink Href="/page/cliente" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Group">
+            Clientes
+        </MudNavLink>
+    </AuthorizeView>
+
+    <!-- Recepción -->
+    <AuthorizeView Roles="Administrador,Recepcionista,Gerencia">
+        <MudNavLink Href="/page/recepcion" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.AllInbox">
+            Recepción
+        </MudNavLink>
+    </AuthorizeView>
+
+    <!-- Reservas -->
+    <AuthorizeView Roles="Administrador,Reservas,Gerencia">
+        <MudNavLink Href="/page/reservas" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Event">
+            Reservas
+        </MudNavLink>
+    </AuthorizeView>
+
+    <!-- Salida -->
+    <AuthorizeView Roles="Administrador,Empleado,Recepcionista,Gerencia">
+        <MudNavLink Href="/page/salida" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PriceCheck">
+            Salida
+        </MudNavLink>
+    </AuthorizeView>
+
+    <!-- Reportes -->
+    <AuthorizeView Roles="Administrador,Recepcionista,Empleado,Gerencia">
+        <MudNavLink Href="/page/reporte" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.PlaylistAddCheckCircle">
+            Reportes
+        </MudNavLink>
+    </AuthorizeView>
+
 </MudNavMenu>
-
-      

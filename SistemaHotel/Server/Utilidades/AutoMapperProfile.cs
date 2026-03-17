@@ -142,37 +142,36 @@ namespace SistemaHotel.Server.Utilidades
             // ReservaDTO (Shared)  ->  Reserva (Server.Model)  (guardar / editar)
             // ===========================================
             CreateMap<SistemaHotel.Shared.ReservaDTO, SistemaHotel.Server.Models.Reserva>()
-                .ForMember(d => d.Estado, opt => opt.MapFrom(_ => true))
-                .ForMember(d => d.EstadoReserva, opt => opt.MapFrom(src =>
-                    string.IsNullOrEmpty(src.EstadoReserva) ? "RESERVADA" : src.EstadoReserva
+                // Estado en tu DTO es string, en modelo es bool
+                .ForMember(d => d.Estado, opt => opt.MapFrom(src =>
+                    src.Estado != null && (src.Estado.Trim() == "1" || src.Estado.Trim().ToLower() == "true")
                 ))
-
-                // IMPORTANTÍSIMO: no intentes guardar navigation desde el DTO
+                .ForMember(d => d.EstadoReserva, opt => opt.MapFrom(src =>
+                    string.IsNullOrWhiteSpace(src.EstadoReserva) ? "RESERVADA" : src.EstadoReserva
+                ))
+                // No guardar navigation desde DTO
                 .ForMember(d => d.IdClienteNavigation, opt => opt.Ignore())
-                .ForMember(d => d.IdHabitacionNavigation, opt => opt.Ignore())
-
-                // IMPORTANTÍSIMO: estos campos no existen en la tabla Reserva
-                // (son calculados/visualización), así que se ignoran al guardar
-                .ForMember(d => d.TotalPagado, opt => opt.Ignore())
-                .ForMember(d => d.PrecioRestante, opt => opt.Ignore())
-                .ForMember(d => d.CostoPenalidad, opt => opt.Ignore());
+                .ForMember(d => d.IdHabitacionNavigation, opt => opt.Ignore());
 
 
             // ===========================================
             // Reserva -> ReservaReporteDTO  (si lo usas en listado PDF / Reporte)
             // ===========================================
             CreateMap<SistemaHotel.Server.Models.Reserva, SistemaHotel.Shared.ReservaReporteDTO>()
-                .ForMember(d => d.NombreCliente,
-                    opt => opt.MapFrom(s => s.IdClienteNavigation != null ? s.IdClienteNavigation.NombreCompleto : ""))
-                .ForMember(d => d.NroHabitacion,
-                    opt => opt.MapFrom(s => s.IdHabitacionNavigation != null ? s.IdHabitacionNavigation.Numero : ""))
-                .ForMember(d => d.FechaEntrada,
-                    opt => opt.MapFrom(s => s.FechaEntrada.HasValue ? s.FechaEntrada.Value.ToString("dd/MM/yyyy") : ""))
-                .ForMember(d => d.FechaSalida,
-                    opt => opt.MapFrom(s => s.FechaSalidaReserva.HasValue ? s.FechaSalidaReserva.Value.ToString("dd/MM/yyyy") : ""))
-                .ForMember(d => d.Total, opt => opt.MapFrom(s => s.PrecioInicial ?? 0m))
-                .ForMember(d => d.ValorCancelado, opt => opt.MapFrom(s => s.Adelanto ?? 0m))
-                .ForMember(d => d.ValorPendiente, opt => opt.MapFrom(s => (s.PrecioInicial ?? 0m) - (s.Adelanto ?? 0m)));
+            .ForMember(d => d.IdReserva, opt => opt.MapFrom(s => s.IdReserva))
+            .ForMember(d => d.NombreCliente,
+                opt => opt.MapFrom(s => s.IdClienteNavigation != null ? s.IdClienteNavigation.NombreCompleto : ""))
+            .ForMember(d => d.NroHabitacion,
+                opt => opt.MapFrom(s => s.IdHabitacionNavigation != null ? s.IdHabitacionNavigation.Numero : ""))
+            .ForMember(d => d.FechaEntrada,
+                opt => opt.MapFrom(s => s.FechaEntrada.HasValue ? s.FechaEntrada.Value.ToString("dd/MM/yyyy") : ""))
+            .ForMember(d => d.FechaSalida,
+                opt => opt.MapFrom(s => s.FechaSalidaReserva.HasValue ? s.FechaSalidaReserva.Value.ToString("dd/MM/yyyy") : ""))
+            .ForMember(d => d.Total, opt => opt.MapFrom(s => s.PrecioInicial ?? 0m))
+            .ForMember(d => d.ValorCancelado, opt => opt.MapFrom(s => s.Adelanto ?? 0m))
+            .ForMember(d => d.ValorPendiente, opt => opt.MapFrom(s => (s.PrecioInicial ?? 0m) - (s.Adelanto ?? 0m)))
+            .ForMember(d => d.EstadoReserva, opt => opt.MapFrom(s => s.EstadoReserva))
+            .ForMember(d => d.Observacion, opt => opt.MapFrom(s => s.Observacion));
 
             #endregion
 

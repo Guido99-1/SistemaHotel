@@ -13,12 +13,23 @@ namespace SistemaHotel.Client.Servicios.Implementacion
         {
             _http = http;
         }
-        public async Task<ResponseDTO<bool>> Finalizar(int idRecepcion)
+        //public async Task<ResponseDTO<bool>> Finalizar(int idRecepcion)
+        //{
+        //    var httpResp = await _http.PutAsync($"api/Recepcion/Finalizar/{idRecepcion}", null);
+        //    return await ReadResponseOrError<ResponseDTO<bool>>(httpResp);
+        //}
+        public async Task<bool> Finalizar(int idRecepcion, DateTime fechaSalidaConfirmacion, decimal costoPenalidad)
         {
-            var httpResp = await _http.PutAsync($"api/Recepcion/Finalizar/{idRecepcion}", null);
-            return await ReadResponseOrError<ResponseDTO<bool>>(httpResp);
-        }
+            var response = await _http.PutAsJsonAsync(
+                $"api/Recepcion/Finalizar/{idRecepcion}",
+                new
+                {
+                    fechaSalidaConfirmacion,
+                    costoPenalidad
+                });
 
+            return response.IsSuccessStatusCode;
+        }
 
         public async Task<ResponseDTO<RecepcionDTO>> Crear(RecepcionDTO entidad)
         {

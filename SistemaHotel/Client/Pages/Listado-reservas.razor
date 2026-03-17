@@ -1,5 +1,10 @@
 ﻿@page "/page/listado-reservas"
+@attribute [Authorize(Roles = "Administrador,Reservas,Gerencia")]
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @using SistemaHotel.Shared
+@inject AuthenticationStateProvider AuthStateProvider
 @inject NavigationManager _navManager
 
 @inject IReservaServicio _reservaServicio
@@ -63,6 +68,20 @@
     </MudPaper>
 
     <!-- TABLA -->
+    @if (debugClaims is not null)
+    {
+        <MudPaper Class="pa-3 mb-3" Elevation="1">
+            <MudText Typo="Typo.subtitle2">DEBUG Claims</MudText>
+
+            @foreach (var c in debugClaims)
+            {
+                <MudText Typo="Typo.body2">@c.Type => '@c.Value'</MudText>
+            }
+
+            <MudDivider Class="my-2" />
+            <MudText Typo="Typo.body2">IsInRole("Administrador"): @esAdmin</MudText>
+        </MudPaper>
+    }
     <MudPaper Class="pa-4" Elevation="3">
 
         @if (cargando)
@@ -73,7 +92,7 @@
         }
         else
         {
-            <MudTable Items="listaReservas" Hover="true" Dense="true" Bordered="true" Striped="true">
+            <MudTable Items="@listaReservas" Hover="true" Dense="true" Bordered="true" Striped="true">
 
                 <HeaderContent>
                     <MudTh>Cliente</MudTh>
@@ -83,6 +102,12 @@
                     <MudTh class="text-right">Total</MudTh>
                     <MudTh class="text-right">Cancelado</MudTh>
                     <MudTh class="text-right">Pendiente</MudTh>
+                    <MudTh>Observación</MudTh>
+
+                    @if (esAdmin)
+                    {
+                        <MudTh Class="text-center">Acciones</MudTh>
+                    }
                 </HeaderContent>
 
                 <RowTemplate>
@@ -91,23 +116,30 @@
                     <MudTd DataLabel="Entrada">@context.FechaEntrada</MudTd>
                     <MudTd DataLabel="Salida">@context.FechaSalida</MudTd>
 
-                    <MudTd DataLabel="Total" Class="text-right">
-                        @context.Total.ToString("N2")
-                    </MudTd>
+                    <MudTd DataLabel="Total" Class="text-right">@context.Total.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Cancelado" Class="text-right">@context.ValorCancelado.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Pendiente" Class="text-right">@context.ValorPendiente.ToString("N2")</MudTd>
+                    <MudTd DataLabel="Observación">@context.Observacion</MudTd>
 
-                    <MudTd DataLabel="Cancelado" Class="text-right">
-                        @context.ValorCancelado.ToString("N2")
-                    </MudTd>
+                    @if (esAdmin)
+                    {
+                        <MudTd DataLabel="Acciones" Class="text-center">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Color="Color.Primary"
+                                           Size="Size.Small"
+                                           OnClick="@(() => EditarReserva(context))" />
 
-                    <MudTd DataLabel="Pendiente" Class="text-right">
-                        @context.ValorPendiente.ToString("N2")
-                    </MudTd>
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Color="Color.Error"
+                                           Size="Size.Small"
+                                           OnClick="@(() => ConfirmarEliminarReserva(context))" />
+                        </MudTd>
+                    }
                 </RowTemplate>
 
                 <NoRecordsContent>
                     <MudText Class="pa-4">No hay reservas para el rango seleccionado.</MudText>
                 </NoRecordsContent>
-
             </MudTable>
         }
 
@@ -118,13 +150,22 @@
 @code {
     private DateTime? fechaInicio = DateTime.Today;
     private DateTime? fechaFin = DateTime.Today;
-
+    private bool esAdmin = false;
     private bool cargando = false;
     private List<ReservaReporteDTO> listaReservas = new();
+    private List<Claim>? debugClaims;
 
     protected override async Task OnInitializedAsync()
     {
         // Si quieres que cargue automáticamente al abrir la pantalla (hoy)
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        debugClaims = user.Claims.ToList();
+
+        // prueba directa
+        esAdmin = user.IsInRole("Administrador");
+
         await BuscarReservas();
     }
 
@@ -191,5 +232,40 @@
     private void VolverReservas()
     {
         _navManager.NavigateTo("/page/reservas");
+    }
+    private void EditarReserva(ReservaReporteDTO r)
+    {
+        // Asegúrate de tener IdReserva en tu DTO del listado
+        _navManager.NavigateTo($"/page/editarreserva/{r.IdReserva}");
+    }
+
+
+
+    private async Task ConfirmarEliminarReserva(ReservaReporteDTO r)
+    {
+        var confirm = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "¿Eliminar reserva?",
+            Text = $"Se eliminará la reserva de {r.NombreCliente} en habitación {r.NroHabitacion}.",
+            Icon = SweetAlertIcon.Warning,
+            ShowCancelButton = true,
+            ConfirmButtonText = "Sí, eliminar",
+            CancelButtonText = "Cancelar"
+        });
+
+        if (!confirm.IsConfirmed)
+            return;
+
+        var resp = await _reservaServicio.Eliminar(r.IdReserva);
+
+        if (resp.status)
+        {
+            await Swal.FireAsync("Eliminada", "La reserva fue eliminada correctamente.", "success");
+            await BuscarReservas(); // ✅ recarga
+        }
+        else
+        {
+            await Swal.FireAsync("Error", resp.msg, "error");
+        }
     }
 }

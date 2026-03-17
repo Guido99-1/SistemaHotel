@@ -12,7 +12,7 @@ namespace SistemaHotel.Shared
 
         public int? IdCliente { get; set; }
 
-        public int? IdHabitacion { get; set; }
+        public int IdHabitacion { get; set; }
 
         public DateTime? FechaEntrada { get; set; }
         public DateTime? FechaSalidaReserva { get; set; }

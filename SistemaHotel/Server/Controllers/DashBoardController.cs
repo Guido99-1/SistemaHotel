@@ -17,7 +17,17 @@ namespace SistemaHotel.Server.Controllers
             _dashboardRepositorio = dashboardRepositorio;
             _mapper = mapper;
         }
-
+        [HttpGet("ResumenDashboard")]
+        public async Task<IActionResult> ResumenDashboard()
+        {
+            var dto = await _dashboardRepositorio.ResumenDashboard();
+            return Ok(new ResponseDTO<DashBoardDTO>
+            {
+                status = true,
+                msg = "ok",
+                value = dto
+            });
+        }
         // RESUMEN GENERAL
         [HttpGet("Resumen")]
         public async Task<IActionResult> Resumen()
@@ -30,6 +40,8 @@ namespace SistemaHotel.Server.Controllers
             dto.TotalHabitacionesEnLimpieza = await _dashboardRepositorio.HabitacionesLimpieza();
             dto.TotalReservasHoy = await _dashboardRepositorio.TotalReservasHoy();
             dto.TotalReservasMes = await _dashboardRepositorio.TotalReservasMes();
+            // ✅ NUEVO
+            dto.OcupacionMes = await _dashboardRepositorio.OcupacionMes();
 
             return Ok(dto);
         }
@@ -59,5 +71,6 @@ namespace SistemaHotel.Server.Controllers
         [HttpGet("TotalReservasMes")]
         public async Task<IActionResult> TotalReservasMes()
             => Ok(await _dashboardRepositorio.TotalReservasMes());
+
     }
 }

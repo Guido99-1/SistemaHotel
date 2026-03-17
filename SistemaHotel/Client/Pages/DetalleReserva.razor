@@ -1,5 +1,5 @@
 ﻿@page "/page/detallereserva/{idHabitacion:int}"
-
+@attribute [Authorize(Roles = "Administrador,Reservas,Gerencia")]
 @inject IHabitacionServicio _habitacionServicio
 @inject IReservaServicio _reservaServicio
 @inject IDialogService _dialogServicio

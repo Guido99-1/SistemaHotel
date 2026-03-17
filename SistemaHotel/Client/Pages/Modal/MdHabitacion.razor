@@ -1,4 +1,5 @@
 ﻿@inject IPisoServicio _pisoServicio
+@attribute [Authorize(Roles = "Administrador,Gerencia")]
 @inject IHabitacionServicio _habitacionServicio
 @inject ICategoriaServicio _categoriaServicio
 @inject ISnackbar _snackBar

@@ -14,6 +14,8 @@ namespace SistemaHotel.Shared
         public int TotalHabitacionesEnLimpieza {get; set; }
         public int TotalReservasHoy { get; set; }
         public int TotalReservasMes { get; set; }
+        public List<OcupacionDiaDTO> OcupacionMes { get; set; } = new();
+        public List<IngresoDiaDTO> IngresosMesCheckout { get; set; } = new();
 
     }
 }

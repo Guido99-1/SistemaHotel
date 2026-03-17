@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +14,7 @@ namespace SistemaHotel.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ReservasController :ControllerBase
+    public class ReservasController : ControllerBase
     {
         private readonly IMapper _mapper;
         private readonly IReservaRepositorio _reservaRepositorio;
@@ -117,43 +118,101 @@ namespace SistemaHotel.Server.Controllers
             }
         }
 
-        [HttpPut]
-        [Route("Editar")]
-        public async Task<IActionResult> Editar([FromBody] ReservaDTO request)
+        //[Authorize(Roles = "Administrador")]
+        [HttpPut("Editar/{idReserva}")]
+        public async Task<IActionResult> Editar(int idReserva, [FromBody] ReservaDTO request)
         {
-            ResponseDTO<ReservaDTO> _ResponseDTO = new ResponseDTO<ReservaDTO>();
+            var response = new ResponseDTO<ReservaDTO>();
 
             try
             {
-                Reserva _modelo = _mapper.Map<Reserva>(request);
+                if (idReserva <= 0)
+                    return BadRequest(new ResponseDTO<ReservaDTO> { status = false, msg = "IdReserva inválido." });
 
-                bool respuesta = await _reservaRepositorio.Editar(_modelo);
+                request.IdReserva = idReserva;
 
-                if (respuesta)
-                    _ResponseDTO = new ResponseDTO<ReservaDTO>()
-                    {
-                        status = true,
-                        msg = "ok",
-                        value = _mapper.Map<ReservaDTO>(_modelo)
-                    };
-                else
-                    _ResponseDTO = new ResponseDTO<ReservaDTO>()
-                    {
-                        status = false,
-                        msg = "No se pudo editar la reserva"
-                    };
+                var modelo = _mapper.Map<Reserva>(request);
 
-                return StatusCode(StatusCodes.Status200OK, _ResponseDTO);
+                var ok = await _reservaRepositorio.EditarReserva(modelo);
+
+                response.status = ok;
+                response.msg = ok ? "Reserva editada correctamente." : "No se pudo editar la reserva.";
+                response.value = ok ? request : null;
+
+                return Ok(response);
+            }
+            catch (InvalidOperationException ex)
+            {
+                response.status = false;
+                response.msg = ex.Message;
+                response.value = null;
+                return Conflict(response); // 409
             }
             catch (Exception ex)
             {
-                _ResponseDTO = new ResponseDTO<ReservaDTO>()
-                {
-                    status = false,
-                    msg = ex.Message
-                };
+                response.status = false;
+                response.msg = ex.InnerException?.Message ?? ex.Message;
+                response.value = null;
+                return StatusCode(500, response);
+            }
+        }
 
-                return StatusCode(StatusCodes.Status500InternalServerError, _ResponseDTO);
+        [HttpGet("ObtenerPorId/{idReserva}")]
+        public async Task<IActionResult> ObtenerPorId(int idReserva)
+        {
+            var response = new ResponseDTO<ReservaDTO>();
+
+            try
+            {
+                var query = await _reservaRepositorio.Consultar(r => r.IdReserva == idReserva);
+
+                var entidad = await query
+                    .Include(r => r.IdClienteNavigation)
+                    .Include(r => r.IdHabitacionNavigation)
+                    .FirstOrDefaultAsync();
+
+                if (entidad == null)
+                {
+                    response.status = false;
+                    response.msg = "Reserva no encontrada.";
+                    response.value = null;
+                    return Ok(response);
+                }
+
+                response.status = true;
+                response.msg = "ok";
+                response.value = _mapper.Map<ReservaDTO>(entidad);
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.status = false;
+                response.msg = ex.InnerException?.Message ?? ex.Message;
+                response.value = null;
+                return StatusCode(500, response);
+            }
+        }
+        //[Authorize(Roles = "Administrador")]
+        [HttpDelete("Eliminar/{idReserva}")]
+        public async Task<IActionResult> Eliminar(int idReserva)
+        {
+            var resp = new ResponseDTO<bool>();
+
+            try
+            {
+                var ok = await _reservaRepositorio.Eliminar(idReserva);
+
+                resp.status = ok;
+                resp.value = ok;
+                resp.msg = ok ? "Eliminado" : "No se pudo eliminar";
+                return Ok(resp);
+            }
+            catch (Exception ex)
+            {
+                resp.status = false;
+                resp.value = false;
+                resp.msg = ex.InnerException?.Message ?? ex.Message;
+                return StatusCode(500, resp);
             }
         }
 
@@ -251,7 +310,7 @@ namespace SistemaHotel.Server.Controllers
                 }
 
                 reserva.EstadoReserva = estadoReserva; // "RESERVADA", "CONFIRMADA", "CANCELADA"...
-                var ok = await _reservaRepositorio.Editar(reserva);
+                var ok = await _reservaRepositorio.EditarReserva(reserva);
 
                 resp.status = ok;
                 resp.value = ok;
@@ -282,7 +341,7 @@ namespace SistemaHotel.Server.Controllers
 
                 reserva.EstadoReserva = "CANCELADA";
                 reserva.Estado = false; // si quieres “anular” lógicamente
-                var ok = await _reservaRepositorio.Editar(reserva);
+                var ok = await _reservaRepositorio.EditarReserva(reserva);
 
                 resp.status = ok;
                 resp.value = ok;

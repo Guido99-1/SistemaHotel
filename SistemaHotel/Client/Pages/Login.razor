@@ -7,45 +7,66 @@
 @inject AuthenticationStateProvider autenticacionProvider
 
 <EditForm Model="@usuarioLogin" OnValidSubmit="OnValidSubmit">
+    <DataAnnotationsValidator />
 
-    <DataAnnotationsValidator></DataAnnotationsValidator>
+    <!-- Encabezado pro -->
+    <MudText Typo="Typo.h4" Align="Align.Center" Class="mb-1">Sistema Agoyán</MudText>
+    
 
-    <MudText Typo="Typo.h4" GutterBottom="true" Align="Align.Center">Bienvenido</MudText>
-
+    <!-- Correo -->
     <MudTextField T="string"
                   @bind-Value="@usuarioLogin.correo"
                   Label="Correo"
                   Variant="Variant.Outlined"
-                  Class="my-6"
-                  For="@(() => usuarioLogin.correo)">
-    </MudTextField>
+                  Margin="Margin.Dense"
+                  FullWidth="true"
+                  For="@(() => usuarioLogin.correo)" />
 
+    <!-- Contraseña -->
     <MudTextField @bind-Value="@usuarioLogin.clave"
                   Label="Contraseña"
                   Variant="Variant.Outlined"
+                  Margin="Margin.Dense"
+                  FullWidth="true"
                   InputType="@PasswordInput"
                   Adornment="Adornment.End"
                   AdornmentIcon="@PasswordInputIcon"
                   OnAdornmentClick="TogglePasswordVisibility"
-                  For="@(() => usuarioLogin.clave)" />
+                  For="@(() => usuarioLogin.clave)"
+                  Class="mt-4" />
 
-    <MudButton Class="mt-5" Variant="Variant.Filled" Color="Color.Primary" ButtonType="ButtonType.Submit" Size="Size.Large"
+    <!-- Botón -->
+    <MudButton Class="mt-6"
+               Variant="Variant.Filled"
+               Color="Color.Primary"
+               ButtonType="ButtonType.Submit"
+               Size="Size.Large"
                FullWidth="true"
-               Disabled="@disableButton">Iniciar Sesión</MudButton>
+               Disabled="@disableButton">
+        Iniciar sesión
+    </MudButton>
 
-    <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="@(myImageClass + " my-7")" />
+    <!-- Loading -->
+    <MudProgressLinear Color="Color.Primary"
+                       Indeterminate="true"
+                       Class="@(myImageClass + " mt-4")" />
+
+    <!-- Error dentro del card -->
+    <MudAlert Severity="Severity.Error"
+              Dense="true"
+              Variant="Variant.Filled"
+              Class="@(myAlert + " mt-4")">
+        Correo o contraseña incorrectos.
+    </MudAlert>
 </EditForm>
-
-<MudAlert Severity="Severity.Error" Class="@(myAlert + " mt-8 mud-width-full")" Style="max-width:500px;" Elevation="25">No se encontraron coincidencias</MudAlert>
-
 
 @code {
 
     UsuarioLogin usuarioLogin = new UsuarioLogin();
+
     string myImageClass { get; set; } = "d-none";
     string myAlert { get; set; } = "d-none";
     bool disableButton { get; set; } = false;
-
 
     bool PasswordVisibility;
     InputType PasswordInput = InputType.Password;
@@ -53,7 +74,7 @@
 
     void TogglePasswordVisibility()
     {
-        @if (PasswordVisibility)
+        if (PasswordVisibility)
         {
             PasswordVisibility = false;
             PasswordInputIcon = Icons.Material.Filled.VisibilityOff;
@@ -69,8 +90,10 @@
 
     private async Task OnValidSubmit()
     {
+        myAlert = "d-none";
         myImageClass = "d-block";
         disableButton = true;
+
         var result = await _usuarioServicio.IniciarSesion(usuarioLogin.correo, usuarioLogin.clave);
 
         if (result.status)
@@ -81,11 +104,11 @@
                 Correo = result.value!.Correo,
                 Rol = result.value!.IdRolUsuarioNavigation.Descripcion,
             };
+
             var autenticacionExt = (AutenticacionExtension)autenticacionProvider;
             await autenticacionExt.ActualizarEstadoAutenticacion(sesionUsuario);
             _navigationManager.NavigateTo("/page/dashboard");
         }
-
         else
         {
             myImageClass = "d-none";

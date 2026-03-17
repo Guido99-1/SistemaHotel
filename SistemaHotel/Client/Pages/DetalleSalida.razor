@@ -1,5 +1,5 @@
 ﻿@page "/page/detalleSalida/{idHabitacion:int}"
-
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 @inject IRecepcionServicio _recepcionServicio
 @inject SweetAlertService Swal;
 @inject NavigationManager navManager;
@@ -95,7 +95,7 @@
                                                  Margin="Margin.Dense" />
                             </MudItem>
 
-                            <MudItem xs="12" lg="3" md="3" sm="6">
+                            @* <MudItem xs="12" lg="3" md="3" sm="6">
                                 <MudNumericField T="decimal?"
                                                  Value="_recepcionDTO.PrecioRestante"
                                                  ValueChanged="(_)=>{}"
@@ -103,7 +103,7 @@
                                                  ReadOnly="true"
                                                  Variant="Variant.Outlined"
                                                  Margin="Margin.Dense" />
-                            </MudItem>
+                            </MudItem> *@
                             <MudItem xs="12" lg="3" md="3" sm="6">
                                 <MudNumericField T="decimal?"
                                                  Value="_recepcionDTO.CostoPenalidad"
@@ -125,8 +125,13 @@
                                               Disabled="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudButton Class="mt-1" Variant="Variant.Filled" Color="Color.Primary"
-                                           FullWidth="true" Disabled="@(_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)" OnClick="@Finalizar">Finalizar Recepcion</MudButton>
+                                <MudButton Class="mt-1" 
+                                Variant="Variant.Filled" 
+                                Color="Color.Primary"
+                                           FullWidth="true" 
+                                           Disabled="@(_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)" 
+                                           OnClick="@Finalizar">Finalizar Recepcion</MudButton>
+                                
                             </MudItem>
 
                         </MudGrid>
@@ -196,9 +201,51 @@
     }
 
     
+    // private async Task Finalizar()
+    // {
+    //     // Confirmación
+    //     var confirm = await Swal.FireAsync(new SweetAlertOptions
+    //     {
+    //         Title = "¿Finalizar recepción?",
+    //         Text = "Se realizará el check-out y se liberará la habitación.",
+    //         Icon = SweetAlertIcon.Warning,
+    //         ShowCancelButton = true,
+    //         ConfirmButtonText = "Sí, finalizar",
+    //         CancelButtonText = "Cancelar"
+    //     });
+
+    //     if (!confirm.IsConfirmed)
+    //         return;
+
+    //     // Validación: que haya recepción cargada
+    //     if (_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)
+    //     {
+    //         await Swal.FireAsync("Error", "No se encontró una recepción activa para finalizar.", "error");
+    //         return;
+    //     }
+    //     //✅ Normalizar penalidad
+    //         var penalidad = _recepcionDTO.CostoPenalidad ?? 0m;
+    //         if (penalidad < 0m) penalidad = 0m;
+
+    //         _recepcionDTO.CostoPenalidad = penalidad;
+    //     // ✅ Total final: precio base + penalidad
+    //         var baseHospedaje = _recepcionDTO.PrecioInicial ?? 0m;
+    //         _recepcionDTO.TotalPagado = baseHospedaje + penalidad;
+
+    //     var resp = await _recepcionServicio.Finalizar(_recepcionDTO.IdRecepcion);
+
+    //     if (resp.status)
+    //     {
+    //         await Swal.FireAsync("Éxito", resp.msg, "success");
+    //         navManager.NavigateTo("/page/salida");
+    //     }
+    //     else
+    //     {
+    //         await Swal.FireAsync("No se pudo finalizar", resp.msg, "error");
+    //     }
+    // }
     private async Task Finalizar()
     {
-        // Confirmación
         var confirm = await Swal.FireAsync(new SweetAlertOptions
         {
             Title = "¿Finalizar recepción?",
@@ -212,26 +259,95 @@
         if (!confirm.IsConfirmed)
             return;
 
-        // Validación: que haya recepción cargada
         if (_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)
         {
-            await Swal.FireAsync("Error", "No se encontró una recepción activa para finalizar.", "error");
+            await Swal.FireAsync("Error", "No se encontró la recepción.", "error");
             return;
         }
 
-        var resp = await _recepcionServicio.Finalizar(_recepcionDTO.IdRecepcion);
+        decimal penalidad = _recepcionDTO.CostoPenalidad ?? 0m;
 
-        if (resp.status)
+        // ✅ AQUÍ ESTÁ LA CORRECCIÓN
+        var ok = await _recepcionServicio.Finalizar(
+            _recepcionDTO.IdRecepcion,
+            DateTime.Now,
+            penalidad
+        );
+
+        if (ok)
         {
-            await Swal.FireAsync("Éxito", resp.msg, "success");
-            navManager.NavigateTo("/page/salida");
+            await Swal.FireAsync("Check-out realizado", "Habitación liberada correctamente.", "success");
+
+            navManager.NavigateTo("/page/recepcion", true);
         }
         else
         {
-            await Swal.FireAsync("No se pudo finalizar", resp.msg, "error");
+            await Swal.FireAsync("Error", "No se pudo finalizar.", "error");
         }
     }
+    // private async Task Finalizar()
+    // {
+    //     var confirm = await Swal.FireAsync(new SweetAlertOptions
+    //     {
+    //         Title = "¿Finalizar recepción?",
+    //         Text = "Se realizará el check-out y se liberará la habitación.",
+    //         Icon = SweetAlertIcon.Warning,
+    //         ShowCancelButton = true,
+    //         ConfirmButtonText = "Sí, finalizar",
+    //         CancelButtonText = "Cancelar"
+    //     });
 
+    //     if (!confirm.IsConfirmed)
+    //         return;
+
+    //     if (_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)
+    //     {
+    //         await Swal.FireAsync("Error", "No se encontró una recepción activa para finalizar.", "error");
+    //         return;
+    //     }
+
+    //     // ✅ Normalizar penalidad
+    //     var penalidad = _recepcionDTO.CostoPenalidad ?? 0m;
+    //     if (penalidad < 0m) penalidad = 0m;
+
+    //     _recepcionDTO.CostoPenalidad = penalidad;
+
+    //     // ✅ ESTA ES LA LÍNEA QUE TE FALTA (checkout real)
+    //     _recepcionDTO.FechaSalidaConfirmacion = DateTime.Now;
+
+    //     // ✅ Total final: precio base + penalidad
+    //     var baseHospedaje = _recepcionDTO.PrecioInicial ?? 0m;
+    //     _recepcionDTO.TotalPagado = baseHospedaje + penalidad;
+
+    //     // 1) Guardar cambios antes de finalizar
+    //     var editOk = await _recepcionServicio.Editar(_recepcionDTO);
+    //     if (!editOk)
+    //     {
+    //         await Swal.FireAsync("Error", "No se pudo guardar la penalidad/fecha antes de finalizar.", "error");
+    //         return;
+    //     }
+
+    //     // 2) Finalizar
+    //     var resp = await _recepcionServicio.Finalizar(_recepcionDTO.IdRecepcion);
+
+    //     if (resp.status)
+    //     {
+    //         await Swal.FireAsync(new SweetAlertOptions
+    //         {
+    //             Title = "Check-out finalizado",
+    //             Text = "La recepción se cerró correctamente, la habitación ha sido liberada y el registro fue actualizado.",
+    //             Icon = SweetAlertIcon.Success,
+    //             ConfirmButtonText = "Ir a Recepción"
+    //         });
+
+    //         // ✅ Redirigir a Recepción
+    //         navManager.NavigateTo("/page/salida", true);
+    //     }
+    //     else
+    //     {
+    //         await Swal.FireAsync("No se pudo finalizar", resp.msg, "error");
+    //     }
+    // }
 
 
 }

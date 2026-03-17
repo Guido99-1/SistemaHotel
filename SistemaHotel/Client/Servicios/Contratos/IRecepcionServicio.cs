@@ -9,7 +9,10 @@ namespace SistemaHotel.Client.Servicios.Contratos
         Task<bool> Editar(RecepcionDTO entidad);
         Task<ResponseDTO<List<ReporteDTO>>> Reporte(string fechaInicio, string fechaFin);
         // ✅ NUEVO: finalizar (check-out)
-        Task<ResponseDTO<bool>> Finalizar(int idRecepcion);
+        //Task<ResponseDTO<bool>> Finalizar(int idRecepcion);
+
+        Task<bool> Finalizar(int idRecepcion, DateTime fechaSalidaConfirmacion, decimal costoPenalidad);
+
 
     }
 }

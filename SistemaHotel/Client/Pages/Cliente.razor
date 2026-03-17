@@ -1,5 +1,5 @@
 ﻿@page "/page/cliente"
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Reservas,Gerencia")]
 
 @using ClosedXML.Excel
 @using System.IO

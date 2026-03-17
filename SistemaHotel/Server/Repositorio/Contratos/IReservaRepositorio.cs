@@ -11,8 +11,9 @@ namespace SistemaHotel.Server.Repositorio.Contratos
 
         Task<Reserva> Crear(Reserva entidad);
 
-        Task<bool> Editar(Reserva entidad);
-
+        //Task<bool> Editar(Reserva entidad);
+        Task<bool> EditarReserva(Reserva entidad);
+        Task<bool> Eliminar(int idReserva);
         Task<List<Reserva>> Reporte(string FechaInicio, string FechaFin);
         Task<bool> ExisteCruceReserva(
             int idHabitacion,

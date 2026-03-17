@@ -1,4 +1,6 @@
-﻿namespace SistemaHotel.Server.Repositorio.Contratos
+﻿using SistemaHotel.Shared;
+
+namespace SistemaHotel.Server.Repositorio.Contratos
 {
     public interface IDashBoardRepositorio
     {
@@ -8,5 +10,7 @@
         Task<int> HabitacionesLimpieza();
         Task<int> TotalReservasHoy();
         Task<int> TotalReservasMes();
+        Task<List<OcupacionDiaDTO>> OcupacionMes();
+        Task<DashBoardDTO> ResumenDashboard();
     }
 }

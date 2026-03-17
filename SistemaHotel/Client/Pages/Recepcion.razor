@@ -1,5 +1,4 @@
 ﻿@page "/page/recepcion"
-
 @inject IPisoServicio _pisoServicio
 @inject IHabitacionServicio _habitacionServicio
 @inject IReservaServicio _reservaServicio
@@ -8,7 +7,7 @@
 @inject ISnackbar _snackBar
 @inject IReservaServicio _reservaServicio
 
-@attribute [Authorize]
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Empleado,Gerencia")]
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
 
@@ -190,6 +189,7 @@
                             <MudTh class="text-right">Total</MudTh>
                             <MudTh class="text-right">Cancelado</MudTh>
                             <MudTh class="text-right">Pendiente</MudTh>
+                            <MudTh class="text-right">Observación</MudTh>
                         </HeaderContent>
 
                         <RowTemplate>
@@ -209,6 +209,7 @@
                             <MudTd DataLabel="Pendiente" Class="text-right">
                                 @context.ValorPendiente.ToString("N2")
                             </MudTd>
+                            <MudTd DataLabel="Opservación">@context.Observacion</MudTd>
                         </RowTemplate>
 
                         <NoRecordsContent>

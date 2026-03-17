@@ -22,7 +22,17 @@ namespace SistemaHotel.Client.Servicios.Implementacion
             var result = await _http.GetFromJsonAsync<ResponseDTO<DashBoardDTO>>("api/DashBoard/Resumen");
             return result!;
         }
+        public async Task<ResponseDTO<DashBoardDTO>> ResumenDashboard()
+        {
+            //var resp = await _http.GetFromJsonAsync<ResponseDTO<DashBoardDTO>>("api/Dashboard/ResumenDashboard");
+            var resp = await _http.GetFromJsonAsync<ResponseDTO<DashBoardDTO>>("api/DashBoard/ResumenDashboard");
 
+            return resp ?? new ResponseDTO<DashBoardDTO>
+            {
+                status = false,
+                msg = "No se pudo obtener el dashboard"
+            };
+        }
         // -----------------------------
         // Reservas (int)
         // -----------------------------

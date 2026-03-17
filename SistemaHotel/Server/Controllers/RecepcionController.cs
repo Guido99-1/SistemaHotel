@@ -6,6 +6,7 @@ using SistemaHotel.Server.Models;
 using SistemaHotel.Server.Repositorio.Contratos;
 using SistemaHotel.Server.Repositorio.Implementacion;
 using SistemaHotel.Shared;
+using SistemaHotel.Server.Models;
 
 namespace SistemaHotel.Server.Controllers
 {
@@ -100,48 +101,90 @@ namespace SistemaHotel.Server.Controllers
             }
         }
 
+        //[HttpGet]
+        //[Route("Reporte")]
+        //public async Task<IActionResult> Reporte(string? fechaInicio, string? fechaFin)
+        //{
+        //    ResponseDTO<List<ReporteDTO>> _ResponseDTO = new ResponseDTO<List<ReporteDTO>>();
+        //    try
+        //    {
+        //        List<ReporteDTO> listaReporte = _mapper.Map<List<ReporteDTO>>(await _recepcionRepositorio.Reporte(fechaInicio, fechaFin));
+        //        _ResponseDTO = new ResponseDTO<List<ReporteDTO>>() { status = true, msg = "ok", value = listaReporte };
+
+        //        return StatusCode(StatusCodes.Status200OK, _ResponseDTO);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        _ResponseDTO = new ResponseDTO<List<ReporteDTO>>() { status = false, msg = ex.Message };
+        //        return StatusCode(StatusCodes.Status500InternalServerError, _ResponseDTO);
+
+        //    }
+
+        //}
         [HttpGet]
         [Route("Reporte")]
         public async Task<IActionResult> Reporte(string? fechaInicio, string? fechaFin)
         {
-            ResponseDTO<List<ReporteDTO>> _ResponseDTO = new ResponseDTO<List<ReporteDTO>>();
+            var response = new ResponseDTO<List<ReporteDTO>>();
+
             try
             {
-                List<ReporteDTO> listaReporte = _mapper.Map<List<ReporteDTO>>(await _recepcionRepositorio.Reporte(fechaInicio, fechaFin));
-                _ResponseDTO = new ResponseDTO<List<ReporteDTO>>() { status = true, msg = "ok", value = listaReporte };
+                if (string.IsNullOrWhiteSpace(fechaInicio) || string.IsNullOrWhiteSpace(fechaFin))
+                    return BadRequest(new ResponseDTO<List<ReporteDTO>>
+                    {
+                        status = false,
+                        msg = "Debe enviar fechaInicio y fechaFin"
+                    });
 
-                return StatusCode(StatusCodes.Status200OK, _ResponseDTO);
-            }
-            catch (Exception ex)
-            {
-                _ResponseDTO = new ResponseDTO<List<ReporteDTO>>() { status = false, msg = ex.Message };
-                return StatusCode(StatusCodes.Status500InternalServerError, _ResponseDTO);
+                var listaReporte = await _recepcionRepositorio.Reporte(fechaInicio, fechaFin);
 
-            }
-
-        }
-        [HttpPut]
-        [Route("Finalizar/{idRecepcion}")]
-        public async Task<IActionResult> Finalizar(int idRecepcion)
-        {
-            var response = new ResponseDTO<bool>();
-            try
-            {
-                var ok = await _recepcionRepositorio.Finalizar(idRecepcion, DateTime.Now);
-
-                response.status = ok;
-                response.msg = ok ? "Check-out realizado. Reserva finalizada." : "No se pudo finalizar.";
-                response.value = ok;
+                response.status = true;
+                response.msg = "ok";
+                response.value = listaReporte;
 
                 return Ok(response);
             }
             catch (Exception ex)
             {
                 response.status = false;
-                response.msg = ex.InnerException?.Message ?? ex.Message;
-                response.value = false;
+                response.msg = ex.Message;
+                response.value = new();
+
                 return StatusCode(500, response);
             }
+        }
+        //[HttpPut]
+        //[Route("Finalizar/{idRecepcion}")]
+        //public async Task<IActionResult> Finalizar(int idRecepcion)
+        //{
+        //    var response = new ResponseDTO<bool>();
+        //    try
+        //    {
+        //        var ok = await _recepcionRepositorio.Finalizar(idRecepcion, DateTime.Now);
+
+        //        response.status = ok;
+        //        response.msg = ok ? "Check-out realizado. Reserva finalizada." : "No se pudo finalizar.";
+        //        response.value = ok;
+
+        //        return Ok(response);
+        //    }
+        //    catch (Exception ex)
+        //    {
+        //        response.status = false;
+        //        response.msg = ex.InnerException?.Message ?? ex.Message;
+        //        response.value = false;
+        //        return StatusCode(500, response);
+        //    }
+        //}
+        [HttpPut("Finalizar/{idRecepcion}")]
+        public async Task<IActionResult> Finalizar(int idRecepcion, [FromBody] FinalizarRecepcionRequest request)
+        {
+            var ok = await _recepcionRepositorio.Finalizar(
+                idRecepcion,
+                request.fechaSalidaConfirmacion,
+                request.costoPenalidad);
+
+            return Ok(ok);
         }
 
     }

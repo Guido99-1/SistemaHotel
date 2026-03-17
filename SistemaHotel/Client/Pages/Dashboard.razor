@@ -1,116 +1,182 @@
 ﻿@page "/page/dashboard"
-
-@inject IDashBoardServicio _dashboardServicio;
-@attribute [Authorize]
+@inject IDashBoardServicio _dashboardServicio
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Reservas,Empleado,Gerencia")]
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
-
     <MudPaper Elevation="3" Class="pa-4" Width="100%">
 
         <MudGrid>
             <MudItem sm="12" md="6" xs="12">
                 <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.MenuBook" Color="Color.Primary" Class="mx-4" Style="width:54px; height:54px;"></MudIcon>
+                    <MudIcon Icon="@Icons.Material.Filled.MenuBook" Color="Color.Primary" Class="mx-4" Style="width:54px; height:54px;" />
                     <div>
                         <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Total Habitaciones</MudText>
                         <MudText Typo="Typo.h5">@dashboardDTO.TotalHabitaciones</MudText>
                     </div>
                 </MudPaper>
             </MudItem>
+
             <MudItem sm="12" md="6" xs="12">
                 <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Secondary" Class="mx-4" Style="width:54px; height:54px;"></MudIcon>
+                    <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Secondary" Class="mx-4" Style="width:54px; height:54px;" />
                     <div>
                         <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Habitaciones Disponibles</MudText>
                         <MudText Typo="Typo.h5">@dashboardDTO.TotalHabitacionesDisponibles</MudText>
                     </div>
                 </MudPaper>
             </MudItem>
+
             <MudItem sm="12" md="6" xs="12">
                 <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Success" Class="mx-4" Style="width:54px; height:54px;"></MudIcon>
+                    <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Success" Class="mx-4" Style="width:54px; height:54px;" />
                     <div>
                         <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Habitaciones Ocupadas</MudText>
                         <MudText Typo="Typo.h5">@dashboardDTO.TotalHabitacionesOcupadas</MudText>
                     </div>
                 </MudPaper>
             </MudItem>
+
             <MudItem sm="12" md="6" xs="12">
                 <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.AssignmentLate" Color="Color.Error" Class="mx-4" Style="width:54px; height:54px;"></MudIcon>
+                    <MudIcon Icon="@Icons.Material.Filled.AssignmentLate" Color="Color.Error" Class="mx-4" Style="width:54px; height:54px;" />
                     <div>
                         <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Habitaciones Limpieza</MudText>
                         <MudText Typo="Typo.h5">@dashboardDTO.TotalHabitacionesEnLimpieza</MudText>
                     </div>
                 </MudPaper>
             </MudItem>
+
             <MudItem sm="12" md="6" xs="12">
                 <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.EventAvailable"
-                             Color="Color.Success"
-                             Class="mx-4"
-                             Style="width:54px; height:54px;">
-                    </MudIcon>
+                    <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Color="Color.Success" Class="mx-4" Style="width:54px; height:54px;" />
                     <div>
-                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">
-                            Reservas de hoy
-                        </MudText>
-                        <MudText Typo="Typo.h5">
-                            @dashboardDTO.TotalReservasHoy
-                        </MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
-            <MudItem sm="12" md="6" xs="12">
-                <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.DateRange"
-                             Color="Color.Info"
-                             Class="mx-4"
-                             Style="width:54px; height:54px;">
-                    </MudIcon>
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">
-                            Reservas del mes
-                        </MudText>
-                        <MudText Typo="Typo.h5">
-                            @dashboardDTO.TotalReservasMes
-                        </MudText>
+                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Reservas de hoy</MudText>
+                        <MudText Typo="Typo.h5">@dashboardDTO.TotalReservasHoy</MudText>
                     </div>
                 </MudPaper>
             </MudItem>
 
+            <MudItem sm="12" md="6" xs="12">
+                <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
+                    <MudIcon Icon="@Icons.Material.Filled.DateRange" Color="Color.Info" Class="mx-4" Style="width:54px; height:54px;" />
+                    <div>
+                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Reservas del mes</MudText>
+                        <MudText Typo="Typo.h5">@dashboardDTO.TotalReservasMes</MudText>
+                    </div>
+                </MudPaper>
+            </MudItem>
+        </MudGrid>
 
+        <MudGrid Spacing="2" Class="mt-4">
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6">Ocupación del mes (check-ins por día)</MudText>
 
+                    @if (dashboardDTO.OcupacionMes == null || dashboardDTO.OcupacionMes.Count == 0)
+                    {
+                        <MudText Class="mt-2">No hay datos para mostrar.</MudText>
+                    }
+                    else
+                    {
+                        <MudChart ChartType="ChartType.Line"
+                                  Labels="@LabelsOcup"
+                                  ChartSeries="@SeriesOcupacion"
+                                  Height="320px" />
+                    }
+                </MudPaper>
+            </MudItem>
+
+            <MudItem xs="12" md="6">
+                <MudPaper Class="pa-4" Elevation="3">
+                    <MudText Typo="Typo.h6">Ingresos del mes (checkouts por día)</MudText>
+
+                    @if (dashboardDTO.IngresosMesCheckout == null || dashboardDTO.IngresosMesCheckout.Count == 0)
+                    {
+                        <MudText Class="mt-2">No hay datos para mostrar.</MudText>
+                    }
+                    else
+                    {
+                        <MudChart ChartType="ChartType.Line"
+                                  Labels="@LabelsIng"
+                                  ChartSeries="@SeriesIngresos"
+                                  Height="320px" />
+                    }
+                </MudPaper>
+            </MudItem>
         </MudGrid>
 
     </MudPaper>
-
 </MudContainer>
-@code {
-    DashBoardDTO dashboardDTO = new DashBoardDTO();
 
-    int totalReservasHoy;
-    int totalReservasMes;
+@code {
+    private DashBoardDTO dashboardDTO = new();
+
+    private string[] LabelsOcup = Array.Empty<string>();
+    private double[][] DataOcup = Array.Empty<double[]>();
+
+    private string[] LabelsIng = Array.Empty<string>();
+    private double[][] DataIng = Array.Empty<double[]>();
+
+    private List<ChartSeries> SeriesOcupacion = new();
+    private List<ChartSeries> SeriesIngresos = new();
 
     protected override async Task OnInitializedAsync()
     {
-        dashboardDTO.TotalHabitaciones =
-        await _dashboardServicio.TotalHabitaciones();
+        var resp = await _dashboardServicio.ResumenDashboard();
 
-        dashboardDTO.TotalHabitacionesDisponibles =
-    await _dashboardServicio.TotalHabitacionesDisponibles();
+        dashboardDTO = (resp.status && resp.value != null) ? resp.value : new DashBoardDTO();
 
-        dashboardDTO.TotalHabitacionesOcupadas =
-            await _dashboardServicio.TotalHabitacionesOcupadas();
+        BuildCharts();
+    }
 
-        dashboardDTO.TotalHabitacionesEnLimpieza =
-            await _dashboardServicio.TotalHabitacionesEnLimpieza();
+    private void BuildCharts()
+    {
+        // ===== Ocupación =====
+        if (dashboardDTO.OcupacionMes != null && dashboardDTO.OcupacionMes.Count > 0)
+        {
+            var orderedO = dashboardDTO.OcupacionMes
+                .OrderBy(x => x.FechaDate)
+                .ToList();
 
+            LabelsOcup = orderedO.Select(x => x.FechaDate.ToString("dd/MM")).ToArray();
 
-        dashboardDTO.TotalReservasHoy =
-            await _dashboardServicio.TotalReservasHoy();
+            SeriesOcupacion = new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = "Check-ins",
+                Data = orderedO.Select(x => (double)x.Ocupadas).ToArray()
+            }
+        };
+        }
+        else
+        {
+            LabelsOcup = Array.Empty<string>();
+            SeriesOcupacion = new();
+        }
 
-        dashboardDTO.TotalReservasMes =
-            await _dashboardServicio.TotalReservasMes();
+        // ===== Ingresos =====
+        if (dashboardDTO.IngresosMesCheckout != null && dashboardDTO.IngresosMesCheckout.Count > 0)
+        {
+            var orderedI = dashboardDTO.IngresosMesCheckout
+                .OrderBy(x => x.FechaDate)
+                .ToList();
+
+            LabelsIng = orderedI.Select(x => x.FechaDate.ToString("dd/MM")).ToArray();
+
+            SeriesIngresos = new List<ChartSeries>
+        {
+            new ChartSeries
+            {
+                Name = "Ingresos",
+                Data = orderedI.Select(x => (double)x.Monto).ToArray()
+            }
+        };
+        }
+        else
+        {
+            LabelsIng = Array.Empty<string>();
+            SeriesIngresos = new();
+        }
     }
 }

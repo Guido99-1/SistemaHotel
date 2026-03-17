@@ -1,4 +1,5 @@
 ﻿@inject IRolUsuarioServicio _rolServicio
+@attribute [Authorize(Roles = "Administrador,Gerencia,Reservas,Recepcionista")]
 @inject IUsuarioServicio _usuarioServicio
 @inject ISnackbar _snackBar
 

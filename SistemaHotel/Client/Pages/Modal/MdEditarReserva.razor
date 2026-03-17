@@ -1,0 +1,474 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
+@attribute [Authorize(Roles = "Administrador")]
+@inject IReservaServicio _reservaServicio
+@inject SweetAlertService Swal
+@using System.Security.Claims
+@inject IHabitacionServicio _habitacionServicio
+@inject AuthenticationStateProvider AuthStateProvider
+<MudDialog>
+    <DialogContent>
+
+        @if (cargando)
+        {
+            <div class="d-flex justify-center pa-8">
+                <MudProgressCircular Indeterminate="true" Color="Color.Primary" Size="Size.Large" />
+            </div>
+        }
+        else
+        {
+            <MudStack Spacing="2">
+
+                <!-- ===== Header PRO ===== -->
+                <MudPaper Elevation="0" Class="pa-3 mud-border-radius-8" Style="border:1px solid rgba(0,0,0,.08);">
+                    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.h6">Editar Reserva</MudText>
+                            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                                ID: @IdReserva
+                            </MudText>
+                        </MudStack>
+
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudChip Color="@ColorEstado" Variant="Variant.Filled" Size="Size.Small">
+                                @reserva.EstadoReserva
+                            </MudChip>
+
+                            @if (!string.IsNullOrWhiteSpace(reserva.Habitacion))
+                            {
+                                <MudChip Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Bed">
+                                    Hab. @reserva.Habitacion
+                                </MudChip>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(reserva.Cliente))
+                            {
+                                <MudChip Variant="Variant.Outlined" Size="Size.Small" Icon="@Icons.Material.Filled.Person">
+                                    @reserva.Cliente
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </MudStack>
+
+                    @if (esSoloLectura)
+                    {
+                        <MudAlert Severity="Severity.Info" Variant="Variant.Outlined" Class="mt-3">
+                            Esta reserva está <b>FINALIZADA</b>. No se puede editar.
+                        </MudAlert>
+                    }
+                </MudPaper>
+
+                <!-- ===== Form ===== -->
+                <MudForm @ref="_form">
+
+                    <MudTabs Rounded="true" Elevation="0" Class="mt-1" @bind-ActivePanelIndex="_tab">
+
+                        <!-- TAB 1 -->
+                        <MudTabPanel Text="Fechas">
+                            <MudGrid Spacing="2" Class="mt-2">
+                                @if (esAdmin)
+                                {
+                                    <MudItem xs="12" sm="12">
+                                        <MudSelect T="int"
+                                                   Label="Cambiar habitación"
+                                                   @bind-Value="reserva.IdHabitacion"
+                                                   Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense"
+                                                   Dense="true">
+
+                                            @foreach (var h in habitaciones)
+                                            {
+                                                <MudSelectItem T="int" Value="@h.IdHabitacion">
+                                                    @($"{h.Numero} - {h.IdCategoriaNavigation?.Descripcion}")
+                                                </MudSelectItem>
+                                            }
+
+                                        </MudSelect>
+                                    </MudItem>
+                                }
+                                <MudItem xs="12" sm="6">
+                                    <MudDatePicker Label="Fecha Entrada"
+                                                   Date="@reserva.FechaEntrada"
+                                                   DateChanged="OnEntradaChanged"
+                                                   MinDate="@MinEntrada"
+                                                   DateFormat="dd/MM/yyyy"
+                                                   Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense"
+                                                   Disabled="@esSoloLectura" />
+                                </MudItem>
+
+                                <MudItem xs="12" sm="6">
+                                    <MudDatePicker Label="Fecha Salida"
+                                                   Date="@reserva.FechaSalidaReserva"
+                                                   DateChanged="OnSalidaChanged"
+                                                   MinDate="@(reserva.FechaEntrada ?? MinEntrada)"
+                                                   DateFormat="dd/MM/yyyy"
+                                                   Variant="Variant.Outlined"
+                                                   Margin="Margin.Dense"
+                                                   Disabled="@esSoloLectura" />
+                                </MudItem>
+
+                                <MudItem xs="12">
+                                    <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                        Asegúrate que <b>Salida</b> sea mayor que <b>Entrada</b>.
+                                    </MudAlert>
+                                </MudItem>
+
+                            </MudGrid>
+                        </MudTabPanel>
+
+                        <!-- TAB 2 -->
+                        <MudTabPanel Text="Pagos">
+                            <MudGrid Spacing="2" Class="mt-2">
+
+                                <MudItem xs="12" sm="6">
+                                    <MudNumericField T="decimal?"
+                                                     Value="@reserva.PrecioInicial"
+                                                     ValueChanged="OnPrecioChanged"
+                                                     Label="Precio Inicial"
+                                                     Variant="Variant.Outlined"
+                                                     Margin="Margin.Dense"
+                                                     Min="0"
+                                                     Immediate="true"
+                                                     Disabled="@esSoloLectura" />
+                                </MudItem>
+
+                                <MudItem xs="12" sm="6">
+                                    <MudNumericField T="decimal?"
+                                                     Value="@reserva.Adelanto"
+                                                     ValueChanged="OnAdelantoChanged"
+                                                     Label="Adelanto"
+                                                     Variant="Variant.Outlined"
+                                                     Margin="Margin.Dense"
+                                                     Min="0"
+                                                     Immediate="true"
+                                                     Disabled="@esSoloLectura" />
+                                </MudItem>
+
+                                <MudItem xs="12" sm="6">
+                                    <MudNumericField T="decimal"
+                                                     Value="@Pendiente"
+                                                     ValueChanged="(_)=>{}"
+                                                     Label="Pendiente (auto)"
+                                                     Variant="Variant.Outlined"
+                                                     Margin="Margin.Dense"
+                                                     ReadOnly="true" />
+                                </MudItem>
+
+                                <MudItem xs="12">
+                                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined">
+                                        <b>Pendiente</b> se calcula automáticamente: <b>PrecioInicial - Adelanto</b>.
+                                    </MudAlert>
+                                </MudItem>
+
+                            </MudGrid>
+                        </MudTabPanel>
+
+                        <!-- TAB 3 -->
+                        <MudTabPanel Text="Estado & Observación">
+                            <MudGrid Spacing="2" Class="mt-2">
+
+                                <MudItem xs="12" sm="6">
+                                    <MudSelect T="string" Label="Estado Reserva"
+                                               @bind-Value="reserva.EstadoReserva"
+                                               Variant="Variant.Outlined"
+                                               Margin="Margin.Dense"
+                                               Disabled="@esSoloLectura">
+                                        <MudSelectItem Value="@("CONFIRMADA")">CONFIRMADA</MudSelectItem>
+                                        <MudSelectItem Value="@("EN_ESTADIA")">EN_ESTADIA</MudSelectItem>
+                                        <MudSelectItem Value="@("FINALIZADA")">FINALIZADA</MudSelectItem>
+                                        <MudSelectItem Value="@("CANCELADA")">CANCELADA</MudSelectItem>
+                                    </MudSelect>
+                                </MudItem>
+
+                                <MudItem xs="12">
+                                    <MudTextField @bind-Value="reserva.Observacion"
+                                                  Label="Observación"
+                                                  Variant="Variant.Outlined"
+                                                  Margin="Margin.Dense"
+                                                  Lines="4"
+                                                  Disabled="@esSoloLectura" />
+                                </MudItem>
+
+                            </MudGrid>
+                        </MudTabPanel>
+
+                    </MudTabs>
+                </MudForm>
+
+            </MudStack>
+        }
+
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" Color="Color.Default" OnClick="Cancelar">
+            Cerrar
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   Disabled="@(!PuedeGuardar)"
+                   OnClick="Guardar">
+            @if (guardando)
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" Class="mr-2" />
+            }
+            Guardar cambios
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+    [Parameter] public int IdReserva { get; set; }
+
+    private MudForm? _form;
+    private int _tab = 0;
+    private bool esAdmin = false;
+    private List<HabitacionDTO> habitaciones = new();
+    private bool cargandoHabitaciones = false;
+    private bool cargando = true;
+    private bool guardando = false;
+
+    // Ajusta este DTO al TUYO REAL.
+    // Aquí asumí que tu ReservaDTO incluye estas propiedades.
+    private ReservaDTO reserva = new();
+
+    // Política: no permitir fechas pasadas si tu negocio es reservas futuras
+    private DateTime MinEntrada => DateTime.Today.AddDays(1);
+
+    private bool esSoloLectura => (reserva.EstadoReserva?.Trim().ToUpper() == "FINALIZADA");
+
+    private Color ColorEstado => reserva.EstadoReserva?.ToUpper() switch
+    {
+        "CONFIRMADA" => Color.Info,
+        "EN_ESTADIA" => Color.Primary,
+        "FINALIZADA" => Color.Success,
+        "CANCELADA" => Color.Error,
+        _ => Color.Default
+    };
+
+    private decimal Precio => reserva.PrecioInicial ?? 0m;
+    private decimal Adelanto => reserva.Adelanto ?? 0m;
+
+    private decimal Pendiente
+    {
+        get
+        {
+            var p = Precio - Adelanto;
+            return p < 0m ? 0m : p;
+        }
+    }
+
+    private string ResumenPago => $"Total: {Precio:N2} | Adelanto: {Adelanto:N2} | Pendiente: {Pendiente:N2}";
+
+    private bool PuedeGuardar => !cargando && !guardando && !esSoloLectura;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            cargando = true;
+
+            var resp = await _reservaServicio.ObtenerPorId(IdReserva);
+            if (!resp.status || resp.value is null)
+            {
+                await Swal.FireAsync("Error", resp.msg ?? "No se pudo cargar la reserva.", "error");
+                MudDialog.Cancel();
+                return;
+            }
+            var auth = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = auth.User;
+            esAdmin = user.IsInRole("Administrador"); // o agrega Gerencia si quieres
+            if (esAdmin)
+            {
+                cargandoHabitaciones = true;
+
+                var respHab = await _habitacionServicio.Lista();
+                if (respHab.status && respHab.value is not null)
+                    habitaciones = respHab.value;
+
+                cargandoHabitaciones = false;
+            }
+            reserva = resp.value;
+
+            // Normalizar nulls
+            reserva.PrecioInicial ??= 0m;
+            reserva.Adelanto ??= 0m;
+            reserva.Observacion ??= "";
+            reserva.EstadoReserva ??= "CONFIRMADA";
+
+            // Si fecha entrada viene null, pon un default
+            reserva.FechaEntrada ??= MinEntrada;
+            reserva.FechaSalidaReserva ??= reserva.FechaEntrada.Value.AddDays(1);
+
+            // Ajuste por seguridad: no dejar entrada < min
+            if (reserva.FechaEntrada.Value.Date < MinEntrada.Date)
+                reserva.FechaEntrada = MinEntrada;
+
+            if (reserva.FechaSalidaReserva.Value.Date <= reserva.FechaEntrada.Value.Date)
+                reserva.FechaSalidaReserva = reserva.FechaEntrada.Value.AddDays(1);
+        }
+        finally
+        {
+            cargando = false;
+        }
+    }
+
+    private Task OnEntradaChanged(DateTime? value)
+    {
+        if (value is null) return Task.CompletedTask;
+
+        var v = value.Value.Date;
+
+        // no permitir menor al mínimo
+        if (v < MinEntrada.Date)
+            v = MinEntrada.Date;
+
+        reserva.FechaEntrada = v;
+
+        // asegurar salida > entrada
+        if (reserva.FechaSalidaReserva is null || reserva.FechaSalidaReserva.Value.Date <= v)
+            reserva.FechaSalidaReserva = v.AddDays(1);
+
+        return Task.CompletedTask;
+    }
+
+    private Task OnSalidaChanged(DateTime? value)
+    {
+        if (value is null) return Task.CompletedTask;
+
+        var v = value.Value.Date;
+        var entrada = (reserva.FechaEntrada ?? MinEntrada).Date;
+
+        if (v <= entrada)
+            v = entrada.AddDays(1);
+
+        reserva.FechaSalidaReserva = v;
+        return Task.CompletedTask;
+    }
+
+    private Task OnPrecioChanged(decimal? value)
+    {
+        reserva.PrecioInicial = value ?? 0m;
+        if (reserva.PrecioInicial < 0m) reserva.PrecioInicial = 0m;
+
+        // coherencia: adelanto nunca > precio
+        var precio = reserva.PrecioInicial ?? 0m;
+        var adelanto = reserva.Adelanto ?? 0m;
+
+        if (adelanto > precio)
+            reserva.Adelanto = precio;
+
+        RecalcularPendiente();
+        return Task.CompletedTask;
+    }
+
+    private Task OnAdelantoChanged(decimal? value)
+    {
+        reserva.Adelanto = value ?? 0m;
+        if (reserva.Adelanto < 0m) reserva.Adelanto = 0m;
+
+        var precio = reserva.PrecioInicial ?? 0m;
+        if (reserva.Adelanto > precio)
+            reserva.Adelanto = precio;
+
+        RecalcularPendiente();
+        return Task.CompletedTask;
+    }
+
+    private void RecalcularPendiente()
+    {
+        var precio = reserva.PrecioInicial ?? 0m;
+        var adelanto = reserva.Adelanto ?? 0m;
+
+        // si tú quieres que pendiente sea “lo que falta para completar el precio”
+        reserva.ValorPendiente = Math.Max(0m, precio - adelanto);
+
+        // y lo cancelado puede ser el adelanto (si así lo manejas en reservas)
+        reserva.ValorCancelado = adelanto;
+
+        // total igual al precio inicial (si no hay penalidad en reserva)
+        reserva.Total = precio;
+    }
+
+    
+
+    private void Cancelar() => MudDialog.Cancel();
+
+    private async Task Guardar()
+    {
+        // Validaciones PRO
+        var entrada = reserva.FechaEntrada?.Date;
+        var salida = reserva.FechaSalidaReserva?.Date;
+
+        if (!entrada.HasValue || !salida.HasValue)
+        {
+            await Swal.FireAsync("Faltan fechas", "Debes ingresar Entrada y Salida.", "warning");
+            _tab = 0;
+            return;
+        }
+
+        if (entrada.Value < MinEntrada.Date)
+        {
+            await Swal.FireAsync("Entrada inválida", $"La entrada no puede ser menor a {MinEntrada:dd/MM/yyyy}.", "warning");
+            _tab = 0;
+            return;
+        }
+
+        if (salida.Value <= entrada.Value)
+        {
+            await Swal.FireAsync("Salida inválida", "La salida debe ser mayor a la entrada.", "warning");
+            _tab = 0;
+            return;
+        }
+
+        if (Precio <= 0m)
+        {
+            await Swal.FireAsync("Precio inválido", "El Precio Inicial debe ser mayor a 0.", "warning");
+            _tab = 1;
+            return;
+        }
+
+        if (Adelanto < 0m || Adelanto > Precio)
+        {
+            await Swal.FireAsync("Adelanto inválido", "El adelanto debe estar entre 0 y el precio inicial.", "warning");
+            _tab = 1;
+            return;
+        }
+
+        // Confirmación antes de guardar
+        var confirm = await Swal.FireAsync(new SweetAlertOptions
+        {
+            Title = "¿Guardar cambios?",
+            Text = "Se actualizará la reserva con los nuevos datos.",
+            Icon = SweetAlertIcon.Question,
+            ShowCancelButton = true,
+            ConfirmButtonText = "Sí, guardar",
+            CancelButtonText = "Cancelar"
+        });
+
+        if (!confirm.IsConfirmed) return;
+
+        try
+        {
+            guardando = true;
+
+            var resp = await _reservaServicio.EditarReserva(reserva.IdReserva, reserva);
+
+            if (resp.status)
+            {
+                MudDialog.Close(DialogResult.Ok(true));
+            }
+            else
+            {
+                await Swal.FireAsync("Error", resp.msg ?? "No se pudo guardar.", "error");
+            }
+        }
+        finally
+        {
+            guardando = false;
+        }
+    }
+}

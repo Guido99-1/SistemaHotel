@@ -1,5 +1,5 @@
 ﻿@page "/page/detalle/{idHabitacion:int}"
-
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 @inject IHabitacionServicio _habitacionServicio
 @inject IRecepcionServicio _recepcionServicio
 @inject IDialogService DialogService
@@ -197,13 +197,21 @@
                             </MudItem>
 
                             <MudItem xs="12">
-                                <MudNumericField T="decimal?"
+                                @* <MudNumericField T="decimal?"
                                                  Value="precioFinal"
                                                  ValueChanged="(v)=>precioFinal=v"
                                                  Label="Precio (por noches)"
                                                  Variant="Variant.Outlined"
-                                                 ReadOnly="true"
-                                                 Margin="Margin.Dense" />
+                                                 ReadOnly="true" 
+                                                 Margin="Margin.Dense" /> *@
+                                   <MudNumericField T="decimal?"
+                                                 @bind-Value="precioPorNoche"
+                                                 Immediate="true"
+                                                 Label="Precio (por noche)"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 Min="0"
+                                                 @oninput="(e) => RecalcularPrecio()" />
                             </MudItem>
 
                             <MudItem xs="12">
@@ -214,7 +222,15 @@
                                                  Margin="Margin.Dense"
                                                  Min="0" />
                             </MudItem>
-
+                            <MudItem xs="12">
+                                <MudNumericField T="decimal?"
+                                                 @bind-Value="_recepcionDTO.PrecioRestante"
+                                                 Label="Valor cancelado (Check-in)"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 Min="0"
+                                                 Immediate="true" />
+                            </MudItem>
                             <!-- ✅ Botón Cobrar dentro de MudItem -->
                             <MudItem xs="12">
                                 <MudButton Color="Color.Success"
@@ -244,13 +260,7 @@
                                               Margin="Margin.Dense" />
                             </MudItem>
 
-                            <MudItem xs="12">
-                                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-                                    Se cobra por <b>noche</b>. Ejemplo: entrada 19 y salida 20 = <b>1 noche</b>.
-                                    <br />
-                                    Si eliges salida hoy, se cobra como <b>1 noche</b> (day use).
-                                </MudAlert>
-                            </MudItem>
+                           
 
                         </MudGrid>
                     </MudCardContent>
@@ -270,8 +280,9 @@
     private RecepcionDTO _recepcionDTO = new();
 
     private bool _crearCliente = false;
-
-    private decimal? precioFinal = 0;
+    private decimal? precioPorNoche = 0m;   // ✅ editable
+    private decimal? precioFinal = 0m;      // ✅ total (noches * precioPorNoche)
+    //private decimal? precioFinal = 0;
 
     private DateTime fechaEntrada = DateTime.Today;
     private DateTime fechaSalida = DateTime.Today.AddDays(1);
@@ -293,6 +304,9 @@
 
             fechaEntrada = DateTime.Today;
             fechaSalida = DateTime.Today.AddDays(1);
+
+            // ✅ por defecto toma el precio base, pero luego el usuario puede editarlo
+            precioPorNoche = _habitacionDTO.Precio ?? 0m;
 
             RecalcularPrecio();
         }
@@ -351,19 +365,29 @@
     {
         if (_habitacionDTO.Precio == null)
         {
-            precioFinal = 0m;
+            precioFinal = 0;
             return;
         }
 
-        var entrada = fechaEntrada.Date;
-        var salida = fechaSalida.Date;
-
-        var noches = (salida - entrada).Days;
-
-        // day-use o mismo día => 1 noche
+        var noches = (fechaSalida.Date - fechaEntrada.Date).Days;
         if (noches <= 0) noches = 1;
 
-        precioFinal = _habitacionDTO.Precio.Value * noches;
+        var pNoche = precioPorNoche ?? 0m;
+        if (pNoche < 0) pNoche = 0;
+
+        precioFinal = pNoche * noches;
+
+        // ✅ Auto-calcular lo que se debe cobrar HOY (check-in)
+        var total = precioFinal ?? 0m;
+        var adelanto = _recepcionDTO.Adelanto ?? 0m;
+        if (adelanto < 0) adelanto = 0;
+
+        var pendiente = total - adelanto;
+        if (pendiente < 0) pendiente = 0;
+
+        // si aún no han escrito nada, o si quedó incoherente, lo seteo
+        if (_recepcionDTO.PrecioRestante == null || _recepcionDTO.PrecioRestante < 0)
+            _recepcionDTO.PrecioRestante = pendiente;
     }
 
     // ✅ Usa el MISMO modal que en Registrar (MdMetodoPago)
@@ -385,54 +409,111 @@
         _recepcionDTO.NotaMetodoPago = data.NotaMetodoPago;
     }
 
+     private Task OnPrecioPorNocheChanged(decimal? v)
+    {
+        precioPorNoche = v ?? 0m;
+        if (precioPorNoche < 0) precioPorNoche = 0m;
+
+        RecalcularPrecio();
+        return Task.CompletedTask;
+    }
     // private async Task Registrar()
     // {
+    //     // 1) Cliente
     //     if (_clienteDTO == null || string.IsNullOrWhiteSpace(_clienteDTO.NombreCompleto))
     //     {
     //         await Swal.FireAsync("Falta cliente", "Debe seleccionar o crear un cliente.", "warning");
     //         return;
     //     }
 
+    //     // 2) Fechas
     //     if (fechaSalida < fechaEntrada)
     //     {
     //         await Swal.FireAsync("Fechas inválidas", "La fecha de salida no puede ser menor a la fecha de entrada.", "warning");
     //         return;
     //     }
 
+    //     // 3) Recalcular precio
     //     RecalcularPrecio();
 
     //     var total = precioFinal ?? 0m;
-    //     var adelanto = _recepcionDTO.Adelanto ?? 0m;
+    //     if (total <= 0m)
+    //     {
+    //         await Swal.FireAsync("Error", "El precio inicial no puede ser 0.", "warning");
+    //         return;
+    //     }
 
+    //     var adelanto = _recepcionDTO.Adelanto ?? 0m;
     //     if (adelanto < 0m) adelanto = 0m;
 
-    //     // ✅ Validación clave: adelanto no puede ser mayor al total
+    //     // ✅ Adelanto no puede superar el total
     //     if (adelanto > total)
     //     {
     //         await Swal.FireAsync("Error", "El adelanto no puede ser mayor al total.", "warning");
     //         return;
     //     }
 
-    //     // ✅ Recomendado: obligar elegir método de pago antes de registrar
-    //     if (string.IsNullOrWhiteSpace(_recepcionDTO.MetodoPago))
+    //     var pendiente = total - adelanto; // lo que se debe cobrar en check-in
+
+    //     // 4) Si tienes el campo editable "Valor cancelado (Check-in)" (PrecioRestante):
+    //     var canceladoCheckIn = _recepcionDTO.PrecioRestante ?? pendiente;
+    //     if (canceladoCheckIn < 0m) canceladoCheckIn = 0m;
+
+    //     // ✅ No puede ser mayor al pendiente
+    //     if (canceladoCheckIn > pendiente)
     //     {
-    //         await Swal.FireAsync("Falta método de pago", "Selecciona el método de pago antes de registrar.", "warning");
+    //         await Swal.FireAsync("Error", $"El valor cancelado no puede ser mayor a {pendiente:N2}.", "warning");
     //         return;
     //     }
 
+    //     // ✅ Regla negocio: en check-in se cobra TODO el pendiente
+    //     if (canceladoCheckIn != pendiente)
+    //     {
+    //         await Swal.FireAsync("Error", $"En check-in debe cobrarse el pendiente completo: {pendiente:N2}.", "warning");
+    //         return;
+    //     }
+
+    //     // ✅ Método de pago obligatorio
+    //     if (string.IsNullOrWhiteSpace(_recepcionDTO.MetodoPago))
+    //     {
+    //         await Swal.FireAsync("Falta método de pago", "Selecciona el método de pago.", "warning");
+    //         return;
+    //     }
+
+    //     // 5) Asignar relaciones (usa IDs, no Navigation)
+        
+
     //     _recepcionDTO.IdClienteNavigation = _clienteDTO;
     //     _recepcionDTO.IdHabitacion = _habitacionDTO.IdHabitacion;
-
+    //     if (_clienteDTO == null || _clienteDTO.IdCliente <= 0)
+    //     {
+    //         await Swal.FireAsync("Falta cliente", "Selecciona un cliente válido (IdCliente).", "warning");
+    //         return;
+    //     }
     //     _recepcionDTO.FechaEntrada = fechaEntrada;
     //     _recepcionDTO.FechaSalida = fechaSalida;
 
+    //     // 6) Reglas de negocio
     //     _recepcionDTO.PrecioInicial = total;
-    //     _recepcionDTO.PrecioRestante = total - adelanto;
+    //     _recepcionDTO.Adelanto = adelanto;
 
+    //     // ✅ Lo cobrado en check-in (pendiente)
+    //     _recepcionDTO.PrecioRestante = pendiente;
+
+    //     // ✅ Penalidad inicia en 0
+    //     _recepcionDTO.CostoPenalidad = 0m;
+
+    //     // ✅ Total pagado al crear (sin penalidad)
+    //     _recepcionDTO.TotalPagado = total;
+
+    //     // 7) Guardar
+    //     //await Swal.FireAsync("DEBUG", $"IdCliente seleccionado: {_clienteDTO?.IdCliente}", "info");
     //     var response = await _recepcionServicio.Crear(_recepcionDTO);
 
     //     if (response.status)
     //     {
+
+
     //         await Swal.FireAsync("Éxito", "La recepción fue registrada correctamente.", "success");
     //         navManager.NavigateTo("/page/recepcion");
     //     }
@@ -441,13 +522,35 @@
     //         await Swal.FireAsync("No se pudo registrar", response.msg, "error");
     //     }
     // }
+
+
     private async Task Registrar()
     {
-        // 1) Cliente
-        if (_clienteDTO == null || string.IsNullOrWhiteSpace(_clienteDTO.NombreCompleto))
+        // 1) Cliente (validación según modo)
+        if (_clienteDTO == null)
         {
             await Swal.FireAsync("Falta cliente", "Debe seleccionar o crear un cliente.", "warning");
             return;
+        }
+
+        if (_crearCliente)
+        {
+            // creando: exige datos mínimos
+            if (string.IsNullOrWhiteSpace(_clienteDTO.NombreCompleto) ||
+                string.IsNullOrWhiteSpace(_clienteDTO.Documento))
+            {
+                await Swal.FireAsync("Falta cliente", "Completa los datos del cliente.", "warning");
+                return;
+            }
+        }
+        else
+        {
+            // seleccionado: exige IdCliente válido
+            if (_clienteDTO.IdCliente <= 0)
+            {
+                await Swal.FireAsync("Falta cliente", "Selecciona un cliente existente.", "warning");
+                return;
+            }
         }
 
         // 2) Fechas
@@ -457,56 +560,74 @@
             return;
         }
 
-        // 3) Precio
+        // 3) Recalcular precio
         RecalcularPrecio();
-        decimal precioInicial = precioFinal ?? 0m;
 
-        if (precioInicial <= 0m)
+        var total = precioFinal ?? 0m;
+        if (total <= 0m)
         {
             await Swal.FireAsync("Error", "El precio inicial no puede ser 0.", "warning");
             return;
         }
 
-        // 4) Adelanto (puede ser 0)
-        decimal adelanto = _recepcionDTO.Adelanto ?? 0m;
+        var adelanto = _recepcionDTO.Adelanto ?? 0m;
         if (adelanto < 0m) adelanto = 0m;
 
-        // ✅ Validación clave: adelanto no puede superar el precio inicial
-        if (adelanto > precioInicial)
+        if (adelanto > total)
         {
-            await Swal.FireAsync("Error", "El adelanto no puede ser mayor al precio inicial.", "warning");
+            await Swal.FireAsync("Error", "El adelanto no puede ser mayor al total.", "warning");
             return;
         }
 
-        // ✅ Método de pago obligatorio (ya que cobrarás en check-in)
+        var pendiente = total - adelanto;
+
+        var canceladoCheckIn = _recepcionDTO.PrecioRestante ?? pendiente;
+        if (canceladoCheckIn < 0m) canceladoCheckIn = 0m;
+
+        if (canceladoCheckIn > pendiente)
+        {
+            await Swal.FireAsync("Error", $"El valor cancelado no puede ser mayor a {pendiente:N2}.", "warning");
+            return;
+        }
+
+        if (canceladoCheckIn != pendiente)
+        {
+            await Swal.FireAsync("Error", $"En check-in debe cobrarse el pendiente completo: {pendiente:N2}.", "warning");
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(_recepcionDTO.MetodoPago))
         {
             await Swal.FireAsync("Falta método de pago", "Selecciona el método de pago.", "warning");
             return;
         }
 
-        // 5) Asignar relaciones
-        _recepcionDTO.IdCliente = _clienteDTO.IdCliente;
+        // 4) Asignar relaciones (✅ según modo)
         _recepcionDTO.IdHabitacion = _habitacionDTO.IdHabitacion;
-
         _recepcionDTO.FechaEntrada = fechaEntrada;
         _recepcionDTO.FechaSalida = fechaSalida;
 
-        // 6) Guardar reglas de negocio
-        _recepcionDTO.PrecioInicial = precioInicial;
+        if (_crearCliente)
+        {
+            // ✅ cliente nuevo: se manda navigation para que el backend lo cree
+            _recepcionDTO.IdCliente = null;
+            _recepcionDTO.IdClienteNavigation = _clienteDTO;
+        }
+        else
+        {
+            // ✅ cliente existente: se manda solo IdCliente (más limpio)
+            _recepcionDTO.IdCliente = _clienteDTO.IdCliente;
+            _recepcionDTO.IdClienteNavigation = null;
+        }
+
+        // 5) Valores
+        _recepcionDTO.PrecioInicial = total;
         _recepcionDTO.Adelanto = adelanto;
+        _recepcionDTO.PrecioRestante = pendiente;
+        _recepcionDTO.CostoPenalidad = 0m;
+        _recepcionDTO.TotalPagado = total;
 
-        // ✅ PENDIENTE A COBRAR EN CHECK-IN
-        _recepcionDTO.PrecioRestante = precioInicial - adelanto; // caso 1/2/3 sale perfecto
-
-        // ✅ Penalidad empieza en 0
-        _recepcionDTO.CostoPenalidad = _recepcionDTO.CostoPenalidad ?? 0m;
-        if (_recepcionDTO.CostoPenalidad < 0m) _recepcionDTO.CostoPenalidad = 0m;
-
-        // ✅ TotalPagado (sin penalidad aún)
-        _recepcionDTO.TotalPagado = precioInicial;
-
-        // 7) Guardar
+        // 6) Guardar
         var response = await _recepcionServicio.Crear(_recepcionDTO);
 
         if (response.status)

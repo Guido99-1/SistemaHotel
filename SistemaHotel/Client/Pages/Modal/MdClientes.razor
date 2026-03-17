@@ -1,4 +1,5 @@
 ﻿@inject IClienteServicio _clienteServicio
+@attribute [Authorize(Roles = "Administrador,Gerencia,Reservas,Recepcionista")]
 @inject ISnackbar _snackBar
 
 <MudDialog Style="width:500px">

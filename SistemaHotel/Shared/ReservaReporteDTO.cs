@@ -8,14 +8,16 @@ namespace SistemaHotel.Shared
 {
     public class ReservaReporteDTO
     {
-        public string NombreCliente { get; set; }
-        public string NroHabitacion { get; set; }
-        public string FechaEntrada { get; set; }
-        public string FechaSalida { get; set; }
+        public int IdReserva { get; set; }
+        public string? NombreCliente { get; set; }
+        public string? NroHabitacion { get; set; }
+        public string? FechaEntrada { get; set; }
+        public string? FechaSalida { get; set; }
         public decimal Total { get; set; }
         public decimal ValorCancelado { get; set; }
         public decimal ValorPendiente { get; set; }
-        public string EstadoReserva { get; set; }
+        public string? EstadoReserva { get; set; }
+        public string? Observacion { get; set; }
 
     }
 }

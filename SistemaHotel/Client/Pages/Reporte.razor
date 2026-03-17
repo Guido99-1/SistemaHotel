@@ -2,7 +2,7 @@
 @using ClosedXML.Excel;
 @inject IJSRuntime _jsServicio;
 @inject IRecepcionServicio _recepcionServicio;
-@attribute [Authorize(Roles = "Administrador")]
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
 
@@ -109,6 +109,139 @@
         _loading = false;
     }
 
+    // private async Task ExportarExcel()
+    // {
+    //     if (!lista.Any())
+    //         return;
+
+    //     using var libro = new XLWorkbook();
+    //     var hoja = libro.Worksheets.Add("Reporte");
+
+    //     // =========================
+    //     // 1) Título profesional
+    //     // =========================
+    //     hoja.Range("A1:G1").Merge();
+    //     hoja.Cell("A1").Value = "REPORTE DE RECEPCIONES";
+    //     hoja.Cell("A1").Style.Font.Bold = true;
+    //     hoja.Cell("A1").Style.Font.FontSize = 16;
+    //     hoja.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+    //     hoja.Cell("A1").Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+    //     hoja.Row(1).Height = 28;
+
+    //     // Subtítulo (rango fechas)
+    //     hoja.Range("A2:G2").Merge();
+    //     hoja.Cell("A2").Value = $"Rango: {fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}   |   Generado: {DateTime.Now:dd/MM/yyyy HH:mm}";
+    //     hoja.Cell("A2").Style.Font.Italic = true;
+    //     hoja.Cell("A2").Style.Font.FontSize = 10;
+    //     hoja.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+    //     hoja.Row(2).Height = 18;
+
+    //     // =========================
+    //     // 2) Encabezados
+    //     // =========================
+    //     int filaHeader = 4;
+
+    //     hoja.Cell(filaHeader, 1).Value = "Nombre Cliente";
+    //     hoja.Cell(filaHeader, 2).Value = "Tipo documento";
+    //     hoja.Cell(filaHeader, 3).Value = "Nro Documento";
+    //     hoja.Cell(filaHeader, 4).Value = "Nro Habitación";
+    //     hoja.Cell(filaHeader, 5).Value = "Fecha Entrada";
+    //     hoja.Cell(filaHeader, 6).Value = "Fecha Salida";
+    //     hoja.Cell(filaHeader, 7).Value = "Total";
+
+    //     var encabezado = hoja.Range(filaHeader, 1, filaHeader, 7);
+    //     encabezado.Style.Font.Bold = true;
+    //     encabezado.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+    //     encabezado.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+    //     encabezado.Style.Fill.SetBackgroundColor(XLColor.LightGray);
+    //     encabezado.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+    //     encabezado.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+    //     hoja.Row(filaHeader).Height = 20;
+
+    //     // =========================
+    //     // 3) Datos
+    //     // =========================
+    //     int filaDataInicio = filaHeader + 1;
+
+    //     // InsertData inserta todas las propiedades en orden.
+    //     // Pero como tu ReporteDTO tiene exactamente esas columnas, funciona bien.
+    //     hoja.Cell(filaDataInicio, 1).InsertData(lista);
+
+    //     // Cantidad real de filas
+    //     int filaDataFin = filaDataInicio + lista.Count - 1;
+
+    //     // Estilo tabla datos
+    //     var rangoDatos = hoja.Range(filaHeader, 1, filaDataFin, 7);
+    //     rangoDatos.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+    //     rangoDatos.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
+    //     rangoDatos.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+
+    //     // Alineaciones por columna
+    //     hoja.Column(1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
+    //     hoja.Column(2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+    //     hoja.Column(3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+    //     hoja.Column(4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+    //     hoja.Column(5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+    //     hoja.Column(6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+    //     hoja.Column(7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+    //     // Formato de moneda (Total) - intenta convertir a decimal si tu TotalPagado llega como string
+    //     // Si TotalPagado ya es decimal en tu DTO, quita esta parte.
+    //     for (int r = filaDataInicio; r <= filaDataFin; r++)
+    //     {
+    //         var valor = hoja.Cell(r, 7).GetString();
+    //         if (decimal.TryParse(valor, out var money))
+    //         {
+    //             hoja.Cell(r, 7).Value = money;
+    //         }
+    //     }
+    //     hoja.Column(7).Style.NumberFormat.Format = "#,##0.00";
+
+    //     // =========================
+    //     // 4) Filtros + Freeze panes
+    //     // =========================
+    //     encabezado.SetAutoFilter();
+    //     hoja.SheetView.FreezeRows(filaHeader); // congela hasta encabezado
+
+    //     // =========================
+    //     // 5) Totales (footer)
+    //     // =========================
+    //     int filaTotal = filaDataFin + 2;
+    //     hoja.Cell(filaTotal, 6).Value = "TOTAL GENERAL:";
+    //     hoja.Cell(filaTotal, 6).Style.Font.Bold = true;
+    //     hoja.Cell(filaTotal, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+    //     hoja.Cell(filaTotal, 7).FormulaA1 = $"SUM(G{filaDataInicio}:G{filaDataFin})";
+    //     hoja.Cell(filaTotal, 7).Style.Font.Bold = true;
+    //     hoja.Cell(filaTotal, 7).Style.NumberFormat.Format = "#,##0.00";
+    //     hoja.Range(filaTotal, 6, filaTotal, 7).Style.Fill.SetBackgroundColor(XLColor.FromHtml("#E8F5E9"));
+    //     hoja.Range(filaTotal, 6, filaTotal, 7).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
+    //     // =========================
+    //     // 6) Anchos (sin AdjustToContents para evitar error de fuentes)
+    //     // =========================
+    //     hoja.Column(1).Width = 30; // Cliente
+    //     hoja.Column(2).Width = 16; // Tipo doc
+    //     hoja.Column(3).Width = 18; // Documento
+    //     hoja.Column(4).Width = 16; // Habitación
+    //     hoja.Column(5).Width = 16; // Entrada
+    //     hoja.Column(6).Width = 16; // Salida
+    //     hoja.Column(7).Width = 14; // Total
+
+    //     // =========================
+    //     // 7) Descargar
+    //     // =========================
+    //     using var memoria = new MemoryStream();
+    //     libro.SaveAs(memoria);
+
+    //     var nombreExcel = $"Reporte_Recepcion_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
+
+    //     await _jsServicio.InvokeAsync<object>(
+    //         "DescargarExcel",
+    //         nombreExcel,
+    //         Convert.ToBase64String(memoria.ToArray())
+    //     );
+    // }
     private async Task ExportarExcel()
     {
         if (!lista.Any())
@@ -118,9 +251,9 @@
         var hoja = libro.Worksheets.Add("Reporte");
 
         // =========================
-        // 1) Título profesional
+        // 1) Título
         // =========================
-        hoja.Range("A1:G1").Merge();
+        hoja.Range("A1:K1").Merge();
         hoja.Cell("A1").Value = "REPORTE DE RECEPCIONES";
         hoja.Cell("A1").Style.Font.Bold = true;
         hoja.Cell("A1").Style.Font.FontSize = 16;
@@ -128,8 +261,7 @@
         hoja.Cell("A1").Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
         hoja.Row(1).Height = 28;
 
-        // Subtítulo (rango fechas)
-        hoja.Range("A2:G2").Merge();
+        hoja.Range("A2:K2").Merge();
         hoja.Cell("A2").Value = $"Rango: {fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}   |   Generado: {DateTime.Now:dd/MM/yyyy HH:mm}";
         hoja.Cell("A2").Style.Font.Italic = true;
         hoja.Cell("A2").Style.Font.FontSize = 10;
@@ -147,9 +279,13 @@
         hoja.Cell(filaHeader, 4).Value = "Nro Habitación";
         hoja.Cell(filaHeader, 5).Value = "Fecha Entrada";
         hoja.Cell(filaHeader, 6).Value = "Fecha Salida";
-        hoja.Cell(filaHeader, 7).Value = "Total";
+        hoja.Cell(filaHeader, 7).Value = "Adelanto";
+        hoja.Cell(filaHeader, 8).Value = "CancelaRecepcion";
+        hoja.Cell(filaHeader, 9).Value = "Método pago";
+        hoja.Cell(filaHeader, 10).Value = "Penalidad";
+        hoja.Cell(filaHeader, 11).Value = "Total pagado";
 
-        var encabezado = hoja.Range(filaHeader, 1, filaHeader, 7);
+        var encabezado = hoja.Range(filaHeader, 1, filaHeader, 11);
         encabezado.Style.Font.Bold = true;
         encabezado.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         encabezado.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
@@ -162,71 +298,108 @@
         // 3) Datos
         // =========================
         int filaDataInicio = filaHeader + 1;
+        int fila = filaDataInicio;
 
-        // InsertData inserta todas las propiedades en orden.
-        // Pero como tu ReporteDTO tiene exactamente esas columnas, funciona bien.
-        hoja.Cell(filaDataInicio, 1).InsertData(lista);
+        foreach (var x in lista)
+        {
+            hoja.Cell(fila, 1).Value = x.NombreCliente;
+            hoja.Cell(fila, 2).Value = x.TipoDocumento;
+            hoja.Cell(fila, 3).Value = x.NroDocumento;
+            hoja.Cell(fila, 4).Value = x.NroHabitacion;
+            hoja.Cell(fila, 5).Value = x.FechaEntrada;
+            hoja.Cell(fila, 6).Value = x.FechaSalida;
 
-        // Cantidad real de filas
-        int filaDataFin = filaDataInicio + lista.Count - 1;
+            hoja.Cell(fila, 7).Value = x.Adelanto ?? 0m;
+            hoja.Cell(fila, 8).Value = x.PrecioRestante ?? 0m;
+            hoja.Cell(fila, 9).Value = x.MetodoPago;
 
-        // Estilo tabla datos
-        var rangoDatos = hoja.Range(filaHeader, 1, filaDataFin, 7);
+            hoja.Cell(fila, 10).Value = x.CostoPenalidad ?? 0m;
+            hoja.Cell(fila, 11).Value = x.TotalPagado ?? 0m;
+
+            fila++;
+        }
+
+        int filaDataFin = fila - 1;
+
+        // Estilo bordes
+        var rangoDatos = hoja.Range(filaHeader, 1, filaDataFin, 11);
         rangoDatos.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
         rangoDatos.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
         rangoDatos.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
 
-        // Alineaciones por columna
+        // Alineaciones
         hoja.Column(1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
         hoja.Column(2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         hoja.Column(3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         hoja.Column(4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         hoja.Column(5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
         hoja.Column(6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        hoja.Column(7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
 
-        // Formato de moneda (Total) - intenta convertir a decimal si tu TotalPagado llega como string
-        // Si TotalPagado ya es decimal en tu DTO, quita esta parte.
-        for (int r = filaDataInicio; r <= filaDataFin; r++)
-        {
-            var valor = hoja.Cell(r, 7).GetString();
-            if (decimal.TryParse(valor, out var money))
-            {
-                hoja.Cell(r, 7).Value = money;
-            }
-        }
+        hoja.Column(7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+        hoja.Column(8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+        hoja.Column(9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        hoja.Column(10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+        hoja.Column(11).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+
+        // Formato moneda
         hoja.Column(7).Style.NumberFormat.Format = "#,##0.00";
+        hoja.Column(8).Style.NumberFormat.Format = "#,##0.00";
+        hoja.Column(10).Style.NumberFormat.Format = "#,##0.00";
+        hoja.Column(11).Style.NumberFormat.Format = "#,##0.00";
 
         // =========================
         // 4) Filtros + Freeze panes
         // =========================
         encabezado.SetAutoFilter();
-        hoja.SheetView.FreezeRows(filaHeader); // congela hasta encabezado
+        hoja.SheetView.FreezeRows(filaHeader);
 
         // =========================
-        // 5) Totales (footer)
+        // 5) Totales generales
         // =========================
         int filaTotal = filaDataFin + 2;
-        hoja.Cell(filaTotal, 6).Value = "TOTAL GENERAL:";
+
+        hoja.Cell(filaTotal, 6).Value = "TOTALES:";
         hoja.Cell(filaTotal, 6).Style.Font.Bold = true;
         hoja.Cell(filaTotal, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
 
+        // Adelanto (G)
         hoja.Cell(filaTotal, 7).FormulaA1 = $"SUM(G{filaDataInicio}:G{filaDataFin})";
         hoja.Cell(filaTotal, 7).Style.Font.Bold = true;
+
+        // Precio restante (H)
+        hoja.Cell(filaTotal, 8).FormulaA1 = $"SUM(H{filaDataInicio}:H{filaDataFin})";
+        hoja.Cell(filaTotal, 8).Style.Font.Bold = true;
+
+        // Penalidad (J)
+        hoja.Cell(filaTotal, 10).FormulaA1 = $"SUM(J{filaDataInicio}:J{filaDataFin})";
+        hoja.Cell(filaTotal, 10).Style.Font.Bold = true;
+
+        // Total pagado (K)
+        hoja.Cell(filaTotal, 11).FormulaA1 = $"SUM(K{filaDataInicio}:K{filaDataFin})";
+        hoja.Cell(filaTotal, 11).Style.Font.Bold = true;
+
+        hoja.Range(filaTotal, 6, filaTotal, 11).Style.Fill.SetBackgroundColor(XLColor.FromHtml("#E8F5E9"));
+        hoja.Range(filaTotal, 6, filaTotal, 11).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+
         hoja.Cell(filaTotal, 7).Style.NumberFormat.Format = "#,##0.00";
-        hoja.Range(filaTotal, 6, filaTotal, 7).Style.Fill.SetBackgroundColor(XLColor.FromHtml("#E8F5E9"));
-        hoja.Range(filaTotal, 6, filaTotal, 7).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
+        hoja.Cell(filaTotal, 8).Style.NumberFormat.Format = "#,##0.00";
+        hoja.Cell(filaTotal, 10).Style.NumberFormat.Format = "#,##0.00";
+        hoja.Cell(filaTotal, 11).Style.NumberFormat.Format = "#,##0.00";
 
         // =========================
-        // 6) Anchos (sin AdjustToContents para evitar error de fuentes)
+        // 6) Anchos
         // =========================
-        hoja.Column(1).Width = 30; // Cliente
-        hoja.Column(2).Width = 16; // Tipo doc
-        hoja.Column(3).Width = 18; // Documento
-        hoja.Column(4).Width = 16; // Habitación
-        hoja.Column(5).Width = 16; // Entrada
-        hoja.Column(6).Width = 16; // Salida
-        hoja.Column(7).Width = 14; // Total
+        hoja.Column(1).Width = 30;
+        hoja.Column(2).Width = 16;
+        hoja.Column(3).Width = 18;
+        hoja.Column(4).Width = 16;
+        hoja.Column(5).Width = 16;
+        hoja.Column(6).Width = 16;
+        hoja.Column(7).Width = 14;
+        hoja.Column(8).Width = 16;
+        hoja.Column(9).Width = 16;
+        hoja.Column(10).Width = 14;
+        hoja.Column(11).Width = 14;
 
         // =========================
         // 7) Descargar

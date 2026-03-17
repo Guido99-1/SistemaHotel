@@ -1,5 +1,5 @@
 ﻿@page "/page/usuario"
-@attribute [Authorize(Roles = "Administrador")]
+@attribute [Authorize(Roles = "Administrador,Gerencia")]
 
 @inject IUsuarioServicio _usuarioServicio
 @inject IDialogService _dialogServicio

@@ -5,6 +5,7 @@ using SistemaHotel.Shared;
 using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
+using static System.Net.WebRequestMethods;
 
 namespace SistemaHotel.Server.Repositorio.Implementacion
 {
@@ -45,22 +46,54 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 // -----------------------------
                 // Cliente
                 // -----------------------------
-                if (entidad.IdClienteNavigation == null)
-                    throw new Exception("Debe enviar el cliente.");
+                //if (entidad.IdClienteNavigation == null)
+                //    throw new Exception("Debe enviar el cliente.");
 
-                if (entidad.IdClienteNavigation.IdCliente == 0)
+                //if (entidad.IdClienteNavigation.IdCliente == 0)
+                //{
+                //    var cliente = entidad.IdClienteNavigation;
+                //    _dbContext.Clientes.Add(cliente);
+                //    await _dbContext.SaveChangesAsync();
+
+                //    entidad.IdCliente = cliente.IdCliente;
+                //    entidad.IdClienteNavigation = null;
+                //}
+                //else
+                //{
+                //    entidad.IdCliente = entidad.IdClienteNavigation.IdCliente;
+                //    entidad.IdClienteNavigation = null;
+                //}
+                // -----------------------------
+                // Cliente (acepta IdCliente O Navigation)
+                // -----------------------------
+// Cliente (acepta IdCliente O Navigation)
+// -----------------------------
+                if (entidad.IdClienteNavigation != null)
                 {
-                    var cliente = entidad.IdClienteNavigation;
-                    _dbContext.Clientes.Add(cliente);
-                    await _dbContext.SaveChangesAsync();
+                    // crear cliente si viene nuevo
+                    if (entidad.IdClienteNavigation.IdCliente == 0)
+                    {
+                        var cliente = entidad.IdClienteNavigation;
+                        _dbContext.Clientes.Add(cliente);
+                        await _dbContext.SaveChangesAsync();
 
-                    entidad.IdCliente = cliente.IdCliente;
-                    entidad.IdClienteNavigation = null;
+                        entidad.IdCliente = cliente.IdCliente;
+                        entidad.IdClienteNavigation = null;
+                    }
+                    else
+                    {
+                        // viene cliente existente dentro de la navigation
+                        entidad.IdCliente = entidad.IdClienteNavigation.IdCliente;
+                        entidad.IdClienteNavigation = null;
+                    }
                 }
                 else
                 {
-                    entidad.IdCliente = entidad.IdClienteNavigation.IdCliente;
-                    entidad.IdClienteNavigation = null;
+                    // ✅ si no viene navigation, debe venir IdCliente
+                    if (!entidad.IdCliente.HasValue || entidad.IdCliente <= 0)
+                        throw new Exception("Debe enviar el cliente.");
+
+                    // ok: ya tenemos entidad.IdCliente
                 }
 
                 // -----------------------------
@@ -119,12 +152,90 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 throw;
             }
         }
-        public async Task<bool> Finalizar(int idRecepcion, DateTime fechaSalidaConfirmacion)
+        //public async Task<bool> Finalizar(int idRecepcion, DateTime fechaSalidaConfirmacion)
+        //{
+        //    using var transaction = await _dbContext.Database.BeginTransactionAsync();
+        //    try
+        //    {
+        //        // 1) Traer recepción activa
+        //        var recepcion = await _dbContext.Recepcions
+        //            .FirstOrDefaultAsync(r => r.IdRecepcion == idRecepcion);
+
+        //        if (recepcion == null)
+        //            throw new Exception("No se encontró la recepción.");
+
+        //        if (recepcion.Estado == false)
+        //            throw new Exception("Esta recepción ya fue finalizada.");
+
+        //        // 2) Cerrar recepción
+        //        recepcion.FechaSalidaConfirmacion = fechaSalidaConfirmacion;
+        //        recepcion.Estado = false;
+
+        //        _dbContext.Recepcions.Update(recepcion);
+        //        await _dbContext.SaveChangesAsync();
+
+        //        // 3) Pasar habitación a LIMPIEZA (recomendado)
+        //        var habitacion = await _dbContext.Habitacions
+        //            .FirstOrDefaultAsync(h => h.IdHabitacion == recepcion.IdHabitacion);
+
+        //        if (habitacion == null)
+        //            throw new Exception("No se encontró la habitación asociada a la recepción.");
+
+        //        // 2 = Limpieza (según tu tabla EstadoHabitacion)
+        //        habitacion.IdEstadoHabitacion = 2;
+        //        _dbContext.Habitacions.Update(habitacion);
+        //        await _dbContext.SaveChangesAsync();
+
+        //        // 4) Marcar la reserva correspondiente como FINALIZADA
+        //        //    Regla de cruce permitiendo salida==entrada (hotel real):
+        //        //    hay cruce real si: (start < otherEnd) AND (end > otherStart)
+        //        var entrada = recepcion.FechaEntrada ?? DateTime.MinValue;
+        //        var salida = recepcion.FechaSalida ?? fechaSalidaConfirmacion;
+
+        //        var reserva = await _dbContext.Reservas
+        //            .Where(r =>
+        //                r.Estado == true &&
+        //                r.IdHabitacion == recepcion.IdHabitacion &&
+        //                r.FechaEntrada.HasValue &&
+        //                r.FechaSalidaReserva.HasValue &&
+        //                // cruce real (permite salida==entrada):
+        //                r.FechaEntrada.Value.Date < salida.Date &&
+        //                r.FechaSalidaReserva.Value.Date > entrada.Date &&
+        //                // reservas que aún no han finalizado:
+        //                r.EstadoReserva != "FINALIZADA"
+        //            )
+        //            // la más reciente suele ser la correcta
+        //            .OrderByDescending(r => r.IdReserva)
+        //            .FirstOrDefaultAsync();
+
+        //        if (reserva != null)
+        //        {
+        //            reserva.EstadoReserva = "FINALIZADA";
+
+        //            // ✅ recomendado para que NO se considere activa:
+        //            // (tu código ya consulta reservas activas con Estado==true)
+        //            reserva.Estado = false;
+
+        //            _dbContext.Reservas.Update(reserva);
+        //            await _dbContext.SaveChangesAsync();
+        //        }
+
+        //        await transaction.CommitAsync();
+        //        return true;
+        //    }
+        //    catch
+        //    {
+        //        await transaction.RollbackAsync();
+        //        throw;
+        //    }
+        //}
+
+        public async Task<bool> Finalizar(int idRecepcion, DateTime fechaSalidaConfirmacion, decimal costoPenalidad)
         {
-            using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            using var tx = await _dbContext.Database.BeginTransactionAsync();
+
             try
             {
-                // 1) Traer recepción activa
                 var recepcion = await _dbContext.Recepcions
                     .FirstOrDefaultAsync(r => r.IdRecepcion == idRecepcion);
 
@@ -134,65 +245,39 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 if (recepcion.Estado == false)
                     throw new Exception("Esta recepción ya fue finalizada.");
 
-                // 2) Cerrar recepción
+                // Normalizar penalidad
+                if (costoPenalidad < 0m) costoPenalidad = 0m;
+
+                recepcion.CostoPenalidad = costoPenalidad;
                 recepcion.FechaSalidaConfirmacion = fechaSalidaConfirmacion;
+
+                // Total pagado final = PrecioInicial + Penalidad
+                var baseHospedaje = recepcion.PrecioInicial ?? 0m;
+                recepcion.TotalPagado = baseHospedaje + costoPenalidad;
+
+                // Finalizar estado
                 recepcion.Estado = false;
 
                 _dbContext.Recepcions.Update(recepcion);
                 await _dbContext.SaveChangesAsync();
 
-                // 3) Pasar habitación a LIMPIEZA (recomendado)
+                // Cambiar habitación a LIMPIEZA (2)
                 var habitacion = await _dbContext.Habitacions
                     .FirstOrDefaultAsync(h => h.IdHabitacion == recepcion.IdHabitacion);
 
                 if (habitacion == null)
                     throw new Exception("No se encontró la habitación asociada a la recepción.");
 
-                // 2 = Limpieza (según tu tabla EstadoHabitacion)
                 habitacion.IdEstadoHabitacion = 2;
                 _dbContext.Habitacions.Update(habitacion);
                 await _dbContext.SaveChangesAsync();
 
-                // 4) Marcar la reserva correspondiente como FINALIZADA
-                //    Regla de cruce permitiendo salida==entrada (hotel real):
-                //    hay cruce real si: (start < otherEnd) AND (end > otherStart)
-                var entrada = recepcion.FechaEntrada ?? DateTime.MinValue;
-                var salida = recepcion.FechaSalida ?? fechaSalidaConfirmacion;
-
-                var reserva = await _dbContext.Reservas
-                    .Where(r =>
-                        r.Estado == true &&
-                        r.IdHabitacion == recepcion.IdHabitacion &&
-                        r.FechaEntrada.HasValue &&
-                        r.FechaSalidaReserva.HasValue &&
-                        // cruce real (permite salida==entrada):
-                        r.FechaEntrada.Value.Date < salida.Date &&
-                        r.FechaSalidaReserva.Value.Date > entrada.Date &&
-                        // reservas que aún no han finalizado:
-                        r.EstadoReserva != "FINALIZADA"
-                    )
-                    // la más reciente suele ser la correcta
-                    .OrderByDescending(r => r.IdReserva)
-                    .FirstOrDefaultAsync();
-
-                if (reserva != null)
-                {
-                    reserva.EstadoReserva = "FINALIZADA";
-
-                    // ✅ recomendado para que NO se considere activa:
-                    // (tu código ya consulta reservas activas con Estado==true)
-                    reserva.Estado = false;
-
-                    _dbContext.Reservas.Update(reserva);
-                    await _dbContext.SaveChangesAsync();
-                }
-
-                await transaction.CommitAsync();
+                await tx.CommitAsync();
                 return true;
             }
             catch
             {
-                await transaction.RollbackAsync();
+                await tx.RollbackAsync();
                 throw;
             }
         }
@@ -243,18 +328,53 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
             }
         }
 
-        public  async Task<List<Recepcion>> Reporte(string FechaInicio, string FechaFin)
-        {
-            DateTime fech_Inicio = DateTime.ParseExact(FechaInicio, "dd/MM/yyyy", new CultureInfo("es-PE"));
-            DateTime fech_Fin = DateTime.ParseExact(FechaFin, "dd/MM/yyyy", new CultureInfo("es-PE"));
+        //public  async Task<List<Recepcion>> Reporte(string FechaInicio, string FechaFin)
+        //{
+        //    DateTime fech_Inicio = DateTime.ParseExact(FechaInicio, "dd/MM/yyyy", new CultureInfo("es-PE"));
+        //    DateTime fech_Fin = DateTime.ParseExact(FechaFin, "dd/MM/yyyy", new CultureInfo("es-PE"));
 
-            List<Recepcion> listaResumen = await _dbContext.Recepcions
-                .Include(p => p.IdClienteNavigation)
-                .Include(v => v.IdHabitacionNavigation)
-                 .Where(dv => dv.FechaEntrada.Value.Date >= fech_Inicio.Date && dv.FechaEntrada.Value.Date <= fech_Fin.Date)
+        //    List<Recepcion> listaResumen = await _dbContext.Recepcions
+        //        .Include(p => p.IdClienteNavigation)
+        //        .Include(v => v.IdHabitacionNavigation)
+        //         .Where(dv => dv.FechaEntrada.Value.Date >= fech_Inicio.Date && dv.FechaEntrada.Value.Date <= fech_Fin.Date)
+        //        .ToListAsync();
+
+        //    return listaResumen;
+        //}
+        public async Task<List<ReporteDTO>> Reporte(string FechaInicio, string FechaFin)
+        {
+            var fech_Inicio = DateTime.ParseExact(FechaInicio, "dd/MM/yyyy", new CultureInfo("es-PE"));
+            var fech_Fin = DateTime.ParseExact(FechaFin, "dd/MM/yyyy", new CultureInfo("es-PE"));
+
+            var lista = await _dbContext.Recepcions
+                .Include(r => r.IdClienteNavigation)
+                .Include(r => r.IdHabitacionNavigation)
+                .Where(r =>
+                    r.FechaEntrada.HasValue &&
+                    r.FechaEntrada.Value.Date >= fech_Inicio.Date &&
+                    r.FechaEntrada.Value.Date <= fech_Fin.Date
+                )
+                .Select(r => new ReporteDTO
+                {
+                    NombreCliente = r.IdClienteNavigation.NombreCompleto,
+                    TipoDocumento = r.IdClienteNavigation.TipoDocumento,
+                    NroDocumento = r.IdClienteNavigation.Documento,
+                    NroHabitacion = r.IdHabitacionNavigation.Numero,
+
+                    FechaEntrada = r.FechaEntrada.Value.ToString("dd/MM/yyyy"),
+                    FechaSalida = r.FechaSalida.Value.ToString("dd/MM/yyyy"),
+
+                    Adelanto = r.Adelanto ?? 0,
+                    PrecioRestante = r.PrecioRestante ?? 0,
+                    MetodoPago = r.MetodoPago,
+
+                    CostoPenalidad = r.CostoPenalidad ?? 0,
+                    TotalPagado = r.TotalPagado ?? 0,
+                    Observacion =r.Observacion
+                })
                 .ToListAsync();
 
-            return listaResumen;
+            return lista;
         }
     }
 }

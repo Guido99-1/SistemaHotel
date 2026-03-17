@@ -1,4 +1,5 @@
 ﻿@page "/page/listadoReservasRecepcion"
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 @using SistemaHotel.Shared
 @inject NavigationManager _navManager
 @inject IReservaServicio _reservaServicio
@@ -79,6 +80,7 @@
                     <MudTh class="text-right">Total</MudTh>
                     <MudTh class="text-right">Cancelado</MudTh>
                     <MudTh class="text-right">Pendiente</MudTh>
+                    <MudTh class="text-right">Observación</MudTh>
                 </HeaderContent>
 
                 <RowTemplate>
@@ -98,6 +100,7 @@
                     <MudTd DataLabel="Pendiente" Class="text-right">
                         @context.ValorPendiente.ToString("N2")
                     </MudTd>
+                    <MudTd DataLabel="Observacion">@context.Observacion</MudTd>
                 </RowTemplate>
 
                 <NoRecordsContent>

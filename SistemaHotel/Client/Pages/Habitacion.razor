@@ -1,5 +1,5 @@
 ﻿@page "/page/habitacion"
-@attribute [Authorize(Roles = "Administrador")]
+@attribute [Authorize(Roles = "Administrador,Gerencia")]
 
 @inject IHabitacionServicio _habitacionServicio
 @inject IDialogService _dialogServicio
