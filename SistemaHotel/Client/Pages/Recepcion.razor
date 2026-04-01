@@ -6,6 +6,7 @@
 @inject SweetAlertService Swal
 @inject ISnackbar _snackBar
 @inject IReservaServicio _reservaServicio
+@using System.Globalization
 
 @attribute [Authorize(Roles = "Administrador,Recepcionista,Empleado,Gerencia")]
 
@@ -190,6 +191,7 @@
                             <MudTh class="text-right">Cancelado</MudTh>
                             <MudTh class="text-right">Pendiente</MudTh>
                             <MudTh class="text-right">Observación</MudTh>
+                            <MudTh class="text-right">Acciones</MudTh>
                         </HeaderContent>
 
                         <RowTemplate>
@@ -210,6 +212,45 @@
                                 @context.ValorPendiente.ToString("N2")
                             </MudTd>
                             <MudTd DataLabel="Opservación">@context.Observacion</MudTd>
+                            <MudTd DataLabel="Acciones">
+                                @{
+                                    DateTime fechaIngreso;
+                                    bool esHoy = DateTime.TryParseExact(
+                                        context.FechaEntrada,
+                                        "dd/MM/yyyy",
+                                        System.Globalization.CultureInfo.InvariantCulture,
+                                        System.Globalization.DateTimeStyles.None,
+                                        out fechaIngreso
+                                    ) && fechaIngreso.Date == DateTime.Today;
+
+                                    bool yaCheckIn = context.EstadoReserva == "CHECKIN";
+                                }
+
+                                @if (yaCheckIn)
+                                {
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Info"
+                                               Disabled="true">
+                                        Check-in realizado
+                                    </MudButton>
+                                }
+                                else if (esHoy)
+                                {
+                                    <MudButton Color="Color.Success"
+                                               Variant="Variant.Filled"
+                                               OnClick="@(() => IrACheckIn(context.IdReserva))">
+                                        Check-in
+                                    </MudButton>
+                                }
+                                else
+                                {
+                                    <MudButton Variant="Variant.Filled"
+                                               Color="Color.Default"
+                                               Disabled="true">
+                                        No disponible
+                                    </MudButton>
+                                }
+                            </MudTd>
                         </RowTemplate>
 
                         <NoRecordsContent>
@@ -228,7 +269,11 @@
 </MudContainer>
 
 @code {
-
+    //check-int reservas hoy
+    private void IrACheckIn(int idReserva)
+    {
+        _navManager.NavigateTo($"/page/checkinreserva/{idReserva}");
+    }
     private List<PisoDTO> listaPisos = new();
     private PisoDTO? pisoSeleccionado;
 

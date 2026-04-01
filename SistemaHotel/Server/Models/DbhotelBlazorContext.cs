@@ -145,6 +145,7 @@ public partial class DbhotelBlazorContext : DbContext
             entity.Property(e => e.CostoPenalidad)
                 .HasDefaultValueSql("((0))")
                 .HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.IdReserva).HasColumnName("IdReserva");
             entity.Property(e => e.FechaEntrada)
                 .HasDefaultValueSql("(getdate())")
                 .HasColumnType("datetime");
@@ -166,6 +167,10 @@ public partial class DbhotelBlazorContext : DbContext
             entity.HasOne(d => d.IdHabitacionNavigation).WithMany(p => p.Recepcions)
                 .HasForeignKey(d => d.IdHabitacion)
                 .HasConstraintName("FK__RECEPCION__IdHab__403A8C7D");
+            entity.HasOne(d => d.IdReservaNavigation)
+                .WithMany(p => p.Recepcions)
+                .HasForeignKey(d => d.IdReserva)
+                .HasConstraintName("FK_Recepcion_Reserva");
         });
 
         modelBuilder.Entity<RolUsuario>(entity =>

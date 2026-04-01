@@ -93,5 +93,10 @@ namespace SistemaHotel.Client.Servicios.Implementacion
                 return new T();
             }
         }
+        public async Task<ResponseDTO<List<HabitacionDTO>>> ListaDisponibles()
+        {
+            var httpResp = await _http.GetAsync("api/habitacion/Disponibles");
+            return await ReadResponseOrError<ResponseDTO<List<HabitacionDTO>>>(httpResp);
+        }
     }
 }

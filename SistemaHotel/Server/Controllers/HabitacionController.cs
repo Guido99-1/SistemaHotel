@@ -206,5 +206,33 @@ namespace SistemaHotel.Server.Controllers
                 return StatusCode(StatusCodes.Status500InternalServerError, _ResponseDTO);
             }
         }
+        [HttpGet("Disponibles")]
+        public async Task<IActionResult> ObtenerDisponibles()
+        {
+            var response = new ResponseDTO<List<HabitacionDTO>>();
+
+            try
+            {
+                var lista = await _dbContext.Habitacions
+                    .Include(h => h.IdCategoriaNavigation)
+                    .Include(h => h.IdPisoNavigation)
+                    .Where(h => h.Estado == true && h.IdEstadoHabitacion == 1)
+                    .ToListAsync();
+
+                response.status = true;
+                response.msg = "ok";
+                response.value = _mapper.Map<List<HabitacionDTO>>(lista);
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.status = false;
+                response.msg = ex.Message;
+                response.value = new List<HabitacionDTO>();
+
+                return StatusCode(500, response);
+            }
+        }
     }
 }

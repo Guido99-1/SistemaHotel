@@ -60,10 +60,51 @@ namespace SistemaHotel.Server.Utilidades
                 );
             #endregion Habitacion
 
+            //#region Recepcion
+            //CreateMap<Recepcion, RecepcionDTO>();
+            //CreateMap<RecepcionDTO, Recepcion>()
+            //.ForMember(destino =>
+            //        destino.Estado,
+            //        opt => opt.MapFrom(src => true)
+            //    );
+
+            //CreateMap<Recepcion, ReporteDTO>()
+            //    .ForMember(destino =>
+            //        destino.NombreCliente,
+            //        opt => opt.MapFrom(src => src.IdClienteNavigation.NombreCompleto)
+            //    )
+            //    .ForMember(destino =>
+            //        destino.TipoDocumento,
+            //        opt => opt.MapFrom(src => src.IdClienteNavigation.TipoDocumento)
+            //    )
+            //     .ForMember(destino =>
+            //        destino.NroDocumento,
+            //        opt => opt.MapFrom(src => src.IdClienteNavigation.Documento)
+            //    )
+            //      .ForMember(destino =>
+            //        destino.NroHabitacion,
+            //        opt => opt.MapFrom(src => src.IdHabitacionNavigation.Numero)
+            //    )
+            //       .ForMember(destino =>
+            //        destino.FechaEntrada,
+            //        opt => opt.MapFrom(src => src.FechaEntrada.Value.ToString("dd/MM/yyyy"))
+            //    )
+            //         .ForMember(destino =>
+            //        destino.FechaSalida,
+            //        opt => opt.MapFrom(src => src.FechaSalida.Value.ToString("dd/MM/yyyy"))
+            //    )
+            //         .ForMember(destino =>
+            //        destino.TotalPagado,
+            //        opt => opt.MapFrom(src => src.TotalPagado.ToString())
+            //    )
+
+            //    ;
+            //#endregion Recepcion
             #region Recepcion
             CreateMap<Recepcion, RecepcionDTO>();
+
             CreateMap<RecepcionDTO, Recepcion>()
-            .ForMember(destino =>
+                .ForMember(destino =>
                     destino.Estado,
                     opt => opt.MapFrom(src => true)
                 );
@@ -77,27 +118,32 @@ namespace SistemaHotel.Server.Utilidades
                     destino.TipoDocumento,
                     opt => opt.MapFrom(src => src.IdClienteNavigation.TipoDocumento)
                 )
-                 .ForMember(destino =>
+                .ForMember(destino =>
                     destino.NroDocumento,
                     opt => opt.MapFrom(src => src.IdClienteNavigation.Documento)
                 )
-                  .ForMember(destino =>
+                .ForMember(destino =>
                     destino.NroHabitacion,
                     opt => opt.MapFrom(src => src.IdHabitacionNavigation.Numero)
                 )
-                   .ForMember(destino =>
+                .ForMember(destino =>
                     destino.FechaEntrada,
-                    opt => opt.MapFrom(src => src.FechaEntrada.Value.ToString("dd/MM/yyyy"))
+                    opt => opt.MapFrom(src => src.FechaEntrada.HasValue
+                        ? src.FechaEntrada.Value.ToString("dd/MM/yyyy")
+                        : "")
                 )
-                     .ForMember(destino =>
+                .ForMember(destino =>
                     destino.FechaSalida,
-                    opt => opt.MapFrom(src => src.FechaSalida.Value.ToString("dd/MM/yyyy"))
+                    opt => opt.MapFrom(src => src.FechaSalida.HasValue
+                        ? src.FechaSalida.Value.ToString("dd/MM/yyyy")
+                        : "")
                 )
-                     .ForMember(destino =>
+                .ForMember(destino =>
                     destino.TotalPagado,
-                    opt => opt.MapFrom(src => src.TotalPagado.ToString())
-                )
-                ;
+                    opt => opt.MapFrom(src => src.TotalPagado.HasValue
+                        ? src.TotalPagado.Value.ToString()
+                        : "0")
+                );
             #endregion Recepcion
 
             #region Reserva

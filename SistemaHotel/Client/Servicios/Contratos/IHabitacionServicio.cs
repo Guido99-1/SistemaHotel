@@ -10,6 +10,6 @@ namespace SistemaHotel.Client.Servicios.Contratos
         Task<bool> Editar(HabitacionDTO entidad);
         Task<bool> Eliminar(int id);
         Task<ResponseDTO<List<int>>> OcupacionPorRango(string fechaInicio, string fechaFin);
-
+        Task<ResponseDTO<List<HabitacionDTO>>> ListaDisponibles();
     }
 }

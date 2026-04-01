@@ -1,10 +1,12 @@
 ﻿@page "/page/detalle/{idHabitacion:int}"
+@page "/page/checkinreserva/{idReserva:int}"
 @attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 @inject IHabitacionServicio _habitacionServicio
 @inject IRecepcionServicio _recepcionServicio
 @inject IDialogService DialogService
 @inject SweetAlertService Swal
 @inject NavigationManager navManager
+@inject IReservaServicio _reservaServicio
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
 
@@ -77,7 +79,8 @@
                             <MudItem xs="12">
                                 <MudGrid>
                                     <MudItem xs="6">
-                                        <MudButton Variant="Variant.Filled"
+                                        <MudButton Disabled="@(idReserva.HasValue)" 
+                                                   Variant="Variant.Filled"
                                                    Color="Color.Info"
                                                    FullWidth="true"
                                                    Size="Size.Small"
@@ -87,7 +90,8 @@
                                     </MudItem>
 
                                     <MudItem xs="6">
-                                        <MudButton Variant="Variant.Filled"
+                                        <MudButton Disabled="@(idReserva.HasValue)"
+                                                   Variant="Variant.Filled"
                                                    Color="Color.Success"
                                                    FullWidth="true"
                                                    Size="Size.Small"
@@ -101,7 +105,7 @@
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_clienteDTO.TipoDocumento"
                                               Label="Tipo Documento"
-                                              Disabled="@(!_crearCliente)"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense" />
                             </MudItem>
@@ -109,7 +113,7 @@
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_clienteDTO.Documento"
                                               Label="Documento"
-                                              Disabled="@(!_crearCliente)"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense" />
                             </MudItem>
@@ -117,7 +121,7 @@
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_clienteDTO.NombreCompleto"
                                               Label="Nombre Completo"
-                                              Disabled="@(!_crearCliente)"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense" />
                             </MudItem>
@@ -125,7 +129,7 @@
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_clienteDTO.Correo"
                                               Label="Correo"
-                                              Disabled="@(!_crearCliente)"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense" />
                             </MudItem>
@@ -133,7 +137,7 @@
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_clienteDTO.Telefono"
                                               Label="telefono"
-                                              Disabled="@(!_crearCliente)"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense" />
                             </MudItem>
@@ -141,7 +145,7 @@
                             <MudItem xs="12">
                                 <MudTextField @bind-Value="_clienteDTO.Direccion"
                                               Label="Direccion"
-                                              Disabled="@(!_crearCliente)"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
                                               Variant="Variant.Outlined"
                                               Margin="Margin.Dense" />
                             </MudItem>
@@ -193,29 +197,26 @@
                                                DateFormat="dd/MM/yyyy"
                                                Date="fechaSalida"
                                                DateChanged="OnFechaSalidaChanged"
-                                               MinDate="@fechaEntrada" />
+                                               MinDate="@fechaEntrada"
+                                               Disabled="@(idReserva.HasValue)" />
                             </MudItem>
 
                             <MudItem xs="12">
-                                @* <MudNumericField T="decimal?"
-                                                 Value="precioFinal"
-                                                 ValueChanged="(v)=>precioFinal=v"
-                                                 Label="Precio (por noches)"
-                                                 Variant="Variant.Outlined"
-                                                 ReadOnly="true" 
-                                                 Margin="Margin.Dense" /> *@
                                    <MudNumericField T="decimal?"
+                                                 
                                                  @bind-Value="precioPorNoche"
                                                  Immediate="true"
                                                  Label="Precio (por noche)"
                                                  Variant="Variant.Outlined"
                                                  Margin="Margin.Dense"
                                                  Min="0"
+                                                 Disabled="@(idReserva.HasValue)"S
                                                  @oninput="(e) => RecalcularPrecio()" />
                             </MudItem>
 
                             <MudItem xs="12">
                                 <MudNumericField T="decimal?"
+                                                 Disabled="@(idReserva.HasValue)"
                                                  @bind-Value="_recepcionDTO.Adelanto"
                                                  Label="Adelanto"
                                                  Variant="Variant.Outlined"
@@ -229,6 +230,7 @@
                                                  Variant="Variant.Outlined"
                                                  Margin="Margin.Dense"
                                                  Min="0"
+                                                 Disabled="@(idReserva.HasValue)"
                                                  Immediate="true" />
                             </MudItem>
                             <!-- ✅ Botón Cobrar dentro de MudItem -->
@@ -275,6 +277,9 @@
 @code {
 
     [Parameter] public int idHabitacion { get; set; }
+    [Parameter] public int? idReserva { get; set; }
+    //bandera para saber si llega desde reserva
+    private bool _modoReserva = false;
 
     private ClienteDTO _clienteDTO = new();
     private RecepcionDTO _recepcionDTO = new();
@@ -294,25 +299,114 @@
         IdPisoNavigation = new PisoDTO()
     };
 
+
     protected override async Task OnParametersSetAsync()
     {
-        var response = await _habitacionServicio.Obtener(idHabitacion);
-
-        if (response.status && response.value != null)
+        try
         {
-            _habitacionDTO = response.value;
+            // ✅ MODO CHECK-IN DESDE RESERVA
+            if (idReserva.HasValue)
+            {
+                _modoReserva = true;
 
-            fechaEntrada = DateTime.Today;
-            fechaSalida = DateTime.Today.AddDays(1);
+                var responseReserva = await _reservaServicio.ObtenerPorId(idReserva.Value);
 
-            // ✅ por defecto toma el precio base, pero luego el usuario puede editarlo
-            precioPorNoche = _habitacionDTO.Precio ?? 0m;
+                if (!responseReserva.status || responseReserva.value == null)
+                {
+                    await Swal.FireAsync(
+                        "Error",
+                        $"status: {responseReserva.status} | msg: {responseReserva.msg}",
+                        "error"
+                    );
+                    navManager.NavigateTo("/page/recepcion");
+                    return;
+                }
 
-            RecalcularPrecio();
+                var reserva = responseReserva.value;
+                // 🔒 Bloquear si ya tiene check-in
+                if (reserva.EstadoReserva == "CHECKIN")
+                {
+                    await Swal.FireAsync("No permitido", "Esta reserva ya realizó el check-in.", "warning");
+                    navManager.NavigateTo("/page/recepcion");
+                    return;
+                }
+
+                // ✅ validar que solo se pueda si entra hoy
+                if (!reserva.FechaEntrada.HasValue || reserva.FechaEntrada.Value.Date != DateTime.Today)
+                {
+                    await Swal.FireAsync("No permitido", "Solo se puede hacer check-in a reservas de hoy.", "warning");
+                    navManager.NavigateTo("/page/recepcion");
+                    return;
+                }
+
+                // ✅ cargar habitación desde la reserva
+                var responseHabitacion = await _habitacionServicio.Obtener(reserva.IdHabitacion);
+
+                if (!responseHabitacion.status || responseHabitacion.value == null)
+                {
+                    await Swal.FireAsync("Error", "No se pudo cargar la habitación de la reserva.", "error");
+                    navManager.NavigateTo("/page/recepcion");
+                    return;
+                }
+
+                _habitacionDTO = responseHabitacion.value;
+
+                // ✅ cliente de la reserva
+                _clienteDTO = reserva.IdClienteNavigation ?? new ClienteDTO();
+
+                // ✅ bloquear edición de cliente
+                _crearCliente = false;
+
+                // ✅ fechas
+                fechaEntrada = reserva.FechaEntrada ?? DateTime.Today;
+                fechaSalida = reserva.FechaSalidaReserva ?? fechaEntrada.AddDays(1);
+
+                // ✅ usar precio de la reserva
+                precioPorNoche = reserva.PrecioInicial ?? 0m;
+                precioFinal = reserva.PrecioInicial ?? 0m;
+
+                // ✅ valores del check-in
+                _recepcionDTO = new RecepcionDTO
+                {
+                    IdCliente = reserva.IdCliente,
+                    IdHabitacion = reserva.IdHabitacion,
+                    FechaEntrada = reserva.FechaEntrada,
+                    FechaSalida = reserva.FechaSalidaReserva,
+                    PrecioInicial = reserva.PrecioInicial,
+                    Adelanto = reserva.Adelanto,
+                    PrecioRestante = reserva.ValorPendiente,   // valor a cancelar en check-in
+                    TotalPagado = reserva.Total,
+                    Observacion = reserva.Observacion,
+                    Estado = true
+                };
+
+                return;
+            }
+
+            // ✅ MODO NORMAL (check-in manual por habitación)
+            _modoReserva = false;
+
+            var response = await _habitacionServicio.Obtener(idHabitacion);
+
+            if (response.status && response.value != null)
+            {
+                _habitacionDTO = response.value;
+
+                fechaEntrada = DateTime.Today;
+                fechaSalida = DateTime.Today.AddDays(1);
+
+                precioPorNoche = _habitacionDTO.Precio ?? 0m;
+
+                RecalcularPrecio();
+            }
+            else
+            {
+                await Swal.FireAsync("Error", "No se pudo cargar la habitación.", "error");
+            }
         }
-        else
+        catch (Exception ex)
         {
-            await Swal.FireAsync("Error", "No se pudo cargar la habitación.", "error");
+            await Swal.FireAsync("Error", ex.Message, "error");
         }
     }
 
@@ -417,115 +511,68 @@
         RecalcularPrecio();
         return Task.CompletedTask;
     }
-    // private async Task Registrar()
-    // {
-    //     // 1) Cliente
-    //     if (_clienteDTO == null || string.IsNullOrWhiteSpace(_clienteDTO.NombreCompleto))
-    //     {
-    //         await Swal.FireAsync("Falta cliente", "Debe seleccionar o crear un cliente.", "warning");
-    //         return;
-    //     }
-
-    //     // 2) Fechas
-    //     if (fechaSalida < fechaEntrada)
-    //     {
-    //         await Swal.FireAsync("Fechas inválidas", "La fecha de salida no puede ser menor a la fecha de entrada.", "warning");
-    //         return;
-    //     }
-
-    //     // 3) Recalcular precio
-    //     RecalcularPrecio();
-
-    //     var total = precioFinal ?? 0m;
-    //     if (total <= 0m)
-    //     {
-    //         await Swal.FireAsync("Error", "El precio inicial no puede ser 0.", "warning");
-    //         return;
-    //     }
-
-    //     var adelanto = _recepcionDTO.Adelanto ?? 0m;
-    //     if (adelanto < 0m) adelanto = 0m;
-
-    //     // ✅ Adelanto no puede superar el total
-    //     if (adelanto > total)
-    //     {
-    //         await Swal.FireAsync("Error", "El adelanto no puede ser mayor al total.", "warning");
-    //         return;
-    //     }
-
-    //     var pendiente = total - adelanto; // lo que se debe cobrar en check-in
-
-    //     // 4) Si tienes el campo editable "Valor cancelado (Check-in)" (PrecioRestante):
-    //     var canceladoCheckIn = _recepcionDTO.PrecioRestante ?? pendiente;
-    //     if (canceladoCheckIn < 0m) canceladoCheckIn = 0m;
-
-    //     // ✅ No puede ser mayor al pendiente
-    //     if (canceladoCheckIn > pendiente)
-    //     {
-    //         await Swal.FireAsync("Error", $"El valor cancelado no puede ser mayor a {pendiente:N2}.", "warning");
-    //         return;
-    //     }
-
-    //     // ✅ Regla negocio: en check-in se cobra TODO el pendiente
-    //     if (canceladoCheckIn != pendiente)
-    //     {
-    //         await Swal.FireAsync("Error", $"En check-in debe cobrarse el pendiente completo: {pendiente:N2}.", "warning");
-    //         return;
-    //     }
-
-    //     // ✅ Método de pago obligatorio
-    //     if (string.IsNullOrWhiteSpace(_recepcionDTO.MetodoPago))
-    //     {
-    //         await Swal.FireAsync("Falta método de pago", "Selecciona el método de pago.", "warning");
-    //         return;
-    //     }
-
-    //     // 5) Asignar relaciones (usa IDs, no Navigation)
-        
-
-    //     _recepcionDTO.IdClienteNavigation = _clienteDTO;
-    //     _recepcionDTO.IdHabitacion = _habitacionDTO.IdHabitacion;
-    //     if (_clienteDTO == null || _clienteDTO.IdCliente <= 0)
-    //     {
-    //         await Swal.FireAsync("Falta cliente", "Selecciona un cliente válido (IdCliente).", "warning");
-    //         return;
-    //     }
-    //     _recepcionDTO.FechaEntrada = fechaEntrada;
-    //     _recepcionDTO.FechaSalida = fechaSalida;
-
-    //     // 6) Reglas de negocio
-    //     _recepcionDTO.PrecioInicial = total;
-    //     _recepcionDTO.Adelanto = adelanto;
-
-    //     // ✅ Lo cobrado en check-in (pendiente)
-    //     _recepcionDTO.PrecioRestante = pendiente;
-
-    //     // ✅ Penalidad inicia en 0
-    //     _recepcionDTO.CostoPenalidad = 0m;
-
-    //     // ✅ Total pagado al crear (sin penalidad)
-    //     _recepcionDTO.TotalPagado = total;
-
-    //     // 7) Guardar
-    //     //await Swal.FireAsync("DEBUG", $"IdCliente seleccionado: {_clienteDTO?.IdCliente}", "info");
-    //     var response = await _recepcionServicio.Crear(_recepcionDTO);
-
-    //     if (response.status)
-    //     {
-
-
-    //         await Swal.FireAsync("Éxito", "La recepción fue registrada correctamente.", "success");
-    //         navManager.NavigateTo("/page/recepcion");
-    //     }
-    //     else
-    //     {
-    //         await Swal.FireAsync("No se pudo registrar", response.msg, "error");
-    //     }
-    // }
-
-
+    
     private async Task Registrar()
     {
+        // ✅ MODO CHECK-IN DESDE RESERVA
+        if (_modoReserva)
+        {
+            if (_clienteDTO == null || _clienteDTO.IdCliente <= 0)
+            {
+                await Swal.FireAsync("Falta cliente", "No se encontró el cliente de la reserva.", "warning");
+                return;
+            }
+
+            if (_habitacionDTO == null || _habitacionDTO.IdHabitacion <= 0)
+            {
+                await Swal.FireAsync("Falta habitación", "No se encontró la habitación de la reserva.", "warning");
+                return;
+            }
+
+            if (fechaSalida < fechaEntrada)
+            {
+                await Swal.FireAsync("Fechas inválidas", "La fecha de salida no puede ser menor a la fecha de entrada.", "warning");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(_recepcionDTO.MetodoPago))
+            {
+                await Swal.FireAsync("Falta método de pago", "Selecciona el método de pago.", "warning");
+                return;
+            }
+
+            // ✅ Asignar datos ya cargados desde la reserva
+            _recepcionDTO.IdCliente = _clienteDTO.IdCliente;
+            _recepcionDTO.IdClienteNavigation = null;
+
+            _recepcionDTO.IdHabitacion = _habitacionDTO.IdHabitacion;
+            _recepcionDTO.FechaEntrada = fechaEntrada;
+            _recepcionDTO.FechaSalida = fechaSalida;
+            _recepcionDTO.IdReserva = idReserva;
+
+            // ✅ En modo reserva NO recalculamos ni alteramos los valores
+            // porque ya vienen cargados desde la reserva:
+            // PrecioInicial, Adelanto, PrecioRestante, TotalPagado, Observacion
+
+            _recepcionDTO.CostoPenalidad = 0m;
+            _recepcionDTO.Estado = true;
+
+            var responseReserva = await _recepcionServicio.Crear(_recepcionDTO);
+
+            if (responseReserva.status)
+            {
+                await Swal.FireAsync("Éxito", "El check-in desde reserva fue registrado correctamente.", "success");
+                navManager.NavigateTo("/page/recepcion");
+            }
+            else
+            {
+                await Swal.FireAsync("No se pudo registrar", responseReserva.msg, "error");
+            }
+
+            return;
+        }
+
+        // ✅ MODO NORMAL (manual)
         // 1) Cliente (validación según modo)
         if (_clienteDTO == null)
         {
@@ -615,7 +662,7 @@
         }
         else
         {
-            // ✅ cliente existente: se manda solo IdCliente (más limpio)
+            // ✅ cliente existente: se manda solo IdCliente
             _recepcionDTO.IdCliente = _clienteDTO.IdCliente;
             _recepcionDTO.IdClienteNavigation = null;
         }

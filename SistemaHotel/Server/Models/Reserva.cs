@@ -46,5 +46,6 @@ namespace SistemaHotel.Server.Models
 
         [ForeignKey(nameof(IdHabitacion))]
         public virtual Habitacion IdHabitacionNavigation { get; set; }
+        public virtual ICollection<Recepcion> Recepcions { get; set; } = new List<Recepcion>();
     }
 }

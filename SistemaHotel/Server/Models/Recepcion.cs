@@ -10,6 +10,7 @@ public partial class Recepcion
     public int? IdCliente { get; set; }
 
     public int? IdHabitacion { get; set; }
+    public int? IdReserva { get; set; }
 
     public DateTime? FechaEntrada { get; set; }
 
@@ -36,4 +37,5 @@ public partial class Recepcion
     public virtual Cliente? IdClienteNavigation { get; set; }
 
     public virtual Habitacion? IdHabitacionNavigation { get; set; }
+    public virtual Reserva? IdReservaNavigation { get; set; }
 }

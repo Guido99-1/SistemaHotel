@@ -3,7 +3,7 @@
 @inject IRecepcionServicio _recepcionServicio
 @inject SweetAlertService Swal;
 @inject NavigationManager navManager;
-
+@inject IDialogService DialogService
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
 
     <MudText Typo="Typo.h5" GutterBottom="true">Detalle</MudText>
@@ -77,33 +77,14 @@
 
                             <MudItem xs="12" lg="3" md="3" sm="6">
                                 <MudNumericField T="decimal?"
-                                                 Value="_recepcionDTO.IdHabitacionNavigation.Precio"
+                                                 Value="_recepcionDTO.PrecioInicial"
                                                  ValueChanged="(_)=>{}"
-                                                 Label="Costo Habitación"
+                                                 Label="Valor Cancelado"
                                                  ReadOnly="true"
                                                  Variant="Variant.Outlined"
                                                  Margin="Margin.Dense" />
                             </MudItem>
 
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudNumericField T="decimal?"
-                                                 Value="_recepcionDTO.Adelanto"
-                                                 ValueChanged="(_)=>{}"
-                                                 Label="Cantidad Adelantado"
-                                                 ReadOnly="true"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense" />
-                            </MudItem>
-
-                            @* <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudNumericField T="decimal?"
-                                                 Value="_recepcionDTO.PrecioRestante"
-                                                 ValueChanged="(_)=>{}"
-                                                 Label="Cantidad Restante"
-                                                 ReadOnly="true"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense" />
-                            </MudItem> *@
                             <MudItem xs="12" lg="3" md="3" sm="6">
                                 <MudNumericField T="decimal?"
                                                  Value="_recepcionDTO.CostoPenalidad"
@@ -121,7 +102,7 @@
 
                             </MudItem>
                             <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="totalPagar" Label="Total a pagar"
+                                <MudTextField @bind-Value="totalPagar" Label="Total final cacelado"
                                               Disabled="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12" lg="3" md="3" sm="6">
@@ -130,10 +111,19 @@
                                 Color="Color.Primary"
                                            FullWidth="true" 
                                            Disabled="@(_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)" 
-                                           OnClick="@Finalizar">Finalizar Recepcion</MudButton>
+                                           OnClick="@Finalizar">Finalizar Recepción</MudButton>
                                 
                             </MudItem>
-
+                            <MudItem xs="12" lg="3" md="3" sm="6">
+                                <MudButton Class="mt-1"
+                                           Variant="Variant.Outlined"
+                                           Color="Color.Secondary"
+                                           FullWidth="true"
+                                           Disabled="@(_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)"
+                                           OnClick="@AbrirModalCambioHabitacion">
+                                    Cambiar Habitación
+                                </MudButton>
+                            </MudItem>
                         </MudGrid>
                     </MudCardContent>
                 </MudCard>
@@ -150,7 +140,6 @@
 @code {
     [Parameter]
     public int idHabitacion { get; set; }
-
 
     private string fechaEntrada = "";
     private string fechaSalida = "";
@@ -190,17 +179,49 @@
             ? _recepcionDTO.FechaSalida.Value.ToString("dd/MM/yyyy")
             : "";
 
-        totalPagar = (_recepcionDTO.PrecioRestante ?? 0) + (_recepcionDTO.CostoPenalidad ?? 0);
+        totalPagar = (_recepcionDTO.PrecioInicial ?? 0) + (_recepcionDTO.CostoPenalidad ?? 0);
     }
 
 
     private void OnPenalidadChanged(decimal? value)
     {
         _recepcionDTO.CostoPenalidad = value ?? 0;
-        totalPagar = (_recepcionDTO.PrecioRestante ?? 0) + (_recepcionDTO.CostoPenalidad ?? 0);
+        totalPagar = (_recepcionDTO.PrecioInicial ?? 0) + (_recepcionDTO.CostoPenalidad ?? 0);
     }
 
-    
+    private async Task AbrirModalCambioHabitacion()
+    {
+        if (_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)
+        {
+            await Swal.FireAsync("Error", "No se encontró una recepción activa.", "error");
+            return;
+        }
+
+        var parameters = new DialogParameters
+    {
+        { nameof(CambiarHabitacion.IdRecepcion), _recepcionDTO.IdRecepcion },
+        { nameof(CambiarHabitacion.IdHabitacionActual), _recepcionDTO.IdHabitacion ?? 0 },
+        { nameof(CambiarHabitacion.NumeroHabitacionActual), _recepcionDTO.IdHabitacionNavigation?.Numero ?? "" },
+        { nameof(CambiarHabitacion.DetalleHabitacionActual), _recepcionDTO.IdHabitacionNavigation?.Detalle ?? "" },
+        { nameof(CambiarHabitacion.CategoriaActual), _recepcionDTO.IdHabitacionNavigation?.IdCategoriaNavigation?.Descripcion ?? "" },
+        { nameof(CambiarHabitacion.PisoActual), _recepcionDTO.IdHabitacionNavigation?.IdPisoNavigation?.Descripcion ?? "" }
+    };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialog = DialogService.Show<CambiarHabitacion>("Cambio de habitación", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is int nuevaHabitacionId)
+        {
+            navManager.NavigateTo($"/page/detalleSalida/{nuevaHabitacionId}", true);
+        }
+    }
     // private async Task Finalizar()
     // {
     //     // Confirmación
@@ -285,69 +306,7 @@
             await Swal.FireAsync("Error", "No se pudo finalizar.", "error");
         }
     }
-    // private async Task Finalizar()
-    // {
-    //     var confirm = await Swal.FireAsync(new SweetAlertOptions
-    //     {
-    //         Title = "¿Finalizar recepción?",
-    //         Text = "Se realizará el check-out y se liberará la habitación.",
-    //         Icon = SweetAlertIcon.Warning,
-    //         ShowCancelButton = true,
-    //         ConfirmButtonText = "Sí, finalizar",
-    //         CancelButtonText = "Cancelar"
-    //     });
-
-    //     if (!confirm.IsConfirmed)
-    //         return;
-
-    //     if (_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)
-    //     {
-    //         await Swal.FireAsync("Error", "No se encontró una recepción activa para finalizar.", "error");
-    //         return;
-    //     }
-
-    //     // ✅ Normalizar penalidad
-    //     var penalidad = _recepcionDTO.CostoPenalidad ?? 0m;
-    //     if (penalidad < 0m) penalidad = 0m;
-
-    //     _recepcionDTO.CostoPenalidad = penalidad;
-
-    //     // ✅ ESTA ES LA LÍNEA QUE TE FALTA (checkout real)
-    //     _recepcionDTO.FechaSalidaConfirmacion = DateTime.Now;
-
-    //     // ✅ Total final: precio base + penalidad
-    //     var baseHospedaje = _recepcionDTO.PrecioInicial ?? 0m;
-    //     _recepcionDTO.TotalPagado = baseHospedaje + penalidad;
-
-    //     // 1) Guardar cambios antes de finalizar
-    //     var editOk = await _recepcionServicio.Editar(_recepcionDTO);
-    //     if (!editOk)
-    //     {
-    //         await Swal.FireAsync("Error", "No se pudo guardar la penalidad/fecha antes de finalizar.", "error");
-    //         return;
-    //     }
-
-    //     // 2) Finalizar
-    //     var resp = await _recepcionServicio.Finalizar(_recepcionDTO.IdRecepcion);
-
-    //     if (resp.status)
-    //     {
-    //         await Swal.FireAsync(new SweetAlertOptions
-    //         {
-    //             Title = "Check-out finalizado",
-    //             Text = "La recepción se cerró correctamente, la habitación ha sido liberada y el registro fue actualizado.",
-    //             Icon = SweetAlertIcon.Success,
-    //             ConfirmButtonText = "Ir a Recepción"
-    //         });
-
-    //         // ✅ Redirigir a Recepción
-    //         navManager.NavigateTo("/page/salida", true);
-    //     }
-    //     else
-    //     {
-    //         await Swal.FireAsync("No se pudo finalizar", resp.msg, "error");
-    //     }
-    // }
+   
 
 
 }

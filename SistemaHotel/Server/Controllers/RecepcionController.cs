@@ -58,6 +58,7 @@ namespace SistemaHotel.Server.Controllers
             ResponseDTO<RecepcionDTO> _ResponseDTO = new ResponseDTO<RecepcionDTO>();
             try
             {
+
                 Recepcion _modelo = _mapper.Map<Recepcion>(request);
 
                 Recepcion _modeloCreado = await _recepcionRepositorio.Crear(_modelo);
@@ -186,6 +187,29 @@ namespace SistemaHotel.Server.Controllers
 
             return Ok(ok);
         }
+        [HttpPut("CambiarHabitacion")]
+        public async Task<IActionResult> CambiarHabitacion([FromBody] CambiarHabitacionDTO request)
+        {
+            var response = new ResponseDTO<bool>();
 
+            try
+            {
+                var ok = await _recepcionRepositorio.CambiarHabitacion(request.IdRecepcion, request.IdNuevaHabitacion);
+
+                response.status = ok;
+                response.msg = ok ? "Habitación cambiada correctamente." : "No se pudo cambiar la habitación.";
+                response.value = ok;
+
+                return Ok(response);
+            }
+            catch (Exception ex)
+            {
+                response.status = false;
+                response.msg = ex.InnerException?.Message ?? ex.Message;
+                response.value = false;
+
+                return StatusCode(500, response);
+            }
+        }
     }
 }

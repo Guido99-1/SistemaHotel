@@ -64,7 +64,11 @@ namespace SistemaHotel.Client.Servicios.Implementacion
         {
             PropertyNameCaseInsensitive = true
         };
-
+        public async Task<ResponseDTO<bool>> CambiarHabitacion(CambiarHabitacionDTO request)
+        {
+            var httpResp = await _http.PutAsJsonAsync("api/Recepcion/CambiarHabitacion", request);
+            return await ReadResponseOrError<ResponseDTO<bool>>(httpResp);
+        }
         private static async Task<T> ReadResponseOrError<T>(HttpResponseMessage httpResp)
     where T : class, new()
         {

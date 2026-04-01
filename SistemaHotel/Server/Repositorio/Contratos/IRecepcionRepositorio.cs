@@ -16,7 +16,7 @@ namespace SistemaHotel.Server.Repositorio.Contratos
         Task<List<ReporteDTO>> Reporte(string FechaInicio, string FechaFin);
         //Task<bool> Finalizar(int idRecepcion, DateTime fechaSalidaConfirmacion);
         Task<bool> Finalizar(int idRecepcion, DateTime fechaSalidaConfirmacion, decimal costoPenalidad);
-
+        Task<bool> CambiarHabitacion(int idRecepcion, int idNuevaHabitacion);
 
     }
 }

@@ -4,6 +4,7 @@
 @inject NavigationManager _navManager
 @inject IReservaServicio _reservaServicio
 @inject SweetAlertService Swal
+@using System.Globalization
 
 <MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
 
@@ -81,9 +82,10 @@
                     <MudTh class="text-right">Cancelado</MudTh>
                     <MudTh class="text-right">Pendiente</MudTh>
                     <MudTh class="text-right">Observación</MudTh>
+                    <MudTh class="text-right">Acciones</MudTh>
                 </HeaderContent>
 
-                <RowTemplate>
+                @* <RowTemplate >
                     <MudTd DataLabel="Cliente">@context.NombreCliente</MudTd>
                     <MudTd DataLabel="Habitación">@context.NroHabitacion</MudTd>
                     <MudTd DataLabel="Entrada">@context.FechaEntrada</MudTd>
@@ -101,6 +103,78 @@
                         @context.ValorPendiente.ToString("N2")
                     </MudTd>
                     <MudTd DataLabel="Observacion">@context.Observacion</MudTd>
+                    <MudTd>
+                        @if (context.FechaEntrada.HasValue && context.FechaEntrada.Value.Date == DateTime.Today)
+                        {
+                            <MudButton Color="Color.Success"
+                                       Variant="Variant.Filled"
+                                       OnClick="@(() => IrACheckIn(context.IdReserva))">
+                                Check-in
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Color="Color.Default"
+                                       Disabled="true">
+                                No disponible
+                            </MudButton>
+                        }
+                    </MudTd>
+                </RowTemplate> *@
+
+                <RowTemplate Context="reserva">
+
+                    <MudTd DataLabel="Cliente">@reserva.NombreCliente</MudTd>
+                    <MudTd DataLabel="Habitación">@reserva.NroHabitacion</MudTd>
+                    <MudTd DataLabel="Entrada">@reserva.FechaEntrada</MudTd>
+                    <MudTd DataLabel="Salida">@reserva.FechaSalida</MudTd>
+
+                    <MudTd DataLabel="Total" Class="text-right">
+                        @reserva.Total.ToString("N2")
+                    </MudTd>
+
+                    <MudTd DataLabel="Cancelado" Class="text-right">
+                        @reserva.ValorCancelado.ToString("N2")
+                    </MudTd>
+
+                    <MudTd DataLabel="Pendiente" Class="text-right">
+                        @reserva.ValorPendiente.ToString("N2")
+                    </MudTd>
+
+                    <MudTd DataLabel="Observacion">
+                        @reserva.Observacion
+                    </MudTd>
+
+                    <MudTd DataLabel="Acciones">
+                        @{
+                            DateTime fechaIngreso;
+                            bool esHoy = DateTime.TryParseExact(
+                                reserva.FechaEntrada,
+                                "dd/MM/yyyy",
+                                System.Globalization.CultureInfo.InvariantCulture,
+                                System.Globalization.DateTimeStyles.None,
+                                out fechaIngreso
+                            ) && fechaIngreso.Date == DateTime.Today;
+                        }
+
+                        @if (esHoy)
+                        {
+                            <MudButton Color="Color.Success"
+                                       Variant="Variant.Filled"
+                                       OnClick="@(() => IrACheckIn(reserva.IdReserva))">
+                                Check-in
+                            </MudButton>
+                        }
+                        else
+                        {
+                            <MudButton Variant="Variant.Filled"
+                                       Disabled="true">
+                                No disponible
+                            </MudButton>
+                        }
+                    </MudTd>
+
                 </RowTemplate>
 
                 <NoRecordsContent>
@@ -115,6 +189,12 @@
 </MudContainer>
 
 @code {
+    //check-int reservas hoy
+    private void IrACheckIn(int idReserva)
+    {
+        _navManager.NavigateTo($"/page/checkinreserva/{idReserva}");
+    }
+    //
     // ✅ Para hotel: salida > entrada (por defecto hoy -> mañana)
     private DateTime? fechaInicio = DateTime.Today;
     private DateTime? fechaFin = DateTime.Today.AddDays(1);
@@ -198,4 +278,5 @@
     {
         _navManager.NavigateTo("/page/reservas");
     }
+    
 }

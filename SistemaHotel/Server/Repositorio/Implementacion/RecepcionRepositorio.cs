@@ -42,32 +42,27 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 // Para 1 noche: Entrada 19, Salida 20  -> OK
                 if (entidad.FechaSalida.Value.Date <= entidad.FechaEntrada.Value.Date)
                     throw new Exception("La fecha de salida debe ser mayor a la fecha de entrada.");
+                // 🔴 ==============================
+                // 🔴 VALIDAR HABITACIÓN OCUPADA
+                // 🔴 ==============================
+                var habitacion = await _dbContext.Habitacions
+                    .FirstAsync(h => h.IdHabitacion == entidad.IdHabitacion);
 
-                // -----------------------------
-                // Cliente
-                // -----------------------------
-                //if (entidad.IdClienteNavigation == null)
-                //    throw new Exception("Debe enviar el cliente.");
+                if (habitacion.IdEstadoHabitacion == 3) // <-- OCUPADA
+                    throw new Exception("La habitación ya está ocupada.");
 
-                //if (entidad.IdClienteNavigation.IdCliente == 0)
-                //{
-                //    var cliente = entidad.IdClienteNavigation;
-                //    _dbContext.Clientes.Add(cliente);
-                //    await _dbContext.SaveChangesAsync();
+                // 🔴 ==============================
+                // 🔴 VALIDAR CHECK-IN DUPLICADO (por reserva)
+                // 🔴 ==============================
+                if (entidad.IdReserva != null && entidad.IdReserva > 0)
+                {
+                    var yaExiste = await _dbContext.Recepcions
+                        .AnyAsync(r => r.IdReserva == entidad.IdReserva);
 
-                //    entidad.IdCliente = cliente.IdCliente;
-                //    entidad.IdClienteNavigation = null;
-                //}
-                //else
-                //{
-                //    entidad.IdCliente = entidad.IdClienteNavigation.IdCliente;
-                //    entidad.IdClienteNavigation = null;
-                //}
-                // -----------------------------
-                // Cliente (acepta IdCliente O Navigation)
-                // -----------------------------
-// Cliente (acepta IdCliente O Navigation)
-// -----------------------------
+                    if (yaExiste)
+                        throw new Exception("Esta reserva ya fue utilizada para un check-in.");
+                }
+
                 if (entidad.IdClienteNavigation != null)
                 {
                     // crear cliente si viene nuevo
@@ -107,7 +102,7 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                         r.Estado == true &&
                         r.IdHabitacion == entidad.IdHabitacion &&
                         // Solo reservas "activas" (ajusta a tus nombres reales)
-                        (r.EstadoReserva == "CONFIRMADA") &&
+                        (r.EstadoReserva == "RESERVADA" || r.EstadoReserva == "CONFIRMADA") &&
                         r.FechaEntrada.HasValue &&
                         r.FechaSalidaReserva.HasValue &&
                         // ✅ Regla de cruce que permite salida==entrada
@@ -119,7 +114,7 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
 
                 if (reserva != null)
                 {
-                    reserva.EstadoReserva = "EN_ESTADIA";
+                    reserva.EstadoReserva = "CHECKIN";
                     _dbContext.Reservas.Update(reserva);
                     // NO guardo aún, lo hacemos al final
                 }
@@ -127,8 +122,8 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 // -----------------------------
                 // Habitación -> Ocupado
                 // -----------------------------
-                var habitacion = await _dbContext.Habitacions
-                    .FirstAsync(h => h.IdHabitacion == entidad.IdHabitacion);
+                //var habitacion = await _dbContext.Habitacions
+                //    .FirstAsync(h => h.IdHabitacion == entidad.IdHabitacion);
 
                 habitacion.IdEstadoHabitacion = 3; // Ocupado
                 _dbContext.Habitacions.Update(habitacion);
@@ -152,84 +147,7 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 throw;
             }
         }
-        //public async Task<bool> Finalizar(int idRecepcion, DateTime fechaSalidaConfirmacion)
-        //{
-        //    using var transaction = await _dbContext.Database.BeginTransactionAsync();
-        //    try
-        //    {
-        //        // 1) Traer recepción activa
-        //        var recepcion = await _dbContext.Recepcions
-        //            .FirstOrDefaultAsync(r => r.IdRecepcion == idRecepcion);
-
-        //        if (recepcion == null)
-        //            throw new Exception("No se encontró la recepción.");
-
-        //        if (recepcion.Estado == false)
-        //            throw new Exception("Esta recepción ya fue finalizada.");
-
-        //        // 2) Cerrar recepción
-        //        recepcion.FechaSalidaConfirmacion = fechaSalidaConfirmacion;
-        //        recepcion.Estado = false;
-
-        //        _dbContext.Recepcions.Update(recepcion);
-        //        await _dbContext.SaveChangesAsync();
-
-        //        // 3) Pasar habitación a LIMPIEZA (recomendado)
-        //        var habitacion = await _dbContext.Habitacions
-        //            .FirstOrDefaultAsync(h => h.IdHabitacion == recepcion.IdHabitacion);
-
-        //        if (habitacion == null)
-        //            throw new Exception("No se encontró la habitación asociada a la recepción.");
-
-        //        // 2 = Limpieza (según tu tabla EstadoHabitacion)
-        //        habitacion.IdEstadoHabitacion = 2;
-        //        _dbContext.Habitacions.Update(habitacion);
-        //        await _dbContext.SaveChangesAsync();
-
-        //        // 4) Marcar la reserva correspondiente como FINALIZADA
-        //        //    Regla de cruce permitiendo salida==entrada (hotel real):
-        //        //    hay cruce real si: (start < otherEnd) AND (end > otherStart)
-        //        var entrada = recepcion.FechaEntrada ?? DateTime.MinValue;
-        //        var salida = recepcion.FechaSalida ?? fechaSalidaConfirmacion;
-
-        //        var reserva = await _dbContext.Reservas
-        //            .Where(r =>
-        //                r.Estado == true &&
-        //                r.IdHabitacion == recepcion.IdHabitacion &&
-        //                r.FechaEntrada.HasValue &&
-        //                r.FechaSalidaReserva.HasValue &&
-        //                // cruce real (permite salida==entrada):
-        //                r.FechaEntrada.Value.Date < salida.Date &&
-        //                r.FechaSalidaReserva.Value.Date > entrada.Date &&
-        //                // reservas que aún no han finalizado:
-        //                r.EstadoReserva != "FINALIZADA"
-        //            )
-        //            // la más reciente suele ser la correcta
-        //            .OrderByDescending(r => r.IdReserva)
-        //            .FirstOrDefaultAsync();
-
-        //        if (reserva != null)
-        //        {
-        //            reserva.EstadoReserva = "FINALIZADA";
-
-        //            // ✅ recomendado para que NO se considere activa:
-        //            // (tu código ya consulta reservas activas con Estado==true)
-        //            reserva.Estado = false;
-
-        //            _dbContext.Reservas.Update(reserva);
-        //            await _dbContext.SaveChangesAsync();
-        //        }
-
-        //        await transaction.CommitAsync();
-        //        return true;
-        //    }
-        //    catch
-        //    {
-        //        await transaction.RollbackAsync();
-        //        throw;
-        //    }
-        //}
-
+        
         public async Task<bool> Finalizar(int idRecepcion, DateTime fechaSalidaConfirmacion, decimal costoPenalidad)
         {
             using var tx = await _dbContext.Database.BeginTransactionAsync();
@@ -375,6 +293,68 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 .ToListAsync();
 
             return lista;
+        }
+        public async Task<bool> CambiarHabitacion(int idRecepcion, int idNuevaHabitacion)
+        {
+            await using var tx = await _dbContext.Database.BeginTransactionAsync();
+
+            try
+            {
+                var recepcion = await _dbContext.Recepcions
+                    .FirstOrDefaultAsync(r => r.IdRecepcion == idRecepcion);
+
+                if (recepcion == null)
+                    throw new Exception("No se encontró la recepción.");
+
+                if (recepcion.Estado == false)
+                    throw new Exception("La recepción ya está finalizada.");
+
+                if (!recepcion.IdHabitacion.HasValue || recepcion.IdHabitacion <= 0)
+                    throw new Exception("La recepción no tiene una habitación asignada.");
+
+                var idHabitacionAnterior = recepcion.IdHabitacion.Value;
+
+                if (idHabitacionAnterior == idNuevaHabitacion)
+                    throw new Exception("La nueva habitación no puede ser la misma habitación actual.");
+
+                var habitacionAnterior = await _dbContext.Habitacions
+                    .FirstOrDefaultAsync(h => h.IdHabitacion == idHabitacionAnterior);
+
+                if (habitacionAnterior == null)
+                    throw new Exception("No se encontró la habitación actual.");
+
+                var habitacionNueva = await _dbContext.Habitacions
+                    .FirstOrDefaultAsync(h => h.IdHabitacion == idNuevaHabitacion);
+
+                if (habitacionNueva == null)
+                    throw new Exception("No se encontró la nueva habitación.");
+
+                // 1 = Disponible, 2 = Limpieza, 3 = Ocupada
+                if (habitacionNueva.IdEstadoHabitacion != 1)
+                    throw new Exception("La nueva habitación no está disponible.");
+
+                // Actualizar recepción
+                recepcion.IdHabitacion = idNuevaHabitacion;
+                _dbContext.Recepcions.Update(recepcion);
+
+                // Habitación anterior -> Limpieza
+                habitacionAnterior.IdEstadoHabitacion = 2;
+                _dbContext.Habitacions.Update(habitacionAnterior);
+
+                // Habitación nueva -> Ocupada
+                habitacionNueva.IdEstadoHabitacion = 3;
+                _dbContext.Habitacions.Update(habitacionNueva);
+
+                await _dbContext.SaveChangesAsync();
+                await tx.CommitAsync();
+
+                return true;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
         }
     }
 }
