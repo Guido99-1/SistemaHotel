@@ -187,12 +187,7 @@ sqlcmd -S localhost -i "002_Insertar Datos.txt"
 O abre estos archivos en **SQL Server Management Studio (SSMS)** y ejecútalos.
 
 ### 4. Configurar la cadena de conexión
-Edita `Server/appsettings.json` y ajusta la `CadenaSQL` según tu instalación:
-```json
-"ConnectionStrings": {
-  "CadenaSQL": "Server=(localdb)\\MSSQLLocalDB;Database=DBHotelBlazor;Trusted_Connection=True;..."
-}
-```
+Ajusta los parámetros de conexión a la base de datos según tu entorno en el archivo de configuración del servidor.
 
 ### 5. Configurar el JWT Secret
 **No commitear el secret real**. Define la variable de entorno o usa `user-secrets`:
