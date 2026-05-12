@@ -1,0 +1,157 @@
+@page {
+  size: A4;
+  margin: 22mm 18mm 22mm 18mm;
+}
+
+body {
+  font-family: 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  color: #424E5F;
+  font-size: 10.5pt;
+  line-height: 1.55;
+  background: #ffffff;
+}
+
+h1 {
+  color: #5C8DC2;
+  font-size: 22pt;
+  font-weight: 700;
+  border-bottom: 3px solid #5C8DC2;
+  padding-bottom: 8px;
+  margin-top: 24px;
+  margin-bottom: 16px;
+  page-break-before: always;
+}
+
+h1:first-of-type {
+  page-break-before: avoid;
+}
+
+h2 {
+  color: #424E5F;
+  font-size: 16pt;
+  font-weight: 700;
+  border-left: 4px solid #6FA776;
+  padding-left: 12px;
+  margin-top: 22px;
+  margin-bottom: 12px;
+}
+
+h3 {
+  color: #5C8DC2;
+  font-size: 13pt;
+  font-weight: 600;
+  margin-top: 18px;
+  margin-bottom: 8px;
+}
+
+h4 {
+  color: #424E5F;
+  font-size: 11.5pt;
+  font-weight: 600;
+  margin-top: 12px;
+  margin-bottom: 6px;
+}
+
+p {
+  margin: 6px 0;
+  text-align: justify;
+}
+
+a { color: #5C8DC2; text-decoration: none; }
+
+strong { color: #424E5F; font-weight: 700; }
+
+ul, ol { margin: 6px 0 10px 22px; padding: 0; }
+li { margin: 3px 0; }
+
+hr {
+  border: 0;
+  border-top: 1px solid #E5E7EB;
+  margin: 16px 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 12px 0;
+  font-size: 9.5pt;
+  page-break-inside: avoid;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+table thead {
+  background: linear-gradient(135deg, #5C8DC2 0%, #424E5F 100%);
+  color: #ffffff;
+}
+
+table th {
+  padding: 10px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 9pt;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border: none;
+}
+
+table td {
+  padding: 8px 12px;
+  border-top: 1px solid #E5E7EB;
+  color: #424E5F;
+}
+
+table tr:nth-child(even) td { background: #FAFBFC; }
+table tr:hover td { background: #EBF2F9; }
+
+blockquote {
+  background: #FAFBFC;
+  border-left: 4px solid #E8A668;
+  padding: 10px 14px;
+  margin: 10px 0;
+  color: #424E5F;
+  font-size: 10pt;
+  border-radius: 0 8px 8px 0;
+  page-break-inside: avoid;
+}
+
+code {
+  background: #F0F2F5;
+  color: #5C8DC2;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 9.5pt;
+}
+
+pre {
+  background: #FAFBFC;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  font-size: 9pt;
+  line-height: 1.4;
+}
+
+pre code {
+  background: transparent;
+  color: #424E5F;
+  padding: 0;
+}
+
+/* Cover-style first heading */
+h1:first-child {
+  font-size: 28pt;
+  text-align: center;
+  border-bottom: none;
+  border-top: 4px solid #5C8DC2;
+  border-bottom: 4px solid #5C8DC2;
+  padding: 32px 0;
+  margin-top: 40px;
+  margin-bottom: 24px;
+  background: linear-gradient(135deg, #EBF2F9 0%, #FAFBFC 100%);
+  border-radius: 12px;
+  color: #424E5F;
+}

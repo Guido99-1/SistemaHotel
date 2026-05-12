@@ -20,6 +20,7 @@
             <MudNavLink Href="/page/categoria">Categoria</MudNavLink>
             <MudNavLink Href="/page/piso">Piso</MudNavLink>
             <MudNavLink Href="/page/habitacion">Habitacion</MudNavLink>
+            <MudNavLink Href="/page/cambiarpassword">Cambiar Contraseñas</MudNavLink>
         </MudNavGroup>
     </AuthorizeView>
 
@@ -38,9 +39,17 @@
     </AuthorizeView>
 
     <!-- Reservas -->
-    <AuthorizeView Roles="Administrador,Reservas,Gerencia">
+    <AuthorizeView Roles="Administrador,Recepcionista,Reservas,Gerencia">
         <MudNavLink Href="/page/reservas" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Event">
             Reservas
+        </MudNavLink>
+
+        <MudNavLink Href="/reservamultiple" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.GroupAdd">
+            Reserva Múltiple
+        </MudNavLink>
+
+        <MudNavLink Href="/page/reservagerencia" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Diamond">
+            Reservas Gerencia
         </MudNavLink>
     </AuthorizeView>
 

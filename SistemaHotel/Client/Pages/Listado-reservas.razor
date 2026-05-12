@@ -124,15 +124,19 @@
                     @if (esAdmin)
                     {
                         <MudTd DataLabel="Acciones" Class="text-center">
-                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
-                                           Color="Color.Primary"
-                                           Size="Size.Small"
-                                           OnClick="@(() => EditarReserva(context))" />
+                            <div class="d-flex justify-center align-center gap-2">
+                                <MudFab Color="Color.Primary"
+                                        StartIcon="@Icons.Material.Filled.Edit"
+                                        Size="Size.Small"
+                                        IconSize="Size.Small"
+                                        OnClick="@(() => EditarReserva(context))" />
 
-                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
-                                           Color="Color.Error"
-                                           Size="Size.Small"
-                                           OnClick="@(() => ConfirmarEliminarReserva(context))" />
+                                <MudFab Color="Color.Error"
+                                        StartIcon="@Icons.Material.Filled.Delete"
+                                        Size="Size.Small"
+                                        IconSize="Size.Small"
+                                        OnClick="@(() => ConfirmarEliminarReserva(context))" />
+                            </div>
                         </MudTd>
                     }
                 </RowTemplate>

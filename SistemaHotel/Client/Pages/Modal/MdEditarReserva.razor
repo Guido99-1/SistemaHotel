@@ -175,7 +175,7 @@
                                                Margin="Margin.Dense"
                                                Disabled="@esSoloLectura">
                                         <MudSelectItem Value="@("CONFIRMADA")">CONFIRMADA</MudSelectItem>
-                                        <MudSelectItem Value="@("EN_ESTADIA")">EN_ESTADIA</MudSelectItem>
+                                        <MudSelectItem Value="@("CHECKIN")">CHECKIN</MudSelectItem>
                                         <MudSelectItem Value="@("FINALIZADA")">FINALIZADA</MudSelectItem>
                                         <MudSelectItem Value="@("CANCELADA")">CANCELADA</MudSelectItem>
                                     </MudSelect>
@@ -243,7 +243,7 @@
     private Color ColorEstado => reserva.EstadoReserva?.ToUpper() switch
     {
         "CONFIRMADA" => Color.Info,
-        "EN_ESTADIA" => Color.Primary,
+        "CHECKIN" => Color.Primary,
         "FINALIZADA" => Color.Success,
         "CANCELADA" => Color.Error,
         _ => Color.Default

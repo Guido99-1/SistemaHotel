@@ -1,50 +1,313 @@
-﻿@using MudBlazor
+@using MudBlazor
 @inject ISnackbar Snackbar
 
-<MudDialog>
+<MudDialog Style="min-width: 500px;">
     <DialogContent>
-        <MudStack Spacing="2">
-            <MudText Typo="Typo.h6">Selecciona método de pago</MudText>
+        <MudStack Spacing="3">
 
-            <MudRadioGroup T="string" @bind-SelectedOption="metodo">
-                <MudRadio T="string" Option="@("EFECTIVO")" Color="Color.Primary">Efectivo</MudRadio>
-                <MudRadio T="string" Option="@("TRANSFERENCIA")" Color="Color.Primary">Transferencia</MudRadio>
-                <MudRadio T="string" Option="@("OTRO")" Color="Color.Primary">Otro</MudRadio>
+            <!-- Total a cobrar -->
+            <MudPaper Class="pa-3" Outlined="true" Style="background-color: #e3f2fd;">
+                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                    <MudText Typo="Typo.body1">Total a cobrar:</MudText>
+                    <MudText Typo="Typo.h6" Class="fw-700" Style="color: #1976d2;">
+                        $@MontoTotal.ToString("N2")
+                    </MudText>
+                </MudStack>
+            </MudPaper>
+
+            <!-- Tipo de pago -->
+            <MudRadioGroup T="string" @bind-SelectedOption="tipoPago">
+                <MudRadio T="string" Option="@("UNICO")" Color="Color.Primary">Pago único</MudRadio>
+                <MudRadio T="string" Option="@("DIVIDIDO")" Color="Color.Primary">Pago dividido (2 métodos)</MudRadio>
             </MudRadioGroup>
 
-            @if (metodo == "OTRO")
+            <MudDivider />
+
+            @if (tipoPago == "UNICO")
             {
-                <MudTextField @bind-Value="nota"
-                              Label="¿Cuál?"
-                              Variant="Variant.Outlined"
-                              Margin="Margin.Dense"
-                              Placeholder="Ej: Tarjeta, PayPhone..." />
+                <!-- ════════════════════════════════════════ -->
+                <!-- PAGO ÚNICO                                 -->
+                <!-- ════════════════════════════════════════ -->
+                <MudText Typo="Typo.subtitle2" Class="fw-600">Selecciona el método:</MudText>
+
+                <MudRadioGroup T="string" @bind-SelectedOption="metodoUnico">
+                    <MudRadio T="string" Option="@("EFECTIVO")" Color="Color.Primary">
+                        <MudIcon Icon="@Icons.Material.Filled.Money" Size="Size.Small" /> Efectivo
+                    </MudRadio>
+                    <MudRadio T="string" Option="@("TRANSFERENCIA")" Color="Color.Primary">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" /> Transferencia
+                    </MudRadio>
+                    <MudRadio T="string" Option="@("OTRO")" Color="Color.Primary">
+                        <MudIcon Icon="@Icons.Material.Filled.CreditCard" Size="Size.Small" /> Otro
+                    </MudRadio>
+                </MudRadioGroup>
+
+                @if (metodoUnico == "OTRO")
+                {
+                    <MudTextField @bind-Value="notaUnico"
+                                  Label="¿Cuál método?"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Placeholder="Ej: Tarjeta de crédito, PayPhone, Cheque..." />
+                }
+            }
+            else
+            {
+                <!-- ════════════════════════════════════════ -->
+                <!-- PAGO DIVIDIDO                              -->
+                <!-- ════════════════════════════════════════ -->
+                <MudText Typo="Typo.subtitle2" Class="fw-600">Divide el pago entre 2 métodos:</MudText>
+
+                <!-- MÉTODO 1 -->
+                <MudPaper Class="pa-3" Outlined="true">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.LooksOne" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle2" Class="fw-600">Primer método</MudText>
+                        </MudStack>
+
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="string"
+                                           @bind-Value="metodo1"
+                                           Label="Método"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="@("EFECTIVO")">Efectivo</MudSelectItem>
+                                    <MudSelectItem Value="@("TRANSFERENCIA")">Transferencia</MudSelectItem>
+                                    <MudSelectItem Value="@("OTRO")">Otro</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="decimal"
+                                                 Value="monto1"
+                                                 ValueChanged="OnMonto1Changed"
+                                                 Immediate="true"
+                                                 Label="Monto"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 Min="0"
+                                                 Max="@MontoTotal"
+                                                 Format="N2"
+                                                 Adornment="Adornment.Start"
+                                                 AdornmentText="$" />
+                            </MudItem>
+
+                            @if (metodo1 == "OTRO")
+                            {
+                                <MudItem xs="12">
+                                    <MudTextField @bind-Value="nota1"
+                                                  Label="Detalle"
+                                                  Variant="Variant.Outlined"
+                                                  Margin="Margin.Dense"
+                                                  Placeholder="Ej: Tarjeta, Cheque..." />
+                                </MudItem>
+                            }
+                        </MudGrid>
+
+                        <!-- Botones de porcentaje rápido -->
+                        <MudStack Row="true" Spacing="1">
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" OnClick="@(() => SetPorcentaje(25))">25%</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" OnClick="@(() => SetPorcentaje(50))">50%</MudButton>
+                            <MudButton Size="Size.Small" Variant="Variant.Outlined" Color="Color.Default" OnClick="@(() => SetPorcentaje(75))">75%</MudButton>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+
+                <!-- MÉTODO 2 -->
+                <MudPaper Class="pa-3" Outlined="true">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.LooksTwo" Color="Color.Primary" />
+                            <MudText Typo="Typo.subtitle2" Class="fw-600">Segundo método</MudText>
+                        </MudStack>
+
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12" sm="6">
+                                <MudSelect T="string"
+                                           @bind-Value="metodo2"
+                                           Label="Método"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense"
+                                           AnchorOrigin="Origin.BottomCenter">
+                                    <MudSelectItem Value="@("EFECTIVO")">Efectivo</MudSelectItem>
+                                    <MudSelectItem Value="@("TRANSFERENCIA")">Transferencia</MudSelectItem>
+                                    <MudSelectItem Value="@("OTRO")">Otro</MudSelectItem>
+                                </MudSelect>
+                            </MudItem>
+                            <MudItem xs="12" sm="6">
+                                <MudNumericField T="decimal"
+                                                 Value="monto2"
+                                                 Label="Monto"
+                                                 Variant="Variant.Outlined"
+                                                 Margin="Margin.Dense"
+                                                 ReadOnly="true"
+                                                 Format="N2"
+                                                 Adornment="Adornment.Start"
+                                                 AdornmentText="$" />
+                            </MudItem>
+
+                            @if (metodo2 == "OTRO")
+                            {
+                                <MudItem xs="12">
+                                    <MudTextField @bind-Value="nota2"
+                                                  Label="Detalle"
+                                                  Variant="Variant.Outlined"
+                                                  Margin="Margin.Dense"
+                                                  Placeholder="Ej: Tarjeta, Cheque..." />
+                                </MudItem>
+                            }
+                        </MudGrid>
+                    </MudStack>
+                </MudPaper>
+
+                <!-- Resumen del pago dividido -->
+                <MudPaper Class="pa-3" Outlined="true" Style="background-color: #f5f5f5;">
+                    <MudStack Spacing="1">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body2">@metodo1: $@monto1.ToString("N2")</MudText>
+                            <MudText Typo="Typo.body2">@(((monto1 / MontoTotal) * 100).ToString("F0"))%</MudText>
+                        </MudStack>
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body2">@metodo2: $@monto2.ToString("N2")</MudText>
+                            <MudText Typo="Typo.body2">@(((monto2 / MontoTotal) * 100).ToString("F0"))%</MudText>
+                        </MudStack>
+                        <MudDivider />
+                        <MudStack Row="true" Justify="Justify.SpaceBetween">
+                            <MudText Typo="Typo.body1" Class="fw-700">Total:</MudText>
+                            <MudText Typo="Typo.body1" Class="fw-700" Style="@($"color: {(SumaCorrecta ? "#388e3c" : "#d32f2f")};")">
+                                $@((monto1 + monto2).ToString("N2"))
+                            </MudText>
+                        </MudStack>
+                    </MudStack>
+                </MudPaper>
+
+                @if (!SumaCorrecta)
+                {
+                    <MudAlert Severity="Severity.Warning" Dense="true">
+                        La suma de los métodos debe ser igual a $@MontoTotal.ToString("N2")
+                    </MudAlert>
+                }
             }
         </MudStack>
     </DialogContent>
 
     <DialogActions>
         <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="Cancel">Cancelar</MudButton>
-        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Ok">Aceptar</MudButton>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" OnClick="Ok" Disabled="@(!PuedeAceptar)">Aceptar</MudButton>
     </DialogActions>
 </MudDialog>
 
 @code {
     [CascadingParameter] private MudDialogInstance MudDialog { get; set; } = default!;
 
-    private string metodo = "EFECTIVO";
-    private string? nota;
+    /// <summary>
+    /// Monto total a cobrar (necesario para validar pagos divididos)
+    /// </summary>
+    [Parameter] public decimal MontoTotal { get; set; } = 0m;
+
+    // Tipo de pago: UNICO o DIVIDIDO
+    private string tipoPago = "UNICO";
+
+    // Para pago único
+    private string metodoUnico = "EFECTIVO";
+    private string? notaUnico;
+
+    // Para pago dividido
+    private string metodo1 = "EFECTIVO";
+    private string metodo2 = "TRANSFERENCIA";
+    private decimal monto1 = 0m;
+    private decimal monto2 = 0m;
+    private string? nota1;
+    private string? nota2;
+
+    protected override void OnInitialized()
+    {
+        // Inicializar con el 50/50 al abrir
+        if (MontoTotal > 0)
+        {
+            monto1 = Math.Round(MontoTotal / 2, 2);
+            monto2 = MontoTotal - monto1;
+        }
+    }
+
+    private void OnMonto1Changed(decimal valor)
+    {
+        if (valor < 0) valor = 0;
+        if (valor > MontoTotal) valor = MontoTotal;
+
+        monto1 = valor;
+        monto2 = MontoTotal - monto1;
+    }
+
+    private void SetPorcentaje(int porcentaje)
+    {
+        monto1 = Math.Round(MontoTotal * porcentaje / 100m, 2);
+        monto2 = MontoTotal - monto1;
+    }
+
+    private bool SumaCorrecta => Math.Abs((monto1 + monto2) - MontoTotal) < 0.01m;
+
+    private bool PuedeAceptar
+    {
+        get
+        {
+            if (tipoPago == "UNICO")
+            {
+                if (metodoUnico == "OTRO" && string.IsNullOrWhiteSpace(notaUnico))
+                    return false;
+                return !string.IsNullOrWhiteSpace(metodoUnico);
+            }
+            else
+            {
+                // Pago dividido
+                if (metodo1 == metodo2 && metodo1 != "OTRO") return false;
+                if (metodo1 == "OTRO" && string.IsNullOrWhiteSpace(nota1)) return false;
+                if (metodo2 == "OTRO" && string.IsNullOrWhiteSpace(nota2)) return false;
+                if (monto1 <= 0 || monto2 <= 0) return false;
+                return SumaCorrecta;
+            }
+        }
+    }
 
     private void Cancel() => MudDialog.Cancel();
 
     private void Ok()
     {
-        // regla simple: si OTRO y está vacío, no obligamos, pero puedes obligar si quieres
-        var result = new MetodoPagoResult
+        MetodoPagoResult result;
+
+        if (tipoPago == "UNICO")
         {
-            MetodoPago = metodo,
-            NotaMetodoPago = string.IsNullOrWhiteSpace(nota) ? null : nota.Trim()
-        };
+            result = new MetodoPagoResult
+            {
+                MetodoPago = metodoUnico,
+                NotaMetodoPago = string.IsNullOrWhiteSpace(notaUnico) ? null : notaUnico.Trim(),
+                EsDividido = false
+            };
+        }
+        else
+        {
+            // Pago dividido - construir descripción
+            var desc1 = metodo1 == "OTRO" ? nota1 : metodo1;
+            var desc2 = metodo2 == "OTRO" ? nota2 : metodo2;
+
+            var descripcionCompleta = $"{desc1}: ${monto1:N2} ({((monto1 / MontoTotal) * 100):F0}%) + " +
+                                       $"{desc2}: ${monto2:N2} ({((monto2 / MontoTotal) * 100):F0}%)";
+
+            result = new MetodoPagoResult
+            {
+                MetodoPago = "MIXTO",
+                NotaMetodoPago = descripcionCompleta,
+                EsDividido = true,
+                Metodo1 = metodo1,
+                Monto1 = monto1,
+                Metodo2 = metodo2,
+                Monto2 = monto2,
+                Nota1 = nota1,
+                Nota2 = nota2
+            };
+        }
 
         MudDialog.Close(DialogResult.Ok(result));
     }
@@ -53,5 +316,14 @@
     {
         public string MetodoPago { get; set; } = "EFECTIVO";
         public string? NotaMetodoPago { get; set; }
+        public bool EsDividido { get; set; }
+
+        // Solo si es dividido
+        public string? Metodo1 { get; set; }
+        public decimal Monto1 { get; set; }
+        public string? Nota1 { get; set; }
+        public string? Metodo2 { get; set; }
+        public decimal Monto2 { get; set; }
+        public string? Nota2 { get; set; }
     }
 }

@@ -1,418 +1,498 @@
-﻿@page "/page/reporte"
-@using ClosedXML.Excel;
-@inject IJSRuntime _jsServicio;
-@inject IRecepcionServicio _recepcionServicio;
+@page "/page/reporte"
+@using Microsoft.AspNetCore.Components.Authorization
+@using SistemaHotel.Client.Servicios.Implementacion
+@inject IRecepcionServicio _recepcionServicio
+@inject IClienteServicio _clienteServicio
+@inject IHabitacionServicio _habitacionServicio
+@inject ReporteExcelService _excelService
+@inject ReportePdfService _pdfService
+@inject SweetAlertService Swal
+@inject AuthenticationStateProvider _authProvider
 @attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-6">
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Reporte</MudText>
+    <!-- HEADER -->
+    <div class="d-flex justify-space-between align-center mb-6 flex-wrap gap-3">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; color: #424E5F;">Reporte de Recepciones</MudText>
+            <MudText Typo="Typo.body2" Style="color: #6B7280;">Genera reportes detallados de check-ins y check-outs</MudText>
+        </div>
+    </div>
 
-    <MudPaper Elevation="3" Class="pa-4" Width="100%">
+    <!-- KPIs -->
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #5C8DC2;">
+                <div class="kpi-icon-box" style="background: #EBF2F9;">
+                    <MudIcon Icon="@Icons.Material.Filled.Receipt" Style="color: #5C8DC2; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Recepciones</div>
+                    <div class="kpi-value" style="color: #5C8DC2;">@listaFiltrada.Count</div>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #6FA776;">
+                <div class="kpi-icon-box" style="background: #EFF5EF;">
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Style="color: #6FA776; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Ingresos Totales</div>
+                    <div class="kpi-value" style="color: #6FA776;">@($"${TotalIngresos:N2}")</div>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #E8A668;">
+                <div class="kpi-icon-box" style="background: #FAF1E7;">
+                    <MudIcon Icon="@Icons.Material.Filled.WarningAmber" Style="color: #E8A668; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Penalidades</div>
+                    <div class="kpi-value" style="color: #E8A668;">@($"${TotalPenalidades:N2}")</div>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #424E5F;">
+                <div class="kpi-icon-box" style="background: #F0F2F5;">
+                    <MudIcon Icon="@Icons.Material.Filled.Savings" Style="color: #424E5F; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Adelantos</div>
+                    <div class="kpi-value" style="color: #424E5F;">@($"${TotalAdelantos:N2}")</div>
+                </div>
+            </div>
+        </MudItem>
+    </MudGrid>
 
-        <div class="d-flex flex-grow-1 gap-3">
-
-            <MudDatePicker Label="Fecha Inicio" PickerVariant="PickerVariant.Dialog" Margin="Margin.Dense" DisableToolbar="true"
-                           Variant="Variant.Outlined" DateFormat="dd/MM/yyyy" @bind-Date="fechaInicio" />
-
-            <MudDatePicker Label="Fecha Fin" PickerVariant="PickerVariant.Dialog" Margin="Margin.Dense" DisableToolbar="true"
-                           Variant="Variant.Outlined" DateFormat="dd/MM/yyyy" @bind-Date="fechaFin"  />
-
-
-            <MudButton Variant="Variant.Filled"
-                       StartIcon="@Icons.Material.Filled.Search"
-                       Color="Color.Info"
-                       Size="Size.Medium"
-                       Class="mt-1"
-                       OnClick="Buscar">Buscar</MudButton>
-
+    <!-- PANEL FILTROS -->
+    <div class="panel-card mb-4">
+        <div class="panel-header">
+            <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Style="color: #5C8DC2;" />
+            <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Filtros</MudText>
         </div>
 
-        <MudGrid>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Filled.DataThresholding"
-                           Color="Color.Success"
-                           Size="Size.Medium"
-                           Class="mt-1"
-                           OnClick="ExportarExcel" Disabled="@desactivarBoton">Exportar Excel</MudButton>
-            </MudItem>
-            <MudItem xs="12">
+        <div class="pa-4">
+            <MudGrid Spacing="2">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="Fecha Inicio" Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="dd/MM/yyyy" @bind-Date="fechaInicio" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudDatePicker Label="Fecha Fin" Variant="Variant.Outlined" Margin="Margin.Dense" DateFormat="dd/MM/yyyy" @bind-Date="fechaFin" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudAutocomplete T="ClienteDTO"
+                                     Label="Cliente"
+                                     @bind-Value="clienteSeleccionado"
+                                     SearchFunc="@BuscarClientes"
+                                     ToStringFunc="@(c => c?.NombreCompleto ?? string.Empty)"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Adornment="Adornment.End"
+                                     AdornmentIcon="@Icons.Material.Filled.Person"
+                                     Placeholder="Buscar cliente..."
+                                     Clearable="true"
+                                     ResetValueOnEmptyText="true"
+                                     CoerceText="true"
+                                     CoerceValue="true" />
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="HabitacionDTO"
+                               Label="Habitación"
+                               @bind-Value="habitacionSeleccionada"
+                               Variant="Variant.Outlined"
+                               Margin="Margin.Dense"
+                               Adornment="Adornment.End"
+                               AdornmentIcon="@Icons.Material.Filled.Bed"
+                               Clearable="true"
+                               AnchorOrigin="Origin.BottomCenter">
+                        <MudSelectItem Value="@((HabitacionDTO)null)">Todas</MudSelectItem>
+                        @foreach (var hab in listaHabitaciones)
+                        {
+                            <MudSelectItem Value="@hab">@hab.Numero - @hab.IdCategoriaNavigation?.Descripcion</MudSelectItem>
+                        }
+                    </MudSelect>
+                </MudItem>
 
-                <MudTable Items="@lista"
-                          Dense="true"
-                          Striped="true" Bordered="true"
-                          Loading="@_loading" LoadingProgressColor="Color.Info">
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="string" @bind-Value="filtroTipoDocumento" Label="Tipo Documento" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                        <MudSelectItem Value="@((string?)null)">Todos</MudSelectItem>
+                        <MudSelectItem Value="@("Cédula")">Cédula</MudSelectItem>
+                        <MudSelectItem Value="@("RUC")">RUC</MudSelectItem>
+                        <MudSelectItem Value="@("Pasaporte")">Pasaporte</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <MudSelect T="string" @bind-Value="filtroMetodoPago" Label="Método de Pago" Variant="Variant.Outlined" Margin="Margin.Dense" Clearable="true">
+                        <MudSelectItem Value="@((string?)null)">Todos</MudSelectItem>
+                        <MudSelectItem Value="@("EFECTIVO")">Efectivo</MudSelectItem>
+                        <MudSelectItem Value="@("TRANSFERENCIA")">Transferencia</MudSelectItem>
+                        <MudSelectItem Value="@("OTRO")">Otro</MudSelectItem>
+                    </MudSelect>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3" Class="d-flex align-center">
+                    <MudCheckBox @bind-Checked="soloConPenalidad" Label="Solo con penalidad" Color="Color.Primary" />
+                </MudItem>
+                <MudItem xs="12" md="3" Class="d-flex align-center justify-end">
+                    <MudStack Row="true" Spacing="2">
+                        <MudButton Variant="Variant.Outlined"
+                                   StartIcon="@Icons.Material.Filled.Clear"
+                                   OnClick="LimpiarFiltros"
+                                   Style="border-color: #E5E7EB; color: #424E5F; text-transform: none; border-radius: 10px;">
+                            Limpiar
+                        </MudButton>
+                        <MudButton Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Filled.Search"
+                                   OnClick="Buscar"
+                                   Style="background: #5C8DC2; color: #fff; text-transform: none; border-radius: 10px; font-weight: 600;">
+                            Buscar
+                        </MudButton>
+                    </MudStack>
+                </MudItem>
+            </MudGrid>
+        </div>
+    </div>
+
+    <!-- BARRA EXPORTAR -->
+    @if (listaFiltrada.Any())
+    {
+        <div class="panel-card mb-4">
+            <div class="pa-3 d-flex justify-space-between align-center flex-wrap" style="gap: 12px;">
+                <div class="d-flex" style="gap: 8px;">
+                    <MudChip Style="background: #EBF2F9; color: #5C8DC2; font-weight: 600;" Icon="@Icons.Material.Filled.Receipt">
+                        Total: @listaFiltrada.Count
+                    </MudChip>
+                    <MudChip Style="background: #EFF5EF; color: #6FA776; font-weight: 600;" Icon="@Icons.Material.Filled.AttachMoney">
+                        Ingresos: $@TotalIngresos.ToString("N2")
+                    </MudChip>
+                    <MudChip Style="background: #FAF1E7; color: #E8A668; font-weight: 600;" Icon="@Icons.Material.Filled.WarningAmber">
+                        Penalidades: $@TotalPenalidades.ToString("N2")
+                    </MudChip>
+                </div>
+                <MudStack Row="true" Spacing="2">
+                    <MudButton Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.GridOn"
+                               OnClick="ExportarExcel"
+                               Style="border-color: #6FA776; color: #6FA776; text-transform: none; border-radius: 10px; font-weight: 600;">
+                        Excel
+                    </MudButton>
+                    <MudButton Variant="Variant.Outlined"
+                               StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                               OnClick="ExportarPdf"
+                               Style="border-color: #E8A668; color: #E8A668; text-transform: none; border-radius: 10px; font-weight: 600;">
+                        PDF
+                    </MudButton>
+                </MudStack>
+            </div>
+        </div>
+    }
+
+    <!-- PANEL TABLA -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Style="color: #6FA776;" />
+            <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Resultados</MudText>
+        </div>
+
+        <div class="pa-4">
+            <div class="custom-table">
+                <MudTable Items="@listaFiltrada" Hover="true" Loading="@_loading" LoadingProgressColor="Color.Info" Elevation="0">
                     <HeaderContent>
-                        <MudTh>Nombre Cliente</MudTh>
-                        <MudTh>Tipo documento</MudTh>
-                        <MudTh>Nro Documento</MudTh>
-                        <MudTh>Nro Habitacion</MudTh>
-                        <MudTh>Fecha Entrada</MudTh>
-                        <MudTh>Fecha Salida</MudTh>
-                        <MudTh>Total</MudTh>
+                        <MudTh>Cliente</MudTh>
+                        <MudTh>Tipo Doc</MudTh>
+                        <MudTh>Documento</MudTh>
+                        <MudTh Style="text-align: center;">Habitación</MudTh>
+                        <MudTh Style="text-align: center;">Entrada</MudTh>
+                        <MudTh Style="text-align: center;">Salida</MudTh>
+                        <MudTh>Método Pago</MudTh>
+                        <MudTh Style="text-align: right;">Adelanto</MudTh>
+                        <MudTh Style="text-align: right;">Penalidad</MudTh>
+                        <MudTh Style="text-align: right;">Total</MudTh>
                     </HeaderContent>
-                    <RowTemplate Context="itemRow">
-                        <MudTd DataLabel="Nombre Cliente">@itemRow.NombreCliente</MudTd>
-                        <MudTd DataLabel="Tipo documento">@itemRow.TipoDocumento</MudTd>
-                        <MudTd DataLabel="Nro Documento">@itemRow.NroDocumento</MudTd>
-                        <MudTd DataLabel="Nro Habitacion">@itemRow.NroHabitacion</MudTd>
-                        <MudTd DataLabel="Fecha Entrada">@itemRow.FechaEntrada</MudTd>
-                        <MudTd DataLabel="Fecha Salida">@itemRow.FechaSalida</MudTd>
-                        <MudTd DataLabel="Total">@itemRow.TotalPagado</MudTd>
+                    <RowTemplate Context="item">
+                        <MudTd>
+                            <div class="d-flex align-center" style="gap: 10px;">
+                                <div class="cell-icon-box" style="background: #EBF2F9;">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Style="color: #5C8DC2; font-size: 18px;" />
+                                </div>
+                                <span style="font-weight: 500; color: #424E5F;">@item.NombreCliente</span>
+                            </div>
+                        </MudTd>
+                        <MudTd Style="color: #6B7280;">@item.TipoDocumento</MudTd>
+                        <MudTd Style="color: #6B7280;">@item.NroDocumento</MudTd>
+                        <MudTd Style="text-align: center;">
+                            <MudChip Size="Size.Small" Style="background: #EBF2F9; color: #5C8DC2; font-weight: 600;">@item.NroHabitacion</MudChip>
+                        </MudTd>
+                        <MudTd Style="text-align: center; color: #424E5F;">@item.FechaEntrada</MudTd>
+                        <MudTd Style="text-align: center; color: #424E5F;">@item.FechaSalida</MudTd>
+                        <MudTd>
+                            @if (item.MetodoPago == "MIXTO")
+                            {
+                                <MudTooltip Text="@item.NotaMetodoPago" Placement="Placement.Top">
+                                    <MudChip Size="Size.Small" Style="background: #EBF2F9; color: #5C8DC2; font-weight: 600;" Icon="@Icons.Material.Filled.CallSplit">MIXTO</MudChip>
+                                </MudTooltip>
+                            }
+                            else if (item.MetodoPago == "OTRO" && !string.IsNullOrEmpty(item.NotaMetodoPago))
+                            {
+                                <MudTooltip Text="@item.NotaMetodoPago" Placement="Placement.Top">
+                                    <MudChip Size="Size.Small" Style="background: #F0F2F5; color: #424E5F; font-weight: 600;">OTRO</MudChip>
+                                </MudTooltip>
+                            }
+                            else
+                            {
+                                <MudChip Size="Size.Small" Style="background: #EFF5EF; color: #6FA776; font-weight: 600;">@item.MetodoPago</MudChip>
+                            }
+                        </MudTd>
+                        <MudTd Style="text-align: right; color: #424E5F;">$@(item.Adelanto?.ToString("N2") ?? "0.00")</MudTd>
+                        <MudTd Style="@($"text-align: right; font-weight: {(item.CostoPenalidad > 0 ? "600" : "400")}; color: {(item.CostoPenalidad > 0 ? "#E8A668" : "#6B7280")};")">
+                            $@(item.CostoPenalidad?.ToString("N2") ?? "0.00")
+                        </MudTd>
+                        <MudTd Style="text-align: right; font-weight: 600; color: #6FA776;">
+                            $@(item.TotalPagado?.ToString("N2") ?? "0.00")
+                        </MudTd>
                     </RowTemplate>
+                    <NoRecordsContent>
+                        <div class="empty-state">
+                            <MudIcon Icon="@Icons.Material.Filled.Search" Style="color: #9CA3AF; font-size: 48px;" />
+                            <MudText Typo="Typo.body1" Style="color: #6B7280;">No hay datos. Aplica filtros y haz clic en Buscar.</MudText>
+                        </div>
+                    </NoRecordsContent>
                     <PagerContent>
                         <MudTablePager />
                     </PagerContent>
                 </MudTable>
-
-
-            </MudItem>
-        </MudGrid>
-
-    </MudPaper>
-
+            </div>
+        </div>
+    </div>
 </MudContainer>
 
+<style>
+    .kpi-card-flat { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px; height: 100%; transition: all 0.2s ease; }
+    .kpi-card-flat:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .kpi-icon-box { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .kpi-label { font-size: 0.8rem; color: #6B7280; font-weight: 500; margin-bottom: 4px; }
+    .kpi-value { font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+    .panel-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .panel-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #E5E7EB; background: #FAFBFC; }
+    .custom-table { border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .custom-table .mud-table-head th { background: #FAFBFC !important; color: #424E5F !important; font-weight: 600 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cell-icon-box { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 24px; }
+</style>
+
 @code {
-    List<ReporteDTO> lista = new List<ReporteDTO>();
+    private List<ReporteDTO> lista = new();
+    private List<ReporteDTO> listaFiltrada = new();
     private bool _loading = false;
-    DateTime? fechaInicio = DateTime.Today;
-    DateTime? fechaFin = DateTime.Today;
-    private bool desactivarBoton = true;
+
+    private List<ClienteDTO> listaClientes = new();
+    private List<HabitacionDTO> listaHabitaciones = new();
+
+    private DateTime? fechaInicio = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+    private DateTime? fechaFin = DateTime.Today;
+    private ClienteDTO? clienteSeleccionado;
+    private HabitacionDTO? habitacionSeleccionada;
+    private string? filtroTipoDocumento;
+    private string? filtroMetodoPago;
+    private bool soloConPenalidad = false;
+
+    private decimal TotalIngresos => listaFiltrada.Sum(x => x.TotalPagado ?? 0);
+    private decimal TotalPenalidades => listaFiltrada.Sum(x => x.CostoPenalidad ?? 0);
+    private decimal TotalAdelantos => listaFiltrada.Sum(x => x.Adelanto ?? 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var respClientes = await _clienteServicio.Lista();
+        if (respClientes.status && respClientes.value != null)
+            listaClientes = respClientes.value;
+
+        var respHabitaciones = await _habitacionServicio.Lista();
+        if (respHabitaciones.status && respHabitaciones.value != null)
+            listaHabitaciones = respHabitaciones.value.OrderBy(h => h.Numero).ToList();
+    }
+
+    private Task<IEnumerable<ClienteDTO>> BuscarClientes(string valor)
+    {
+        if (string.IsNullOrWhiteSpace(valor))
+            return Task.FromResult<IEnumerable<ClienteDTO>>(listaClientes.Take(10));
+
+        var resultado = listaClientes
+            .Where(c => (c.NombreCompleto ?? "").Contains(valor, StringComparison.OrdinalIgnoreCase)
+                     || (c.Documento ?? "").Contains(valor, StringComparison.OrdinalIgnoreCase))
+            .Take(20);
+
+        return Task.FromResult<IEnumerable<ClienteDTO>>(resultado);
+    }
 
     private async Task Buscar()
     {
+        if (fechaInicio == null || fechaFin == null)
+        {
+            await Swal.FireAsync("Error", "Debe seleccionar fecha inicio y fecha fin", "warning");
+            return;
+        }
+
         _loading = true;
-        string _fechaInicio;
-        string _fechaFin;
+        StateHasChanged();
 
-        _fechaInicio = fechaInicio.Value.ToString("dd/MM/yyyy");
-        _fechaFin = fechaFin.Value.ToString("dd/MM/yyyy");
+        var resultado = await _recepcionServicio.Reporte(
+            fechaInicio.Value.ToString("dd/MM/yyyy"),
+            fechaFin.Value.ToString("dd/MM/yyyy")
+        );
 
-        var resultado = await _recepcionServicio.Reporte(_fechaInicio, _fechaFin);
         if (resultado.status)
         {
-            lista = (List<ReporteDTO>)resultado.value!;
-
-            if(lista.Any()) 
-                desactivarBoton = false;
-            else
-                desactivarBoton = true;
+            lista = resultado.value ?? new List<ReporteDTO>();
+            AplicarFiltros();
         }
         else
         {
             lista = new List<ReporteDTO>();
-            desactivarBoton = true;
+            listaFiltrada = new();
         }
 
         _loading = false;
     }
 
-    // private async Task ExportarExcel()
-    // {
-    //     if (!lista.Any())
-    //         return;
+    private void AplicarFiltros()
+    {
+        IEnumerable<ReporteDTO> q = lista;
 
-    //     using var libro = new XLWorkbook();
-    //     var hoja = libro.Worksheets.Add("Reporte");
+        if (clienteSeleccionado != null)
+            q = q.Where(x => x.NombreCliente == clienteSeleccionado.NombreCompleto);
 
-    //     // =========================
-    //     // 1) Título profesional
-    //     // =========================
-    //     hoja.Range("A1:G1").Merge();
-    //     hoja.Cell("A1").Value = "REPORTE DE RECEPCIONES";
-    //     hoja.Cell("A1").Style.Font.Bold = true;
-    //     hoja.Cell("A1").Style.Font.FontSize = 16;
-    //     hoja.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-    //     hoja.Cell("A1").Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-    //     hoja.Row(1).Height = 28;
+        if (habitacionSeleccionada != null)
+            q = q.Where(x => x.NroHabitacion == habitacionSeleccionada.Numero);
 
-    //     // Subtítulo (rango fechas)
-    //     hoja.Range("A2:G2").Merge();
-    //     hoja.Cell("A2").Value = $"Rango: {fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}   |   Generado: {DateTime.Now:dd/MM/yyyy HH:mm}";
-    //     hoja.Cell("A2").Style.Font.Italic = true;
-    //     hoja.Cell("A2").Style.Font.FontSize = 10;
-    //     hoja.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-    //     hoja.Row(2).Height = 18;
+        if (!string.IsNullOrWhiteSpace(filtroTipoDocumento))
+            q = q.Where(x => x.TipoDocumento == filtroTipoDocumento);
 
-    //     // =========================
-    //     // 2) Encabezados
-    //     // =========================
-    //     int filaHeader = 4;
+        if (!string.IsNullOrWhiteSpace(filtroMetodoPago))
+            q = q.Where(x => x.MetodoPago == filtroMetodoPago);
 
-    //     hoja.Cell(filaHeader, 1).Value = "Nombre Cliente";
-    //     hoja.Cell(filaHeader, 2).Value = "Tipo documento";
-    //     hoja.Cell(filaHeader, 3).Value = "Nro Documento";
-    //     hoja.Cell(filaHeader, 4).Value = "Nro Habitación";
-    //     hoja.Cell(filaHeader, 5).Value = "Fecha Entrada";
-    //     hoja.Cell(filaHeader, 6).Value = "Fecha Salida";
-    //     hoja.Cell(filaHeader, 7).Value = "Total";
+        if (soloConPenalidad)
+            q = q.Where(x => x.CostoPenalidad > 0);
 
-    //     var encabezado = hoja.Range(filaHeader, 1, filaHeader, 7);
-    //     encabezado.Style.Font.Bold = true;
-    //     encabezado.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-    //     encabezado.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-    //     encabezado.Style.Fill.SetBackgroundColor(XLColor.LightGray);
-    //     encabezado.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-    //     encabezado.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-    //     hoja.Row(filaHeader).Height = 20;
+        listaFiltrada = q.ToList();
+    }
 
-    //     // =========================
-    //     // 3) Datos
-    //     // =========================
-    //     int filaDataInicio = filaHeader + 1;
+    private void LimpiarFiltros()
+    {
+        clienteSeleccionado = null;
+        habitacionSeleccionada = null;
+        filtroTipoDocumento = null;
+        filtroMetodoPago = null;
+        soloConPenalidad = false;
+        fechaInicio = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        fechaFin = DateTime.Today;
+        listaFiltrada = new();
+    }
 
-    //     // InsertData inserta todas las propiedades en orden.
-    //     // Pero como tu ReporteDTO tiene exactamente esas columnas, funciona bien.
-    //     hoja.Cell(filaDataInicio, 1).InsertData(lista);
+    private string ConstruirSubtitulo()
+    {
+        var partes = new List<string>
+        {
+            $"Período: {fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}"
+        };
 
-    //     // Cantidad real de filas
-    //     int filaDataFin = filaDataInicio + lista.Count - 1;
+        if (clienteSeleccionado != null) partes.Add($"Cliente: {clienteSeleccionado.NombreCompleto}");
+        if (habitacionSeleccionada != null) partes.Add($"Habitación: {habitacionSeleccionada.Numero}");
+        if (!string.IsNullOrEmpty(filtroTipoDocumento)) partes.Add($"Tipo Doc: {filtroTipoDocumento}");
+        if (!string.IsNullOrEmpty(filtroMetodoPago)) partes.Add($"Método: {filtroMetodoPago}");
+        if (soloConPenalidad) partes.Add("Solo con penalidad");
 
-    //     // Estilo tabla datos
-    //     var rangoDatos = hoja.Range(filaHeader, 1, filaDataFin, 7);
-    //     rangoDatos.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-    //     rangoDatos.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-    //     rangoDatos.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        return string.Join(" | ", partes);
+    }
 
-    //     // Alineaciones por columna
-    //     hoja.Column(1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
-    //     hoja.Column(2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-    //     hoja.Column(3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-    //     hoja.Column(4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-    //     hoja.Column(5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-    //     hoja.Column(6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-    //     hoja.Column(7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+    private async Task<string> ObtenerUsuario()
+    {
+        var authState = await _authProvider.GetAuthenticationStateAsync();
+        return authState.User?.Identity?.Name ?? "Sistema";
+    }
 
-    //     // Formato de moneda (Total) - intenta convertir a decimal si tu TotalPagado llega como string
-    //     // Si TotalPagado ya es decimal en tu DTO, quita esta parte.
-    //     for (int r = filaDataInicio; r <= filaDataFin; r++)
-    //     {
-    //         var valor = hoja.Cell(r, 7).GetString();
-    //         if (decimal.TryParse(valor, out var money))
-    //         {
-    //             hoja.Cell(r, 7).Value = money;
-    //         }
-    //     }
-    //     hoja.Column(7).Style.NumberFormat.Format = "#,##0.00";
-
-    //     // =========================
-    //     // 4) Filtros + Freeze panes
-    //     // =========================
-    //     encabezado.SetAutoFilter();
-    //     hoja.SheetView.FreezeRows(filaHeader); // congela hasta encabezado
-
-    //     // =========================
-    //     // 5) Totales (footer)
-    //     // =========================
-    //     int filaTotal = filaDataFin + 2;
-    //     hoja.Cell(filaTotal, 6).Value = "TOTAL GENERAL:";
-    //     hoja.Cell(filaTotal, 6).Style.Font.Bold = true;
-    //     hoja.Cell(filaTotal, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-
-    //     hoja.Cell(filaTotal, 7).FormulaA1 = $"SUM(G{filaDataInicio}:G{filaDataFin})";
-    //     hoja.Cell(filaTotal, 7).Style.Font.Bold = true;
-    //     hoja.Cell(filaTotal, 7).Style.NumberFormat.Format = "#,##0.00";
-    //     hoja.Range(filaTotal, 6, filaTotal, 7).Style.Fill.SetBackgroundColor(XLColor.FromHtml("#E8F5E9"));
-    //     hoja.Range(filaTotal, 6, filaTotal, 7).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-
-    //     // =========================
-    //     // 6) Anchos (sin AdjustToContents para evitar error de fuentes)
-    //     // =========================
-    //     hoja.Column(1).Width = 30; // Cliente
-    //     hoja.Column(2).Width = 16; // Tipo doc
-    //     hoja.Column(3).Width = 18; // Documento
-    //     hoja.Column(4).Width = 16; // Habitación
-    //     hoja.Column(5).Width = 16; // Entrada
-    //     hoja.Column(6).Width = 16; // Salida
-    //     hoja.Column(7).Width = 14; // Total
-
-    //     // =========================
-    //     // 7) Descargar
-    //     // =========================
-    //     using var memoria = new MemoryStream();
-    //     libro.SaveAs(memoria);
-
-    //     var nombreExcel = $"Reporte_Recepcion_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-
-    //     await _jsServicio.InvokeAsync<object>(
-    //         "DescargarExcel",
-    //         nombreExcel,
-    //         Convert.ToBase64String(memoria.ToArray())
-    //     );
-    // }
     private async Task ExportarExcel()
     {
-        if (!lista.Any())
-            return;
+        if (!listaFiltrada.Any()) return;
 
-        using var libro = new XLWorkbook();
-        var hoja = libro.Worksheets.Add("Reporte");
-
-        // =========================
-        // 1) Título
-        // =========================
-        hoja.Range("A1:K1").Merge();
-        hoja.Cell("A1").Value = "REPORTE DE RECEPCIONES";
-        hoja.Cell("A1").Style.Font.Bold = true;
-        hoja.Cell("A1").Style.Font.FontSize = 16;
-        hoja.Cell("A1").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        hoja.Cell("A1").Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-        hoja.Row(1).Height = 28;
-
-        hoja.Range("A2:K2").Merge();
-        hoja.Cell("A2").Value = $"Rango: {fechaInicio:dd/MM/yyyy} - {fechaFin:dd/MM/yyyy}   |   Generado: {DateTime.Now:dd/MM/yyyy HH:mm}";
-        hoja.Cell("A2").Style.Font.Italic = true;
-        hoja.Cell("A2").Style.Font.FontSize = 10;
-        hoja.Cell("A2").Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        hoja.Row(2).Height = 18;
-
-        // =========================
-        // 2) Encabezados
-        // =========================
-        int filaHeader = 4;
-
-        hoja.Cell(filaHeader, 1).Value = "Nombre Cliente";
-        hoja.Cell(filaHeader, 2).Value = "Tipo documento";
-        hoja.Cell(filaHeader, 3).Value = "Nro Documento";
-        hoja.Cell(filaHeader, 4).Value = "Nro Habitación";
-        hoja.Cell(filaHeader, 5).Value = "Fecha Entrada";
-        hoja.Cell(filaHeader, 6).Value = "Fecha Salida";
-        hoja.Cell(filaHeader, 7).Value = "Adelanto";
-        hoja.Cell(filaHeader, 8).Value = "CancelaRecepcion";
-        hoja.Cell(filaHeader, 9).Value = "Método pago";
-        hoja.Cell(filaHeader, 10).Value = "Penalidad";
-        hoja.Cell(filaHeader, 11).Value = "Total pagado";
-
-        var encabezado = hoja.Range(filaHeader, 1, filaHeader, 11);
-        encabezado.Style.Font.Bold = true;
-        encabezado.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        encabezado.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-        encabezado.Style.Fill.SetBackgroundColor(XLColor.LightGray);
-        encabezado.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-        encabezado.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-        hoja.Row(filaHeader).Height = 20;
-
-        // =========================
-        // 3) Datos
-        // =========================
-        int filaDataInicio = filaHeader + 1;
-        int fila = filaDataInicio;
-
-        foreach (var x in lista)
+        var encabezados = new List<string>
         {
-            hoja.Cell(fila, 1).Value = x.NombreCliente;
-            hoja.Cell(fila, 2).Value = x.TipoDocumento;
-            hoja.Cell(fila, 3).Value = x.NroDocumento;
-            hoja.Cell(fila, 4).Value = x.NroHabitacion;
-            hoja.Cell(fila, 5).Value = x.FechaEntrada;
-            hoja.Cell(fila, 6).Value = x.FechaSalida;
+            "Cliente", "Tipo Doc", "Documento", "Habitación", "Entrada",
+            "Salida", "Método de Pago (Detalle)", "Adelanto", "Penalidad", "Total"
+        };
 
-            hoja.Cell(fila, 7).Value = x.Adelanto ?? 0m;
-            hoja.Cell(fila, 8).Value = x.PrecioRestante ?? 0m;
-            hoja.Cell(fila, 9).Value = x.MetodoPago;
+        var datos = listaFiltrada.Select(x => new object[]
+        {
+            x.NombreCliente ?? "",
+            x.TipoDocumento ?? "",
+            x.NroDocumento ?? "",
+            x.NroHabitacion ?? "",
+            x.FechaEntrada ?? "",
+            x.FechaSalida ?? "",
+            x.MetodoPagoDetallado,
+            x.Adelanto ?? 0m,
+            x.CostoPenalidad ?? 0m,
+            x.TotalPagado ?? 0m
+        }).ToList();
 
-            hoja.Cell(fila, 10).Value = x.CostoPenalidad ?? 0m;
-            hoja.Cell(fila, 11).Value = x.TotalPagado ?? 0m;
+        var anchos = new double[] { 30, 14, 18, 14, 14, 14, 45, 14, 14, 14 };
+        var colsMoneda = new int[] { 7, 8, 9 };
 
-            fila++;
-        }
+        await _excelService.GenerarReporte(
+            titulo: "Reporte de Recepciones",
+            subtitulo: ConstruirSubtitulo(),
+            encabezados: encabezados,
+            datos: datos,
+            anchosColumnas: anchos,
+            columnasMoneda: colsMoneda,
+            usuarioGenerador: await ObtenerUsuario(),
+            nombreArchivo: "Reporte_Recepciones",
+            incluirTotales: true
+        );
+    }
 
-        int filaDataFin = fila - 1;
+    private async Task ExportarPdf()
+    {
+        if (!listaFiltrada.Any()) return;
 
-        // Estilo bordes
-        var rangoDatos = hoja.Range(filaHeader, 1, filaDataFin, 11);
-        rangoDatos.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-        rangoDatos.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-        rangoDatos.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
+        var encabezados = new List<string>
+        {
+            "Cliente", "Tipo Doc", "Documento", "Habitación", "Entrada",
+            "Salida", "Método de Pago", "Adelanto", "Penalidad", "Total"
+        };
 
-        // Alineaciones
-        hoja.Column(1).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Left;
-        hoja.Column(2).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        hoja.Column(3).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        hoja.Column(4).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        hoja.Column(5).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        hoja.Column(6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
+        var datos = listaFiltrada.Select(x => new object[]
+        {
+            x.NombreCliente ?? "",
+            x.TipoDocumento ?? "",
+            x.NroDocumento ?? "",
+            x.NroHabitacion ?? "",
+            x.FechaEntrada ?? "",
+            x.FechaSalida ?? "",
+            x.MetodoPagoDetallado,
+            x.Adelanto ?? 0m,
+            x.CostoPenalidad ?? 0m,
+            x.TotalPagado ?? 0m
+        }).ToList();
 
-        hoja.Column(7).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-        hoja.Column(8).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-        hoja.Column(9).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        hoja.Column(10).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-        hoja.Column(11).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
+        var totales = new List<TotalReporte>
+        {
+            new() { Etiqueta = "Adelantos", Valor = TotalAdelantos },
+            new() { Etiqueta = "Penalidades", Valor = TotalPenalidades },
+            new() { Etiqueta = "Ingresos", Valor = TotalIngresos }
+        };
 
-        // Formato moneda
-        hoja.Column(7).Style.NumberFormat.Format = "#,##0.00";
-        hoja.Column(8).Style.NumberFormat.Format = "#,##0.00";
-        hoja.Column(10).Style.NumberFormat.Format = "#,##0.00";
-        hoja.Column(11).Style.NumberFormat.Format = "#,##0.00";
-
-        // =========================
-        // 4) Filtros + Freeze panes
-        // =========================
-        encabezado.SetAutoFilter();
-        hoja.SheetView.FreezeRows(filaHeader);
-
-        // =========================
-        // 5) Totales generales
-        // =========================
-        int filaTotal = filaDataFin + 2;
-
-        hoja.Cell(filaTotal, 6).Value = "TOTALES:";
-        hoja.Cell(filaTotal, 6).Style.Font.Bold = true;
-        hoja.Cell(filaTotal, 6).Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Right;
-
-        // Adelanto (G)
-        hoja.Cell(filaTotal, 7).FormulaA1 = $"SUM(G{filaDataInicio}:G{filaDataFin})";
-        hoja.Cell(filaTotal, 7).Style.Font.Bold = true;
-
-        // Precio restante (H)
-        hoja.Cell(filaTotal, 8).FormulaA1 = $"SUM(H{filaDataInicio}:H{filaDataFin})";
-        hoja.Cell(filaTotal, 8).Style.Font.Bold = true;
-
-        // Penalidad (J)
-        hoja.Cell(filaTotal, 10).FormulaA1 = $"SUM(J{filaDataInicio}:J{filaDataFin})";
-        hoja.Cell(filaTotal, 10).Style.Font.Bold = true;
-
-        // Total pagado (K)
-        hoja.Cell(filaTotal, 11).FormulaA1 = $"SUM(K{filaDataInicio}:K{filaDataFin})";
-        hoja.Cell(filaTotal, 11).Style.Font.Bold = true;
-
-        hoja.Range(filaTotal, 6, filaTotal, 11).Style.Fill.SetBackgroundColor(XLColor.FromHtml("#E8F5E9"));
-        hoja.Range(filaTotal, 6, filaTotal, 11).Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-
-        hoja.Cell(filaTotal, 7).Style.NumberFormat.Format = "#,##0.00";
-        hoja.Cell(filaTotal, 8).Style.NumberFormat.Format = "#,##0.00";
-        hoja.Cell(filaTotal, 10).Style.NumberFormat.Format = "#,##0.00";
-        hoja.Cell(filaTotal, 11).Style.NumberFormat.Format = "#,##0.00";
-
-        // =========================
-        // 6) Anchos
-        // =========================
-        hoja.Column(1).Width = 30;
-        hoja.Column(2).Width = 16;
-        hoja.Column(3).Width = 18;
-        hoja.Column(4).Width = 16;
-        hoja.Column(5).Width = 16;
-        hoja.Column(6).Width = 16;
-        hoja.Column(7).Width = 14;
-        hoja.Column(8).Width = 16;
-        hoja.Column(9).Width = 16;
-        hoja.Column(10).Width = 14;
-        hoja.Column(11).Width = 14;
-
-        // =========================
-        // 7) Descargar
-        // =========================
-        using var memoria = new MemoryStream();
-        libro.SaveAs(memoria);
-
-        var nombreExcel = $"Reporte_Recepcion_{DateTime.Now:yyyyMMdd_HHmmss}.xlsx";
-
-        await _jsServicio.InvokeAsync<object>(
-            "DescargarExcel",
-            nombreExcel,
-            Convert.ToBase64String(memoria.ToArray())
+        await _pdfService.GenerarReporte(
+            titulo: "Reporte de Recepciones",
+            subtitulo: ConstruirSubtitulo(),
+            encabezados: encabezados,
+            datos: datos,
+            usuarioGenerador: await ObtenerUsuario(),
+            nombreArchivo: "Reporte_Recepciones",
+            totales: totales,
+            orientacion: "landscape"
         );
     }
 }

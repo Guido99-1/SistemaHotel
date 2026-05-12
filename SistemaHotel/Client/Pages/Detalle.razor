@@ -1,4 +1,4 @@
-﻿@page "/page/detalle/{idHabitacion:int}"
+@page "/page/detalle/{idHabitacion:int}"
 @page "/page/checkinreserva/{idReserva:int}"
 @attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 @inject IHabitacionServicio _habitacionServicio
@@ -8,286 +8,324 @@
 @inject NavigationManager navManager
 @inject IReservaServicio _reservaServicio
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-6">
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Detalle</MudText>
+    <!-- HEADER -->
+    <div class="d-flex justify-space-between align-center mb-6 flex-wrap gap-3">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; color: #424E5F;">Check-in / Detalle Recepción</MudText>
+            <MudText Typo="Typo.body2" Style="color: #6B7280;">Registro de hospedaje del huésped</MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="@(() => navManager.NavigateTo("/page/recepcion"))"
+                   Style="border-color: #E5E7EB; color: #424E5F; text-transform: none; border-radius: 10px;">
+            Volver
+        </MudButton>
+    </div>
 
-    <MudPaper Elevation="3" Class="pa-4" Width="100%">
+    <MudGrid Spacing="3" AlignItems="AlignItems.Stretch">
 
-        <!-- HABITACION -->
-        <MudGrid>
-            <MudItem xs="12">
-                <MudCard>
-                    <MudCardHeader Class="pb-0">
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Habitación</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
+        <!-- COLUMNA IZQUIERDA -->
+        <MudItem xs="12" lg="6" Class="d-flex">
+            <MudStack Spacing="3" Class="w-100">
 
-                    <MudCardContent>
-                        <MudGrid>
-                            <MudItem xs="12" lg="6" md="6" sm="6">
-                                <MudTextField Value="_habitacionDTO.Numero"
-                                              Label="Numero"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
+                <!-- HABITACIÓN -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #5C8DC2;" />
+                        <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Habitación</MudText>
+                    </div>
+                    <div class="pa-4">
+                        <div class="d-flex flex-wrap" style="gap: 8px; margin-bottom: 16px;">
+                            <MudChip Style="background: #EBF2F9; color: #5C8DC2; font-weight: 600;" Icon="@Icons.Material.Filled.Bed">
+                                @_habitacionDTO.Numero
+                            </MudChip>
+                            <MudChip Style="background: #EFF5EF; color: #6FA776; font-weight: 600;" Icon="@Icons.Material.Filled.KingBed">
+                                @_habitacionDTO.IdCategoriaNavigation?.Descripcion
+                            </MudChip>
+                            <MudChip Style="background: #FAF1E7; color: #E8A668; font-weight: 600;" Icon="@Icons.Material.Filled.Apartment">
+                                @_habitacionDTO.IdPisoNavigation?.Descripcion
+                            </MudChip>
+                        </div>
+                        <div class="info-box">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Style="color: #5C8DC2;" />
+                            <MudText Typo="Typo.body1" Style="color: #424E5F; font-weight: 500;">
+                                @(string.IsNullOrEmpty(_habitacionDTO.Detalle) ? "Sin detalle" : _habitacionDTO.Detalle)
+                            </MudText>
+                        </div>
+                    </div>
+                </div>
 
-                            <MudItem xs="12" lg="6" md="6" sm="6">
-                                <MudTextField Value="_habitacionDTO.IdCategoriaNavigation?.Descripcion"
-                                              Label="Categoria"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12" lg="6" md="6" sm="6">
-                                <MudTextField Value="_habitacionDTO.Detalle"
-                                              Label="Detalle"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12" lg="6" md="6" sm="6">
-                                <MudTextField Value="_habitacionDTO.IdPisoNavigation?.Descripcion"
-                                              Label="Piso"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-                        </MudGrid>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
-
-        <MudGrid>
-
-            <!-- CLIENTE -->
-            <MudItem xs="12" lg="6" md="6" sm="6">
-                <MudCard>
-                    <MudCardHeader Class="pb-0">
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Cliente</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-
-                    <MudCardContent>
-                        <MudGrid>
-                            <MudItem xs="12">
-                                <MudGrid>
-                                    <MudItem xs="6">
-                                        <MudButton Disabled="@(idReserva.HasValue)" 
-                                                   Variant="Variant.Filled"
-                                                   Color="Color.Info"
-                                                   FullWidth="true"
-                                                   Size="Size.Small"
-                                                   OnClick="Buscar">
-                                            Buscar
-                                        </MudButton>
-                                    </MudItem>
-
-                                    <MudItem xs="6">
-                                        <MudButton Disabled="@(idReserva.HasValue)"
-                                                   Variant="Variant.Filled"
-                                                   Color="Color.Success"
-                                                   FullWidth="true"
-                                                   Size="Size.Small"
-                                                   OnClick="CrearCliente">
-                                            Crear
-                                        </MudButton>
-                                    </MudItem>
-                                </MudGrid>
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.TipoDocumento"
-                                              Label="Tipo Documento"
-                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.Documento"
-                                              Label="Documento"
-                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.NombreCompleto"
-                                              Label="Nombre Completo"
-                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.Correo"
-                                              Label="Correo"
-                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.Telefono"
-                                              Label="telefono"
-                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.Direccion"
-                                              Label="Direccion"
-                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-                        </MudGrid>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-
-            <!-- RECEPCION -->
-            <MudItem xs="12" lg="6" md="6" sm="6">
-                <MudCard>
-                    <MudCardHeader Class="pb-0">
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Recepción</MudText>
-                        </CardHeaderContent>
-
-                        <CardHeaderActions>
-                            <MudButton Variant="Variant.Filled"
-                                       StartIcon="@Icons.Material.Filled.Save"
-                                       OnClick="Registrar"
-                                       Color="Color.Primary"
-                                       Size="Size.Small">
-                                Registrar
-                            </MudButton>
-                        </CardHeaderActions>
-                    </MudCardHeader>
-
-                    <MudCardContent>
-                        <MudGrid>
-
-                            <MudItem xs="12">
-                                <MudDatePicker Label="Fecha Entrada"
-                                               PickerVariant="PickerVariant.Dialog"
-                                               Margin="Margin.Dense"
-                                               DisableToolbar="true"
-                                               Variant="Variant.Outlined"
-                                               DateFormat="dd/MM/yyyy"
-                                               Date="fechaEntrada"
-                                               ReadOnly="true"
-                                               Disabled="true" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudDatePicker Label="Fecha Salida"
-                                               PickerVariant="PickerVariant.Dialog"
-                                               Margin="Margin.Dense"
-                                               DisableToolbar="true"
-                                               Variant="Variant.Outlined"
-                                               DateFormat="dd/MM/yyyy"
-                                               Date="fechaSalida"
-                                               DateChanged="OnFechaSalidaChanged"
-                                               MinDate="@fechaEntrada"
-                                               Disabled="@(idReserva.HasValue)" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                   <MudNumericField T="decimal?"
-                                                 
-                                                 @bind-Value="precioPorNoche"
-                                                 Immediate="true"
-                                                 Label="Precio (por noche)"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense"
-                                                 Min="0"
-                                                 Disabled="@(idReserva.HasValue)"S
-                                                 @oninput="(e) => RecalcularPrecio()" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudNumericField T="decimal?"
-                                                 Disabled="@(idReserva.HasValue)"
-                                                 @bind-Value="_recepcionDTO.Adelanto"
-                                                 Label="Adelanto"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense"
-                                                 Min="0" />
-                            </MudItem>
-                            <MudItem xs="12">
-                                <MudNumericField T="decimal?"
-                                                 @bind-Value="_recepcionDTO.PrecioRestante"
-                                                 Label="Valor cancelado (Check-in)"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense"
-                                                 Min="0"
-                                                 Disabled="@(idReserva.HasValue)"
-                                                 Immediate="true" />
-                            </MudItem>
-                            <!-- ✅ Botón Cobrar dentro de MudItem -->
-                            <MudItem xs="12">
-                                <MudButton Color="Color.Success"
-                                           Variant="Variant.Filled"
-                                           StartIcon="@Icons.Material.Filled.Payments"
+                <!-- HUÉSPED -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Style="color: #6FA776;" />
+                        <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Huésped</MudText>
+                    </div>
+                    <div class="pa-4">
+                        <MudGrid Spacing="2" Class="mb-3">
+                            <MudItem xs="12" md="6">
+                                <MudButton Disabled="@(idReserva.HasValue)"
+                                           Variant="Variant.Outlined"
                                            FullWidth="true"
-                                           OnClick="CobrarConMetodo">
-                                    Seleccionar método de pago
+                                           Size="Size.Large"
+                                           StartIcon="@Icons.Material.Filled.Search"
+                                           OnClick="Buscar"
+                                           Style="border-color: #5C8DC2; color: #5C8DC2; text-transform: none; border-radius: 10px;">
+                                    Buscar cliente
                                 </MudButton>
                             </MudItem>
-
-                            <!-- ✅ Mostrar elegido -->
-                            <MudItem xs="12">
-                                <MudText Typo="Typo.body2">
-                                    <b>Método:</b> @_recepcionDTO.MetodoPago
-                                    @if (!string.IsNullOrWhiteSpace(_recepcionDTO.NotaMetodoPago))
-                                    {
-                                        <span> | <b>Nota:</b> @_recepcionDTO.NotaMetodoPago</span>
-                                    }
-                                </MudText>
+                            <MudItem xs="12" md="6">
+                                <MudButton Disabled="@(idReserva.HasValue)"
+                                           Variant="Variant.Filled"
+                                           FullWidth="true"
+                                           Size="Size.Large"
+                                           StartIcon="@Icons.Material.Filled.PersonAdd"
+                                           OnClick="CrearCliente"
+                                           Style="background: #6FA776; color: #fff; text-transform: none; border-radius: 10px; font-weight: 600;">
+                                    Nuevo cliente
+                                </MudButton>
                             </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_recepcionDTO.Observacion"
-                                              Label="Observación"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                           
-
                         </MudGrid>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
 
-        </MudGrid>
+                        <MudGrid Spacing="2">
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.TipoDocumento" Label="Tipo Documento"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
+                                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Documento" Label="Documento"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
+                                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.NombreCompleto" Label="Nombre Completo"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
+                                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Correo" Label="Correo"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
+                                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Telefono" Label="Teléfono"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
+                                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Direccion" Label="Dirección"
+                                              Disabled="@(idReserva.HasValue || !_crearCliente)"
+                                              Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                        </MudGrid>
+                    </div>
+                </div>
 
-    </MudPaper>
+            </MudStack>
+        </MudItem>
+
+        <!-- COLUMNA DERECHA -->
+        <MudItem xs="12" lg="6" Class="d-flex">
+            <div class="panel-card w-100 d-flex flex-column" style="min-height: 100%;">
+                <div class="panel-header">
+                    <MudIcon Icon="@Icons.Material.Filled.Login" Style="color: #E8A668;" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Check-in</MudText>
+                </div>
+
+                <div class="pa-4 d-flex flex-column" style="flex: 1;">
+                    <!-- Fechas -->
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" md="6">
+                            <MudDatePicker Label="Fecha entrada" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                           DateFormat="dd/MM/yyyy" Date="fechaEntrada" ReadOnly="true" Disabled="true" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudDatePicker Label="Fecha salida" Variant="Variant.Outlined" Margin="Margin.Dense"
+                                           DateFormat="dd/MM/yyyy" Date="fechaSalida" DateChanged="OnFechaSalidaChanged"
+                                           MinDate="@fechaEntrada" Disabled="@(idReserva.HasValue)" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <MudDivider Class="my-4" />
+
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600; color: #424E5F; margin-bottom: 12px;">
+                        Pago
+                    </MudText>
+
+                    <!-- Precio + Adelanto -->
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" md="6">
+                            <MudNumericField T="decimal?"
+                                             Value="precioPorNoche"
+                                             ValueChanged="OnPrecioPorNocheChanged"
+                                             Immediate="true"
+                                             Label="Precio por noche"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense"
+                                             Min="0" Disabled="@(idReserva.HasValue)" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudNumericField T="decimal?"
+                                             @bind-Value="_recepcionDTO.Adelanto"
+                                             Disabled="@(idReserva.HasValue)"
+                                             Label="Adelanto"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                        </MudItem>
+                    </MudGrid>
+
+                    <!-- Resumen -->
+                    <div class="resumen-box mt-3">
+                        <div class="resumen-row">
+                            <span class="resumen-label">
+                                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Style="color: #6FA776; font-size: 18px;" />
+                                Precio total de hospedaje
+                            </span>
+                            <span class="resumen-value" style="color: #6FA776;">@($"${(precioFinal ?? 0m):N2}")</span>
+                        </div>
+                        <div class="resumen-row">
+                            <span class="resumen-label">
+                                <MudIcon Icon="@Icons.Material.Filled.Payments" Style="color: #5C8DC2; font-size: 18px;" />
+                                Adelanto
+                            </span>
+                            <span class="resumen-value" style="color: #5C8DC2;">@($"${(_recepcionDTO.Adelanto ?? 0m):N2}")</span>
+                        </div>
+                    </div>
+
+                    <!-- Saldo -->
+                    <div class="saldo-banner mt-3">
+                        <div class="d-flex align-center" style="gap: 10px;">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Style="color: #fff; font-size: 22px;" />
+                            <span style="color: #fff; font-weight: 700; font-size: 1rem;">Saldo a cobrar hoy</span>
+                        </div>
+                        <span style="color: #fff; font-weight: 700; font-size: 1.4rem;">
+                            @($"${(_recepcionDTO.PrecioRestante ?? 0m):N2}")
+                        </span>
+                    </div>
+
+                    @if (YaPagadoEnReserva)
+                    {
+                        <div class="pagado-card mt-3">
+                            <div class="d-flex align-center" style="gap: 12px;">
+                                <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="color: #6FA776; font-size: 36px;" />
+                                <div>
+                                    <MudText Typo="Typo.subtitle1" Style="font-weight: 700; color: #6FA776;">
+                                        Reserva Pagada en su Totalidad
+                                    </MudText>
+                                    <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                                        Pagado por TRANSFERENCIA al hacer la reserva
+                                    </MudText>
+                                </div>
+                            </div>
+                            <MudDivider Class="my-3" />
+                            <div class="d-flex align-center" style="gap: 8px;">
+                                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Style="color: #6FA776; font-size: 18px;" />
+                                <span style="color: #424E5F; font-size: 0.9rem;">
+                                    Método de pago: <strong>TRANSFERENCIA</strong>
+                                </span>
+                            </div>
+                            <MudText Typo="Typo.caption" Style="color: #9CA3AF; margin-top: 8px;">
+                                No es necesario seleccionar método de pago. La reserva ya está pagada.
+                            </MudText>
+                        </div>
+                    }
+                    else
+                    {
+                        <MudButton Variant="Variant.Filled"
+                                   StartIcon="@Icons.Material.Filled.Payments"
+                                   FullWidth="true"
+                                   Class="mt-3 mb-3"
+                                   OnClick="CobrarConMetodo"
+                                   Style="background: #6FA776; color: #fff; text-transform: none; border-radius: 10px; font-weight: 600;">
+                            Seleccionar método de pago
+                        </MudButton>
+
+                        <div class="metodo-card">
+                            <MudText Typo="Typo.subtitle2" Style="font-weight: 600; color: #424E5F; margin-bottom: 8px;">
+                                Método seleccionado
+                            </MudText>
+
+                            @if (string.IsNullOrWhiteSpace(_recepcionDTO.MetodoPago))
+                            {
+                                <MudText Typo="Typo.body2" Style="color: #9CA3AF;">
+                                    Aún no se ha seleccionado un método de pago.
+                                </MudText>
+                            }
+                            else if (_recepcionDTO.MetodoPago == "MIXTO")
+                            {
+                                <div class="d-flex align-center mb-2" style="gap: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.CallSplit" Style="color: #5C8DC2;" />
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600; color: #424E5F;">Pago Dividido</MudText>
+                                </div>
+                                <div class="metodo-detalle">
+                                    <MudText Typo="Typo.body2" Style="color: #6B7280;">@_recepcionDTO.NotaMetodoPago</MudText>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="d-flex align-center" style="gap: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Style="color: #5C8DC2;" />
+                                    <MudText Typo="Typo.body1" Style="font-weight: 600; color: #424E5F;">@_recepcionDTO.MetodoPago</MudText>
+                                </div>
+                                @if (!string.IsNullOrWhiteSpace(_recepcionDTO.NotaMetodoPago))
+                                {
+                                    <MudText Typo="Typo.caption" Style="color: #6B7280; margin-top: 4px;">
+                                        Nota: @_recepcionDTO.NotaMetodoPago
+                                    </MudText>
+                                }
+                            }
+                        </div>
+                    }
+
+                    <MudTextField @bind-Value="_recepcionDTO.Observacion" Label="Observación"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" Class="mt-3" />
+
+                    <MudSpacer />
+
+                    <MudButton Variant="Variant.Filled"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               Class="mt-4"
+                               StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="Registrar"
+                               Style="background: #5C8DC2; color: #fff; text-transform: none; border-radius: 10px; font-weight: 700;">
+                        Registrar check-in
+                    </MudButton>
+                </div>
+            </div>
+        </MudItem>
+
+    </MudGrid>
 </MudContainer>
 
-@code {
+<style>
+    .panel-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .panel-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #E5E7EB; background: #FAFBFC; }
+    .info-box { display: flex; align-items: center; gap: 12px; padding: 14px; background: #FAFBFC; border: 1px solid #E5E7EB; border-radius: 10px; }
+    .resumen-box { background: #FAFBFC; border: 1px solid #E5E7EB; border-radius: 10px; padding: 12px; }
+    .resumen-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 4px; }
+    .resumen-row + .resumen-row { border-top: 1px solid #F0F2F5; }
+    .resumen-label { display: flex; align-items: center; gap: 8px; color: #424E5F; font-weight: 500; font-size: 0.9rem; }
+    .resumen-value { font-weight: 700; font-size: 1rem; }
+    .saldo-banner { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: linear-gradient(135deg, #5C8DC2 0%, #424E5F 100%); border-radius: 12px; }
+    .pagado-card { padding: 16px; background: #EFF5EF; border: 1px solid #C5DCC8; border-radius: 12px; }
+    .metodo-card { padding: 14px; background: #FAFBFC; border: 1px solid #E5E7EB; border-radius: 10px; }
+    .metodo-detalle { padding: 10px; background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; }
+</style>
 
+@code {
     [Parameter] public int idHabitacion { get; set; }
     [Parameter] public int? idReserva { get; set; }
-    //bandera para saber si llega desde reserva
+
     private bool _modoReserva = false;
 
     private ClienteDTO _clienteDTO = new();
     private RecepcionDTO _recepcionDTO = new();
 
     private bool _crearCliente = false;
-    private decimal? precioPorNoche = 0m;   // ✅ editable
-    private decimal? precioFinal = 0m;      // ✅ total (noches * precioPorNoche)
-    //private decimal? precioFinal = 0;
+    private decimal? precioPorNoche = 0m;
+    private decimal? precioFinal = 0m;
 
     private DateTime fechaEntrada = DateTime.Today;
     private DateTime fechaSalida = DateTime.Today.AddDays(1);
@@ -299,12 +337,24 @@
         IdPisoNavigation = new PisoDTO()
     };
 
+    private bool YaPagadoEnReserva
+    {
+        get
+        {
+            if (!_modoReserva) return false;
+
+            var precio = _recepcionDTO.PrecioInicial ?? 0m;
+            var adelanto = _recepcionDTO.Adelanto ?? 0m;
+            var pendiente = _recepcionDTO.PrecioRestante ?? 0m;
+
+            return precio > 0 && adelanto >= precio && pendiente <= 0.01m;
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {
         try
         {
-            // ✅ MODO CHECK-IN DESDE RESERVA
             if (idReserva.HasValue)
             {
                 _modoReserva = true;
@@ -313,17 +363,13 @@
 
                 if (!responseReserva.status || responseReserva.value == null)
                 {
-                    await Swal.FireAsync(
-                        "Error",
-                        $"status: {responseReserva.status} | msg: {responseReserva.msg}",
-                        "error"
-                    );
+                    await Swal.FireAsync("Error", $"status: {responseReserva.status} | msg: {responseReserva.msg}", "error");
                     navManager.NavigateTo("/page/recepcion");
                     return;
                 }
 
                 var reserva = responseReserva.value;
-                // 🔒 Bloquear si ya tiene check-in
+
                 if (reserva.EstadoReserva == "CHECKIN")
                 {
                     await Swal.FireAsync("No permitido", "Esta reserva ya realizó el check-in.", "warning");
@@ -331,7 +377,6 @@
                     return;
                 }
 
-                // ✅ validar que solo se pueda si entra hoy
                 if (!reserva.FechaEntrada.HasValue || reserva.FechaEntrada.Value.Date != DateTime.Today)
                 {
                     await Swal.FireAsync("No permitido", "Solo se puede hacer check-in a reservas de hoy.", "warning");
@@ -339,7 +384,6 @@
                     return;
                 }
 
-                // ✅ cargar habitación desde la reserva
                 var responseHabitacion = await _habitacionServicio.Obtener(reserva.IdHabitacion);
 
                 if (!responseHabitacion.status || responseHabitacion.value == null)
@@ -350,22 +394,15 @@
                 }
 
                 _habitacionDTO = responseHabitacion.value;
-
-                // ✅ cliente de la reserva
                 _clienteDTO = reserva.IdClienteNavigation ?? new ClienteDTO();
-
-                // ✅ bloquear edición de cliente
                 _crearCliente = false;
 
-                // ✅ fechas
-                fechaEntrada = reserva.FechaEntrada ?? DateTime.Today;
-                fechaSalida = reserva.FechaSalidaReserva ?? fechaEntrada.AddDays(1);
+                fechaEntrada = (reserva.FechaEntrada ?? DateTime.Today).Date;
+                fechaSalida = (reserva.FechaSalidaReserva ?? fechaEntrada.AddDays(1)).Date;
 
-                // ✅ usar precio de la reserva
                 precioPorNoche = reserva.PrecioInicial ?? 0m;
                 precioFinal = reserva.PrecioInicial ?? 0m;
 
-                // ✅ valores del check-in
                 _recepcionDTO = new RecepcionDTO
                 {
                     IdCliente = reserva.IdCliente,
@@ -374,16 +411,21 @@
                     FechaSalida = reserva.FechaSalidaReserva,
                     PrecioInicial = reserva.PrecioInicial,
                     Adelanto = reserva.Adelanto,
-                    PrecioRestante = reserva.ValorPendiente,   // valor a cancelar en check-in
+                    PrecioRestante = reserva.ValorPendiente,
                     TotalPagado = reserva.Total,
                     Observacion = reserva.Observacion,
                     Estado = true
                 };
 
+                if (YaPagadoEnReserva)
+                {
+                    _recepcionDTO.MetodoPago = "TRANSFERENCIA";
+                    _recepcionDTO.NotaMetodoPago = "Pagado en reserva";
+                }
+
                 return;
             }
 
-            // ✅ MODO NORMAL (check-in manual por habitación)
             _modoReserva = false;
 
             var response = await _habitacionServicio.Obtener(idHabitacion);
@@ -392,8 +434,8 @@
             {
                 _habitacionDTO = response.value;
 
-                fechaEntrada = DateTime.Today;
-                fechaSalida = DateTime.Today.AddDays(1);
+                fechaEntrada = DateTime.Today.Date;
+                fechaSalida = DateTime.Today.AddDays(1).Date;
 
                 precioPorNoche = _habitacionDTO.Precio ?? 0m;
 
@@ -419,7 +461,14 @@
 
     private async Task Buscar()
     {
-        DialogOptions options = new() { Position = DialogPosition.TopCenter, NoHeader = true };
+        DialogOptions options = new()
+        {
+            Position = DialogPosition.TopCenter,
+            NoHeader = true,
+            MaxWidth = MaxWidth.Large,
+            FullWidth = true
+        };
+
         var dialogo = DialogService.Show<MdClientes>("", options);
         var resultado = await dialogo.Result;
 
@@ -442,19 +491,6 @@
         RecalcularPrecio();
     }
 
-    // private void RecalcularPrecio()
-    // {
-    //     if (_habitacionDTO.Precio == null)
-    //     {
-    //         precioFinal = 0;
-    //         return;
-    //     }
-
-    //     var noches = (fechaSalida.Date - fechaEntrada.Date).Days;
-    //     if (noches <= 0) noches = 1;
-
-    //     precioFinal = _habitacionDTO.Precio.Value * noches;
-    // }
     private void RecalcularPrecio()
     {
         if (_habitacionDTO.Precio == null)
@@ -467,11 +503,10 @@
         if (noches <= 0) noches = 1;
 
         var pNoche = precioPorNoche ?? 0m;
-        if (pNoche < 0) pNoche = 0;
+        if (pNoche < 0) pNoche = 0m;
 
         precioFinal = pNoche * noches;
 
-        // ✅ Auto-calcular lo que se debe cobrar HOY (check-in)
         var total = precioFinal ?? 0m;
         var adelanto = _recepcionDTO.Adelanto ?? 0m;
         if (adelanto < 0) adelanto = 0;
@@ -479,19 +514,27 @@
         var pendiente = total - adelanto;
         if (pendiente < 0) pendiente = 0;
 
-        // si aún no han escrito nada, o si quedó incoherente, lo seteo
-        if (_recepcionDTO.PrecioRestante == null || _recepcionDTO.PrecioRestante < 0)
-            _recepcionDTO.PrecioRestante = pendiente;
+        _recepcionDTO.PrecioRestante = pendiente;
     }
 
-    // ✅ Usa el MISMO modal que en Registrar (MdMetodoPago)
     private async Task CobrarConMetodo()
     {
-        var dialog = DialogService.Show<MdMetodoPago>("Método de pago");
+        RecalcularPrecio();
+        var montoACobrar = _recepcionDTO.PrecioRestante ?? 0m;
+
+        if (montoACobrar <= 0)
+        {
+            await Swal.FireAsync("Sin saldo", "No hay saldo pendiente por cobrar.", "info");
+            return;
+        }
+
+        var parameters = new DialogParameters { { nameof(MdMetodoPago.MontoTotal), montoACobrar } };
+        var options = new DialogOptions { CloseOnEscapeKey = true, MaxWidth = MaxWidth.Small, FullWidth = true };
+
+        var dialog = DialogService.Show<MdMetodoPago>("Método de pago", parameters, options);
         var result = await dialog.Result;
 
-        if (result.Canceled)
-            return;
+        if (result.Canceled) return;
 
         if (result.Data is not MdMetodoPago.MetodoPagoResult data)
         {
@@ -503,7 +546,7 @@
         _recepcionDTO.NotaMetodoPago = data.NotaMetodoPago;
     }
 
-     private Task OnPrecioPorNocheChanged(decimal? v)
+    private Task OnPrecioPorNocheChanged(decimal? v)
     {
         precioPorNoche = v ?? 0m;
         if (precioPorNoche < 0) precioPorNoche = 0m;
@@ -511,10 +554,9 @@
         RecalcularPrecio();
         return Task.CompletedTask;
     }
-    
+
     private async Task Registrar()
     {
-        // ✅ MODO CHECK-IN DESDE RESERVA
         if (_modoReserva)
         {
             if (_clienteDTO == null || _clienteDTO.IdCliente <= 0)
@@ -535,25 +577,24 @@
                 return;
             }
 
-            if (string.IsNullOrWhiteSpace(_recepcionDTO.MetodoPago))
+            if (YaPagadoEnReserva)
             {
-                await Swal.FireAsync("Falta método de pago", "Selecciona el método de pago.", "warning");
+                _recepcionDTO.MetodoPago = "TRANSFERENCIA";
+                _recepcionDTO.NotaMetodoPago = "Pagado en reserva";
+            }
+            else if (string.IsNullOrWhiteSpace(_recepcionDTO.MetodoPago))
+            {
+                await Swal.FireAsync("Falta método de pago", "Selecciona el método de pago para el saldo pendiente.", "warning");
                 return;
             }
 
-            // ✅ Asignar datos ya cargados desde la reserva
             _recepcionDTO.IdCliente = _clienteDTO.IdCliente;
             _recepcionDTO.IdClienteNavigation = null;
 
             _recepcionDTO.IdHabitacion = _habitacionDTO.IdHabitacion;
-            _recepcionDTO.FechaEntrada = fechaEntrada;
-            _recepcionDTO.FechaSalida = fechaSalida;
+            _recepcionDTO.FechaEntrada = DateTime.SpecifyKind(fechaEntrada.Date, DateTimeKind.Unspecified);
+            _recepcionDTO.FechaSalida = DateTime.SpecifyKind(fechaSalida.Date, DateTimeKind.Unspecified);
             _recepcionDTO.IdReserva = idReserva;
-
-            // ✅ En modo reserva NO recalculamos ni alteramos los valores
-            // porque ya vienen cargados desde la reserva:
-            // PrecioInicial, Adelanto, PrecioRestante, TotalPagado, Observacion
-
             _recepcionDTO.CostoPenalidad = 0m;
             _recepcionDTO.Estado = true;
 
@@ -572,8 +613,6 @@
             return;
         }
 
-        // ✅ MODO NORMAL (manual)
-        // 1) Cliente (validación según modo)
         if (_clienteDTO == null)
         {
             await Swal.FireAsync("Falta cliente", "Debe seleccionar o crear un cliente.", "warning");
@@ -582,7 +621,6 @@
 
         if (_crearCliente)
         {
-            // creando: exige datos mínimos
             if (string.IsNullOrWhiteSpace(_clienteDTO.NombreCompleto) ||
                 string.IsNullOrWhiteSpace(_clienteDTO.Documento))
             {
@@ -592,7 +630,6 @@
         }
         else
         {
-            // seleccionado: exige IdCliente válido
             if (_clienteDTO.IdCliente <= 0)
             {
                 await Swal.FireAsync("Falta cliente", "Selecciona un cliente existente.", "warning");
@@ -600,14 +637,12 @@
             }
         }
 
-        // 2) Fechas
         if (fechaSalida < fechaEntrada)
         {
             await Swal.FireAsync("Fechas inválidas", "La fecha de salida no puede ser menor a la fecha de entrada.", "warning");
             return;
         }
 
-        // 3) Recalcular precio
         RecalcularPrecio();
 
         var total = precioFinal ?? 0m;
@@ -628,53 +663,33 @@
 
         var pendiente = total - adelanto;
 
-        var canceladoCheckIn = _recepcionDTO.PrecioRestante ?? pendiente;
-        if (canceladoCheckIn < 0m) canceladoCheckIn = 0m;
-
-        if (canceladoCheckIn > pendiente)
-        {
-            await Swal.FireAsync("Error", $"El valor cancelado no puede ser mayor a {pendiente:N2}.", "warning");
-            return;
-        }
-
-        if (canceladoCheckIn != pendiente)
-        {
-            await Swal.FireAsync("Error", $"En check-in debe cobrarse el pendiente completo: {pendiente:N2}.", "warning");
-            return;
-        }
-
         if (string.IsNullOrWhiteSpace(_recepcionDTO.MetodoPago))
         {
             await Swal.FireAsync("Falta método de pago", "Selecciona el método de pago.", "warning");
             return;
         }
 
-        // 4) Asignar relaciones (✅ según modo)
         _recepcionDTO.IdHabitacion = _habitacionDTO.IdHabitacion;
-        _recepcionDTO.FechaEntrada = fechaEntrada;
-        _recepcionDTO.FechaSalida = fechaSalida;
+        _recepcionDTO.FechaEntrada = DateTime.SpecifyKind(fechaEntrada.Date, DateTimeKind.Unspecified);
+        _recepcionDTO.FechaSalida = DateTime.SpecifyKind(fechaSalida.Date, DateTimeKind.Unspecified);
 
         if (_crearCliente)
         {
-            // ✅ cliente nuevo: se manda navigation para que el backend lo cree
             _recepcionDTO.IdCliente = null;
             _recepcionDTO.IdClienteNavigation = _clienteDTO;
         }
         else
         {
-            // ✅ cliente existente: se manda solo IdCliente
             _recepcionDTO.IdCliente = _clienteDTO.IdCliente;
             _recepcionDTO.IdClienteNavigation = null;
         }
 
-        // 5) Valores
         _recepcionDTO.PrecioInicial = total;
         _recepcionDTO.Adelanto = adelanto;
         _recepcionDTO.PrecioRestante = pendiente;
         _recepcionDTO.CostoPenalidad = 0m;
         _recepcionDTO.TotalPagado = total;
 
-        // 6) Guardar
         var response = await _recepcionServicio.Crear(_recepcionDTO);
 
         if (response.status)

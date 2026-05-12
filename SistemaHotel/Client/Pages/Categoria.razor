@@ -1,4 +1,4 @@
-﻿@page "/page/categoria"
+@page "/page/categoria"
 @attribute [Authorize(Roles = "Administrador,Gerencia")]
 
 @inject ICategoriaServicio _categoriaServicio
@@ -6,61 +6,124 @@
 @inject ISnackbar _snackBar
 @inject SweetAlertService Swal;
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-6">
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Categorias</MudText>
+    <!-- HEADER -->
+    <div class="d-flex justify-space-between align-center mb-6 flex-wrap gap-3">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; color: #424E5F;">Categorías</MudText>
+            <MudText Typo="Typo.body2" Style="color: #6B7280;">Tipos de habitación disponibles en el hotel</MudText>
+        </div>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="RecargarDatos"
+                       Style="border-color: #E5E7EB; color: #424E5F; text-transform: none; border-radius: 10px;">
+                Actualizar
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="AbrirNuevaCategoria"
+                       Style="background: #5C8DC2; color: #fff; text-transform: none; border-radius: 10px; font-weight: 600;">
+                Nueva Categoría
+            </MudButton>
+        </MudStack>
+    </div>
 
-    <MudPaper Elevation="3" Class="pa-4" Width="100%">
-        <MudGrid>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Filled.Add"
-                           Color="Color.Primary"
-                           OnClick="AbrirNuevaCategoria">
-                    Nueva Categoria
-                </MudButton>
-            </MudItem>
-            <MudItem xs="12">
+    <!-- KPI -->
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="12" sm="6" md="4">
+            <div class="kpi-card-flat" style="border-left: 4px solid #5C8DC2;">
+                <div class="kpi-icon-box" style="background: #EBF2F9;">
+                    <MudIcon Icon="@Icons.Material.Filled.Category" Style="color: #5C8DC2; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Total Categorías</div>
+                    <div class="kpi-value" style="color: #5C8DC2;">@listaCategorias.Count</div>
+                </div>
+            </div>
+        </MudItem>
+    </MudGrid>
 
+    <!-- PANEL TABLA -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <MudIcon Icon="@Icons.Material.Filled.ListAlt" Style="color: #5C8DC2;" />
+            <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Listado de Categorías</MudText>
+        </div>
+
+        <div class="pa-4">
+            <div class="d-flex justify-end mb-3">
+                <MudTextField @bind-Value="searchString1"
+                              Placeholder="Buscar categoría..."
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Style="max-width: 320px;" />
+            </div>
+
+            <div class="custom-table">
                 <MudTable Items="@listaCategorias"
-                          Dense="true"
-                          Striped="true" Bordered="true"
-                          Filter="new Func<CategoriaDTO,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem1"
-                          Loading="@_loading" LoadingProgressColor="Color.Info">
-                    <ToolBarContent>
-                        <MudSpacer />
-                        <MudTextField @bind-Value="searchString1" Placeholder="Buscar" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-                    </ToolBarContent>
+                          Hover="true"
+                          Elevation="0"
+                          Filter="new Func<CategoriaDTO,bool>(FilterFunc1)"
+                          @bind-SelectedItem="selectedItem1"
+                          Loading="@_loading"
+                          LoadingProgressColor="Color.Info">
                     <HeaderContent>
-                        <MudTh>Descripcion</MudTh>
-                        <MudTh></MudTh>
+                        <MudTh>Descripción</MudTh>
+                        <MudTh Style="text-align: center;">Acciones</MudTh>
                     </HeaderContent>
                     <RowTemplate Context="categoriaRow">
-                        <MudTd DataLabel="Descripcion">@categoriaRow.Descripcion</MudTd>
-                        <MudTd DataLabel="">
-                            <MudFab Color="Color.Primary"
-                                    StartIcon="@Icons.Material.Filled.Edit"
-                                    Size="Size.Small"
-                                    IconSize="Size.Small"
-                                    OnClick="@(() => AbrirEditarCategoria(categoriaRow))" />
-                            <MudFab Color="Color.Error"
-                                    StartIcon="@Icons.Material.Filled.Delete"
-                                    Size="Size.Small"
-                                    IconSize="Size.Small"
-                                    OnClick="@(() => EliminarCategoria(categoriaRow))" />
+                        <MudTd DataLabel="Descripcion">
+                            <div class="d-flex align-center" style="gap: 10px;">
+                                <div class="cell-icon-box" style="background: #EBF2F9;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Category" Style="color: #5C8DC2; font-size: 18px;" />
+                                </div>
+                                <span style="font-weight: 500; color: #424E5F;">@categoriaRow.Descripcion</span>
+                            </div>
+                        </MudTd>
+                        <MudTd DataLabel="Acciones" Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Style="color: #5C8DC2;"
+                                           OnClick="@(() => AbrirEditarCategoria(categoriaRow))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                           Size="Size.Small"
+                                           Style="color: #E8A668;"
+                                           OnClick="@(() => EliminarCategoria(categoriaRow))" />
                         </MudTd>
                     </RowTemplate>
+                    <NoRecordsContent>
+                        <div class="empty-state">
+                            <MudIcon Icon="@Icons.Material.Filled.Category" Style="color: #9CA3AF; font-size: 48px;" />
+                            <MudText Typo="Typo.body1" Style="color: #6B7280;">No hay categorías registradas</MudText>
+                        </div>
+                    </NoRecordsContent>
                     <PagerContent>
                         <MudTablePager />
                     </PagerContent>
                 </MudTable>
-
-
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
-
+            </div>
+        </div>
+    </div>
 </MudContainer>
+
+<style>
+    .kpi-card-flat { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px; height: 100%; transition: all 0.2s ease; }
+    .kpi-card-flat:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .kpi-icon-box { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .kpi-label { font-size: 0.8rem; color: #6B7280; font-weight: 500; margin-bottom: 4px; }
+    .kpi-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .panel-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .panel-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #E5E7EB; background: #FAFBFC; }
+    .custom-table { border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .custom-table .mud-table-head th { background: #FAFBFC !important; color: #424E5F !important; font-weight: 600 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cell-icon-box { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 24px; }
+</style>
+
 @code {
     List<CategoriaDTO> listaCategorias = new List<CategoriaDTO>();
     private string searchString1 = "";
@@ -70,13 +133,11 @@
     private async Task ObtenerCategorias()
     {
         var result = await _categoriaServicio.Lista();
-
         if (result.status)
         {
             listaCategorias = (List<CategoriaDTO>)result.value!;
         }
     }
-
 
     protected override async Task OnInitializedAsync()
     {
@@ -84,16 +145,20 @@
         _loading = false;
     }
 
+    private async Task RecargarDatos()
+    {
+        _loading = true;
+        await ObtenerCategorias();
+        _loading = false;
+        _snackBar.Add("Datos actualizados", Severity.Success, a => a.VisibleStateDuration = 1000);
+    }
+
     private bool FilterFunc1(CategoriaDTO element) => FilterFunc(element, searchString1);
 
     private bool FilterFunc(CategoriaDTO element, string searchString)
     {
-        if (string.IsNullOrWhiteSpace(searchString))
-            return true;
-
-        if (element.Descripcion.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Descripcion.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
         return false;
     }
 
@@ -101,41 +166,32 @@
     {
         var dialogo = _dialogServicio.Show<MdCategoria>("Nueva Categoria");
         var resultado = await dialogo.Result;
-
-        if (!resultado.Canceled)
-        {
-            await ObtenerCategorias();
-        }
+        if (!resultado.Canceled) await ObtenerCategorias();
     }
 
     private async Task AbrirEditarCategoria(CategoriaDTO modelo)
     {
         var parametros = new DialogParameters { ["_categoria"] = modelo };
-
         var dialogo = _dialogServicio.Show<MdCategoria>("Editar Categoria", parametros);
         var resultado = await dialogo.Result;
-        if (!resultado.Canceled)
-        {
-            await ObtenerCategorias();
-        }
+        if (!resultado.Canceled) await ObtenerCategorias();
     }
 
     private async Task EliminarCategoria(CategoriaDTO modelo)
     {
         SweetAlertResult result = await Swal.FireAsync(new SweetAlertOptions
-            {
-                Title = "Esta seguro?",
-                Text = $"Eliminar categoria: {modelo.Descripcion}",
-                Icon = SweetAlertIcon.Warning,
-                ShowCancelButton = true,
-                ConfirmButtonText = "Si, eliminar",
-                CancelButtonText = "No, volver"
-            });
+        {
+            Title = "Esta seguro?",
+            Text = $"Eliminar categoria: {modelo.Descripcion}",
+            Icon = SweetAlertIcon.Warning,
+            ShowCancelButton = true,
+            ConfirmButtonText = "Si, eliminar",
+            CancelButtonText = "No, volver"
+        });
 
         if (result.IsConfirmed)
         {
             var resultado = await _categoriaServicio.Eliminar(modelo.IdCategoria);
-
             if (resultado)
             {
                 _snackBar.Add("La categoria fue eliminada", Severity.Success, a => a.VisibleStateDuration = 1000);
@@ -145,9 +201,4 @@
                 _snackBar.Add("No se pudo eliminar", Severity.Error, a => a.VisibleStateDuration = 1000);
         }
     }
-
-
-
-
-
 }

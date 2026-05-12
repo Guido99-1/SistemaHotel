@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using SistemaHotel.Server.Repositorio.Contratos;
@@ -7,6 +8,7 @@ namespace SistemaHotel.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class DashBoardController : ControllerBase
     {
         private readonly IDashBoardRepositorio _dashboardRepositorio;

@@ -1,4 +1,4 @@
-﻿@page "/page/habitacion"
+@page "/page/habitacion"
 @attribute [Authorize(Roles = "Administrador,Gerencia")]
 
 @inject IHabitacionServicio _habitacionServicio
@@ -6,85 +6,203 @@
 @inject ISnackbar _snackBar
 @inject SweetAlertService Swal;
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-6">
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Habitaciones</MudText>
+    <!-- HEADER -->
+    <div class="d-flex justify-space-between align-center mb-6 flex-wrap gap-3">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; color: #424E5F;">Habitaciones</MudText>
+            <MudText Typo="Typo.body2" Style="color: #6B7280;">Gestión completa del inventario de habitaciones</MudText>
+        </div>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="RecargarDatos"
+                       Style="border-color: #E5E7EB; color: #424E5F; text-transform: none; border-radius: 10px;">
+                Actualizar
+            </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="AbrirNuevoModelo"
+                       Style="background: #5C8DC2; color: #fff; text-transform: none; border-radius: 10px; font-weight: 600;">
+                Nueva Habitación
+            </MudButton>
+        </MudStack>
+    </div>
 
-    <MudPaper Elevation="3" Class="pa-4" Width="100%">
-        <MudGrid>
-            <MudItem xs="12">
-                <MudButton Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Filled.Add"
-                           Color="Color.Primary"
-                           OnClick="AbrirNuevoModelo">
-                    Nueva Habitacion
-                </MudButton>
-            </MudItem>
-            <MudItem xs="12">
+    <!-- KPIs -->
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #5C8DC2;">
+                <div class="kpi-icon-box" style="background: #EBF2F9;">
+                    <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #5C8DC2; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Total Habitaciones</div>
+                    <div class="kpi-value" style="color: #5C8DC2;">@listaModelos.Count</div>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #6FA776;">
+                <div class="kpi-icon-box" style="background: #EFF5EF;">
+                    <MudIcon Icon="@Icons.Material.Filled.Category" Style="color: #6FA776; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Categorías</div>
+                    <div class="kpi-value" style="color: #6FA776;">@TotalCategorias</div>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #E8A668;">
+                <div class="kpi-icon-box" style="background: #FAF1E7;">
+                    <MudIcon Icon="@Icons.Material.Filled.Layers" Style="color: #E8A668; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Pisos</div>
+                    <div class="kpi-value" style="color: #E8A668;">@TotalPisos</div>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #424E5F;">
+                <div class="kpi-icon-box" style="background: #F0F2F5;">
+                    <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Style="color: #424E5F; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Precio Promedio</div>
+                    <div class="kpi-value" style="color: #424E5F;">@($"${PrecioPromedio:N2}")</div>
+                </div>
+            </div>
+        </MudItem>
+    </MudGrid>
 
+    <!-- PANEL TABLA -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Style="color: #5C8DC2;" />
+            <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Listado de Habitaciones</MudText>
+        </div>
+
+        <div class="pa-4">
+            <div class="d-flex justify-end mb-3">
+                <MudTextField @bind-Value="searchString1"
+                              Placeholder="Buscar por número, detalle, piso, categoría..."
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Style="max-width: 420px;" />
+            </div>
+
+            <div class="custom-table">
                 <MudTable Items="@listaModelos"
-                          Dense="true"
-                          Striped="true" Bordered="true"
-                          Filter="new Func<HabitacionDTO,bool>(FilterFunc1)" @bind-SelectedItem="selectedItem1"
-                          Loading="@_loading" LoadingProgressColor="Color.Info">
-                    <ToolBarContent>
-                        <MudSpacer />
-                        <MudTextField @bind-Value="searchString1" Placeholder="Buscar" Adornment="Adornment.Start" AdornmentIcon="@Icons.Material.Filled.Search" IconSize="Size.Medium" Class="mt-0"></MudTextField>
-                    </ToolBarContent>
+                          Hover="true"
+                          Elevation="0"
+                          Filter="new Func<HabitacionDTO,bool>(FilterFunc1)"
+                          @bind-SelectedItem="selectedItem1"
+                          Loading="@_loading"
+                          LoadingProgressColor="Color.Info">
                     <HeaderContent>
-                        <MudTh>Numero</MudTh>
+                        <MudTh>Número</MudTh>
                         <MudTh>Detalle</MudTh>
-                        <MudTh>Precio</MudTh>
+                        <MudTh Style="text-align: right;">Precio</MudTh>
                         <MudTh>Piso</MudTh>
-                        <MudTh>Categoria</MudTh>
-                        <MudTh></MudTh>
+                        <MudTh>Categoría</MudTh>
+                        <MudTh Style="text-align: center;">Acciones</MudTh>
                     </HeaderContent>
                     <RowTemplate Context="modeloRow">
-                        <MudTd DataLabel="DescripNumerocion">@modeloRow.Numero</MudTd>
-                        <MudTd DataLabel="Detalle">@modeloRow.Detalle</MudTd>
-                        <MudTd DataLabel="Precio">@modeloRow.Precio</MudTd>
-                        <MudTd DataLabel="Piso">@modeloRow.IdPisoNavigation.Descripcion  </MudTd>
-                        <MudTd DataLabel="Categoria">@modeloRow.IdCategoriaNavigation.Descripcion</MudTd>
-                        <MudTd DataLabel="">
-                            <MudFab Color="Color.Primary"
-                                    StartIcon="@Icons.Material.Filled.Edit"
-                                    Size="Size.Small"
-                                    IconSize="Size.Small"
-                                    OnClick="@(() => AbrirEditarModelo(modeloRow))" />
-                            <MudFab Color="Color.Error"
-                                    StartIcon="@Icons.Material.Filled.Delete"
-                                    Size="Size.Small"
-                                    IconSize="Size.Small"
-                                    OnClick="@(() => EliminarModelo(modeloRow))" />
+                        <MudTd DataLabel="Numero">
+                            <div class="d-flex align-center" style="gap: 10px;">
+                                <div class="cell-icon-box" style="background: #EBF2F9;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #5C8DC2; font-size: 18px;" />
+                                </div>
+                                <span style="font-weight: 600; color: #424E5F;">@modeloRow.Numero</span>
+                            </div>
+                        </MudTd>
+                        <MudTd DataLabel="Detalle" Style="color: #6B7280;">@(string.IsNullOrEmpty(modeloRow.Detalle) ? "—" : modeloRow.Detalle)</MudTd>
+                        <MudTd DataLabel="Precio" Style="text-align: right; font-weight: 600; color: #6FA776;">
+                            @($"${(modeloRow.Precio ?? 0):N2}")
+                        </MudTd>
+                        <MudTd DataLabel="Piso">
+                            <MudChip Size="Size.Small" Style="background: #FAF1E7; color: #E8A668; font-weight: 600;">
+                                @modeloRow.IdPisoNavigation.Descripcion
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Categoria">
+                            <MudChip Size="Size.Small" Style="background: #EFF5EF; color: #6FA776; font-weight: 600;">
+                                @modeloRow.IdCategoriaNavigation.Descripcion
+                            </MudChip>
+                        </MudTd>
+                        <MudTd DataLabel="Acciones" Style="text-align: center;">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           Style="color: #5C8DC2;"
+                                           OnClick="@(() => AbrirEditarModelo(modeloRow))" />
+                            <MudIconButton Icon="@Icons.Material.Filled.DeleteOutline"
+                                           Size="Size.Small"
+                                           Style="color: #E8A668;"
+                                           OnClick="@(() => EliminarModelo(modeloRow))" />
                         </MudTd>
                     </RowTemplate>
+                    <NoRecordsContent>
+                        <div class="empty-state">
+                            <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Style="color: #9CA3AF; font-size: 48px;" />
+                            <MudText Typo="Typo.body1" Style="color: #6B7280;">No hay habitaciones registradas</MudText>
+                        </div>
+                    </NoRecordsContent>
                     <PagerContent>
                         <MudTablePager />
                     </PagerContent>
                 </MudTable>
-
-
-            </MudItem>
-        </MudGrid>
-    </MudPaper>
-
+            </div>
+        </div>
+    </div>
 </MudContainer>
+
+<style>
+    .kpi-card-flat { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px; height: 100%; transition: all 0.2s ease; }
+    .kpi-card-flat:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .kpi-icon-box { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .kpi-label { font-size: 0.8rem; color: #6B7280; font-weight: 500; margin-bottom: 4px; }
+    .kpi-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .panel-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .panel-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #E5E7EB; background: #FAFBFC; }
+    .custom-table { border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .custom-table .mud-table-head th { background: #FAFBFC !important; color: #424E5F !important; font-weight: 600 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cell-icon-box { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 24px; }
+</style>
+
 @code {
     List<HabitacionDTO> listaModelos = new List<HabitacionDTO>();
     private string searchString1 = "";
     private HabitacionDTO selectedItem1 = null;
     private bool _loading = true;
 
+    private int TotalCategorias => listaModelos
+        .Where(h => h.IdCategoriaNavigation != null)
+        .Select(h => h.IdCategoriaNavigation.Descripcion)
+        .Distinct().Count();
+
+    private int TotalPisos => listaModelos
+        .Where(h => h.IdPisoNavigation != null)
+        .Select(h => h.IdPisoNavigation.Descripcion)
+        .Distinct().Count();
+
+    private decimal PrecioPromedio => listaModelos.Count > 0
+        ? listaModelos.Average(h => h.Precio ?? 0)
+        : 0;
+
     private async Task ObtenerData()
     {
         var result = await _habitacionServicio.Lista();
-
         if (result.status)
         {
             listaModelos = (List<HabitacionDTO>)result.value!;
         }
     }
-
 
     protected override async Task OnInitializedAsync()
     {
@@ -92,26 +210,24 @@
         _loading = false;
     }
 
+    private async Task RecargarDatos()
+    {
+        _loading = true;
+        await ObtenerData();
+        _loading = false;
+        _snackBar.Add("Datos actualizados", Severity.Success, a => a.VisibleStateDuration = 1000);
+    }
+
     private bool FilterFunc1(HabitacionDTO element) => FilterFunc(element, searchString1);
 
     private bool FilterFunc(HabitacionDTO element, string searchString)
     {
-        if (string.IsNullOrWhiteSpace(searchString))
-            return true;
-
-        if (element.Numero.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (element.Detalle.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-        if (element.IdEstadoHabitacionNavigation.Descripcion.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        if (element.IdPisoNavigation.Descripcion.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-
-        if (element.IdCategoriaNavigation.Descripcion.Contains(searchString, StringComparison.OrdinalIgnoreCase))
-            return true;
-
+        if (string.IsNullOrWhiteSpace(searchString)) return true;
+        if (element.Numero.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.Detalle != null && element.Detalle.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.IdEstadoHabitacionNavigation != null && element.IdEstadoHabitacionNavigation.Descripcion.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.IdPisoNavigation != null && element.IdPisoNavigation.Descripcion.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
+        if (element.IdCategoriaNavigation != null && element.IdCategoriaNavigation.Descripcion.Contains(searchString, StringComparison.OrdinalIgnoreCase)) return true;
         return false;
     }
 
@@ -119,41 +235,32 @@
     {
         var dialogo = _dialogServicio.Show<MdHabitacion>("Nueva Habitacion");
         var resultado = await dialogo.Result;
-
-        if (!resultado.Canceled)
-        {
-            await ObtenerData();
-        }
+        if (!resultado.Canceled) await ObtenerData();
     }
 
     private async Task AbrirEditarModelo(HabitacionDTO modelo)
     {
         var parametros = new DialogParameters { ["_habitacion"] = modelo };
-
         var dialogo = _dialogServicio.Show<MdHabitacion>("Editar Habitacion", parametros);
         var resultado = await dialogo.Result;
-        if (!resultado.Canceled)
-        {
-            await ObtenerData();
-        }
+        if (!resultado.Canceled) await ObtenerData();
     }
 
     private async Task EliminarModelo(HabitacionDTO modelo)
     {
         SweetAlertResult result = await Swal.FireAsync(new SweetAlertOptions
-            {
-                Title = "Esta seguro?",
-                Text = $"Eliminar habitacion: {modelo.Numero}",
-                Icon = SweetAlertIcon.Warning,
-                ShowCancelButton = true,
-                ConfirmButtonText = "Si, eliminar",
-                CancelButtonText = "No, volver"
-            });
+        {
+            Title = "Esta seguro?",
+            Text = $"Eliminar habitacion: {modelo.Numero}",
+            Icon = SweetAlertIcon.Warning,
+            ShowCancelButton = true,
+            ConfirmButtonText = "Si, eliminar",
+            CancelButtonText = "No, volver"
+        });
 
         if (result.IsConfirmed)
         {
             var resultado = await _habitacionServicio.Eliminar(modelo.IdHabitacion);
-
             if (resultado)
             {
                 _snackBar.Add("La habitacion fue eliminada", Severity.Success, a => a.VisibleStateDuration = 1000);
@@ -163,9 +270,4 @@
                 _snackBar.Add("No se pudo eliminar", Severity.Error, a => a.VisibleStateDuration = 1000);
         }
     }
-
-
-
-
-
 }

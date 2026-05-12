@@ -26,6 +26,7 @@ public partial class DbhotelBlazorContext : DbContext
     public virtual DbSet<Piso> Pisos { get; set; }
 
     public virtual DbSet<Reserva> Reservas { get; set; }
+    public virtual DbSet<ReservaGrupo> ReservaGrupos { get; set; }
     public virtual DbSet<Recepcion> Recepcions { get; set; }
 
     public virtual DbSet<RolUsuario> RolUsuarios { get; set; }
@@ -211,6 +212,41 @@ public partial class DbhotelBlazorContext : DbContext
             entity.HasOne(d => d.IdRolUsuarioNavigation).WithMany(p => p.Usuarios)
                 .HasForeignKey(d => d.IdRolUsuario)
                 .HasConstraintName("FK__Usuario__IdRolUs__34C8D9D1");
+        });
+
+        modelBuilder.Entity<Reserva>(entity =>
+        {
+            entity.Property(e => e.IdReservaGrupo).IsRequired(false);
+            entity.Property(e => e.CantidadPersonas).HasDefaultValue(1);
+            entity.Property(e => e.FechaCreacion)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+
+            entity.HasOne(d => d.ReservaGrupo)
+                .WithMany(p => p.Reservas)
+                .HasForeignKey(d => d.IdReservaGrupo)
+                .HasConstraintName("FK_Reserva_ReservaGrupo");
+        });
+
+        modelBuilder.Entity<ReservaGrupo>(entity =>
+        {
+            entity.HasKey(e => e.IdReservaGrupo).HasName("PK__ReservaGrupo");
+
+            entity.ToTable("ReservaGrupo");
+
+            entity.Property(e => e.MontoTotal).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.PrecioPersona).HasColumnType("decimal(10, 2)");
+            entity.Property(e => e.Estado).HasDefaultValueSql("((1))");
+            entity.Property(e => e.FechaCreacion)
+                .HasDefaultValueSql("(getdate())")
+                .HasColumnType("datetime");
+            entity.Property(e => e.Observacion)
+                .HasMaxLength(500)
+                .IsUnicode(false);
+
+            entity.HasOne(d => d.IdClienteNavigation).WithMany(p => p.ReservaGrupos)
+                .HasForeignKey(d => d.IdCliente)
+                .HasConstraintName("FK__ReservaGrupo__IdCliente");
         });
 
         OnModelCreatingPartial(modelBuilder);

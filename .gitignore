@@ -361,3 +361,11 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+
+# === Agregado: Manual ===
+node_modules/
+md2docx.mjs
+
+# === Agregado: archivos de configuracion sensibles ===
+**/appsettings.Development.json
+

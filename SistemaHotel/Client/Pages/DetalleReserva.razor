@@ -1,5 +1,5 @@
-﻿@page "/page/detallereserva/{idHabitacion:int}"
-@attribute [Authorize(Roles = "Administrador,Reservas,Gerencia")]
+@page "/page/detallereserva/{idHabitacion:int}"
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Reservas,Gerencia")]
 @inject IHabitacionServicio _habitacionServicio
 @inject IReservaServicio _reservaServicio
 @inject IDialogService _dialogServicio
@@ -9,232 +9,222 @@
 @inject IDialogService DialogService
 @using SistemaHotel.Client.Servicios
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-6">
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Detalle Reserva</MudText>
+    <!-- HEADER -->
+    <div class="d-flex justify-space-between align-center mb-6 flex-wrap gap-3">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; color: #424E5F;">Detalle de Reserva</MudText>
+            <MudText Typo="Typo.body2" Style="color: #6B7280;">Crea una nueva reserva para la habitación seleccionada</MudText>
+        </div>
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="@(() => navManager.NavigateTo("/page/reservas"))"
+                   Style="border-color: #E5E7EB; color: #424E5F; text-transform: none; border-radius: 10px;">
+            Volver
+        </MudButton>
+    </div>
 
-    <MudPaper Elevation="3" Class="pa-4" Width="100%">
+    <MudGrid Spacing="3" AlignItems="AlignItems.Stretch">
 
-        <!-- HABITACION -->
-        <MudGrid>
-            <MudItem xs="12">
-                <MudCard>
-                    <MudCardHeader Class="pb-0">
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Habitación</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
+        <!-- COLUMNA IZQUIERDA -->
+        <MudItem xs="12" lg="6" Class="d-flex">
+            <MudStack Spacing="3" Class="w-100">
 
-                    <MudCardContent>
-                        <MudGrid>
-                            <MudItem xs="12" lg="6">
-                                <MudTextField Value="_habitacionDTO.Numero"
-                                              Label="Numero"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
+                <!-- HABITACIÓN -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #5C8DC2;" />
+                        <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Habitación</MudText>
+                    </div>
+                    <div class="pa-4">
+                        <div class="d-flex flex-wrap" style="gap: 8px; margin-bottom: 16px;">
+                            <MudChip Style="background: #EBF2F9; color: #5C8DC2; font-weight: 600;" Icon="@Icons.Material.Filled.Bed">
+                                @_habitacionDTO.Numero
+                            </MudChip>
+                            <MudChip Style="background: #EFF5EF; color: #6FA776; font-weight: 600;" Icon="@Icons.Material.Filled.KingBed">
+                                @_habitacionDTO.IdCategoriaNavigation?.Descripcion
+                            </MudChip>
+                            <MudChip Style="background: #FAF1E7; color: #E8A668; font-weight: 600;" Icon="@Icons.Material.Filled.Apartment">
+                                @_habitacionDTO.IdPisoNavigation?.Descripcion
+                            </MudChip>
+                        </div>
+                        <div class="info-box">
+                            <MudIcon Icon="@Icons.Material.Filled.Description" Style="color: #5C8DC2;" />
+                            <MudText Typo="Typo.body1" Style="color: #424E5F; font-weight: 500;">
+                                @(string.IsNullOrEmpty(_habitacionDTO.Detalle) ? "Sin detalle" : _habitacionDTO.Detalle)
+                            </MudText>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CLIENTE -->
+                <div class="panel-card">
+                    <div class="panel-header">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Style="color: #6FA776;" />
+                        <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Cliente</MudText>
+                    </div>
+                    <div class="pa-4">
+                        <MudGrid Spacing="2" Class="mb-3">
+                            <MudItem xs="12" md="6">
+                                <MudButton Variant="Variant.Outlined"
+                                           FullWidth="true"
+                                           Size="Size.Large"
+                                           StartIcon="@Icons.Material.Filled.Search"
+                                           OnClick="Buscar"
+                                           Style="border-color: #5C8DC2; color: #5C8DC2; text-transform: none; border-radius: 10px;">
+                                    Buscar cliente
+                                </MudButton>
                             </MudItem>
-
-                            <MudItem xs="12" lg="6">
-                                <MudTextField Value="_habitacionDTO.IdCategoriaNavigation?.Descripcion"
-                                              Label="Categoria"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12" lg="6">
-                                <MudTextField Value="_habitacionDTO.Detalle"
-                                              Label="Detalle"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12" lg="6">
-                                <MudTextField Value="_habitacionDTO.IdPisoNavigation?.Descripcion"
-                                              Label="Piso"
-                                              ReadOnly="true"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
+                            <MudItem xs="12" md="6">
+                                <MudButton Variant="Variant.Filled"
+                                           FullWidth="true"
+                                           Size="Size.Large"
+                                           StartIcon="@Icons.Material.Filled.PersonAdd"
+                                           OnClick="CrearCliente"
+                                           Style="background: #6FA776; color: #fff; text-transform: none; border-radius: 10px; font-weight: 600;">
+                                    Nuevo cliente
+                                </MudButton>
                             </MudItem>
                         </MudGrid>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
-        </MudGrid>
 
-
-        <MudGrid>
-
-            <!-- CLIENTE -->
-            <MudItem xs="12" lg="6">
-                <MudCard>
-                    <MudCardHeader Class="pb-0">
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Cliente</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-
-                    <MudCardContent>
-                        <MudGrid>
-
+                        <MudGrid Spacing="2">
                             <MudItem xs="12">
-                                <MudGrid>
-                                    <MudItem xs="6">
-                                        <MudButton Variant="Variant.Filled"
-                                                   Color="Color.Info"
-                                                   FullWidth="true"
-                                                   Size="Size.Small"
-                                                   OnClick="Buscar">
-                                            Buscar
-                                        </MudButton>
-                                    </MudItem>
-
-                                    <MudItem xs="6">
-                                        <MudButton Variant="Variant.Filled"
-                                                   Color="Color.Success"
-                                                   FullWidth="true"
-                                                   Size="Size.Small"
-                                                   OnClick="CrearCliente">
-                                            Crear
-                                        </MudButton>
-                                    </MudItem>
-                                </MudGrid>
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.TipoDocumento"
-                                              Label="Tipo Documento"
-                                              Disabled="@(!_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.Documento"
-                                              Label="Documento"
-                                              Disabled="@(!_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.NombreCompleto"
-                                              Label="Nombre Completo"
-                                              Disabled="@(!_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
-
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.Correo"
-                                              Label="Correo"
-                                              Disabled="@(!_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
+                                <MudTextField @bind-Value="_clienteDTO.TipoDocumento" Label="Tipo Documento"
+                                              Disabled="@(!_crearCliente)" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.Telefono"
-                                              Label="Telefono"
-                                              Disabled="@(!_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
+                                <MudTextField @bind-Value="_clienteDTO.Documento" Label="Documento"
+                                              Disabled="@(!_crearCliente)" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
                             <MudItem xs="12">
-                                <MudTextField @bind-Value="_clienteDTO.Direccion"
-                                              Label="Direccion"
-                                              Disabled="@(!_crearCliente)"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
+                                <MudTextField @bind-Value="_clienteDTO.NombreCompleto" Label="Nombre Completo"
+                                              Disabled="@(!_crearCliente)" Variant="Variant.Outlined" Margin="Margin.Dense" />
                             </MudItem>
-
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Correo" Label="Correo"
+                                              Disabled="@(!_crearCliente)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Telefono" Label="Teléfono"
+                                              Disabled="@(!_crearCliente)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
+                            <MudItem xs="12">
+                                <MudTextField @bind-Value="_clienteDTO.Direccion" Label="Dirección"
+                                              Disabled="@(!_crearCliente)" Variant="Variant.Outlined" Margin="Margin.Dense" />
+                            </MudItem>
                         </MudGrid>
-                    </MudCardContent>
-                </MudCard>
-            </MudItem>
+                    </div>
+                </div>
 
+            </MudStack>
+        </MudItem>
 
-            <!-- RESERVA -->
-            <MudItem xs="12" lg="6">
-                <MudCard>
+        <!-- COLUMNA DERECHA -->
+        <MudItem xs="12" lg="6" Class="d-flex">
+            <div class="panel-card w-100 d-flex flex-column" style="min-height: 100%;">
+                <div class="panel-header">
+                    <MudIcon Icon="@Icons.Material.Filled.EventNote" Style="color: #E8A668;" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Reserva</MudText>
+                </div>
 
-                    <MudCardHeader Class="pb-0">
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Reserva</MudText>
-                        </CardHeaderContent>
+                <div class="pa-4 d-flex flex-column" style="flex: 1;">
+                    <!-- Fechas -->
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12">
+                            <MudDatePicker Label="Fecha inicio" MinDate="DateTime.Today"
+                                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                                           DateFormat="dd/MM/yyyy" Date="fechaInicio" DateChanged="OnFechaInicioChanged" />
+                        </MudItem>
+                        <MudItem xs="12">
+                            <MudDatePicker Label="Fecha fin" MinDate="DateTime.Today"
+                                           Variant="Variant.Outlined" Margin="Margin.Dense"
+                                           DateFormat="dd/MM/yyyy" Date="fechaFin" DateChanged="OnFechaFinChanged" />
+                        </MudItem>
+                    </MudGrid>
 
-                        <CardHeaderActions>
-                            <MudButton Variant="Variant.Filled"
-                                       StartIcon="@Icons.Material.Filled.Save"
-                                       OnClick="RegistrarReserva"
-                                       Color="Color.Primary"
-                                       Size="Size.Small">
-                                Reservar
-                            </MudButton>
-                        </CardHeaderActions>
-                    </MudCardHeader>
+                    <MudDivider Class="my-4" />
 
-                    <MudCardContent>
-                        <MudGrid>
+                    <MudText Typo="Typo.subtitle1" Style="font-weight: 600; color: #424E5F; margin-bottom: 12px;">
+                        Pago
+                    </MudText>
 
-                            <MudItem xs="12">
-                                <MudDatePicker Label="Fecha inicio"
-                                               MinDate="DateTime.Today"
-                                               Variant="Variant.Outlined"
-                                               Margin="Margin.Dense"
-                                               DateFormat="dd/MM/yyyy"
-                                               Date="fechaInicio"
-                                               DateChanged="OnFechaInicioChanged" />
-                            </MudItem>
+                    <MudGrid Spacing="2">
+                        <MudItem xs="12" md="6">
+                            <MudNumericField T="decimal?"
+                                             @bind-Value="precioEstimado"
+                                             Label="Precio estimado"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                        </MudItem>
+                        <MudItem xs="12" md="6">
+                            <MudNumericField T="decimal?"
+                                             @bind-Value="_reservaDTO.Adelanto"
+                                             Label="Adelanto"
+                                             Variant="Variant.Outlined" Margin="Margin.Dense" Min="0" />
+                        </MudItem>
+                    </MudGrid>
 
-                            <MudItem xs="12">
-                                <MudDatePicker Label="Fecha fin"
-                                               MinDate="DateTime.Today"
-                                               Variant="Variant.Outlined"
-                                               Margin="Margin.Dense"
-                                               DateFormat="dd/MM/yyyy"
-                                               Date="fechaFin"
-                                               DateChanged="OnFechaFinChanged" />
-                            </MudItem>
+                    <!-- Resumen -->
+                    <div class="resumen-box mt-3">
+                        <div class="resumen-row">
+                            <span class="resumen-label">
+                                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Style="color: #6FA776; font-size: 18px;" />
+                                Precio estimado
+                            </span>
+                            <span class="resumen-value" style="color: #6FA776;">@($"${(precioEstimado ?? 0m):N2}")</span>
+                        </div>
+                        <div class="resumen-row">
+                            <span class="resumen-label">
+                                <MudIcon Icon="@Icons.Material.Filled.Payments" Style="color: #5C8DC2; font-size: 18px;" />
+                                Adelanto
+                            </span>
+                            <span class="resumen-value" style="color: #5C8DC2;">@($"${(_reservaDTO.Adelanto ?? 0m):N2}")</span>
+                        </div>
+                    </div>
 
-                            <!-- editable pero calculado automáticamente -->
-                            <MudItem xs="12">
-                                <MudNumericField T="decimal?"
-                                                 @bind-Value="precioEstimado"
-                                                 Label="Precio estimado"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense"
-                                                 Min="0" />
-                            </MudItem>
+                    <!-- Saldo pendiente -->
+                    <div class="saldo-banner mt-3">
+                        <div class="d-flex align-center" style="gap: 10px;">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Style="color: #fff; font-size: 22px;" />
+                            <span style="color: #fff; font-weight: 700; font-size: 1rem;">Saldo pendiente</span>
+                        </div>
+                        <span style="color: #fff; font-weight: 700; font-size: 1.4rem;">
+                            @($"${((precioEstimado ?? 0m) - (_reservaDTO.Adelanto ?? 0m)):N2}")
+                        </span>
+                    </div>
 
-                            <MudItem xs="12">
-                                <MudNumericField T="decimal?"
-                                                 @bind-Value="_reservaDTO.Adelanto"
-                                                 Label="Adelanto"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense"
-                                                 Min="0" />
-                            </MudItem>
+                    <MudTextField @bind-Value="_reservaDTO.Observacion" Label="Observación"
+                                  Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2" Class="mt-3" />
 
-                            <MudItem xs="12">
-                                <MudTextField @bind-Value="_reservaDTO.Observacion"
-                                              Label="Observación"
-                                              Variant="Variant.Outlined"
-                                              Margin="Margin.Dense" />
-                            </MudItem>
+                    <MudSpacer />
 
-                        </MudGrid>
-                    </MudCardContent>
+                    <MudButton Variant="Variant.Filled"
+                               FullWidth="true"
+                               Size="Size.Large"
+                               Class="mt-4"
+                               StartIcon="@Icons.Material.Filled.Save"
+                               OnClick="RegistrarReserva"
+                               Style="background: #5C8DC2; color: #fff; text-transform: none; border-radius: 10px; font-weight: 700;">
+                        Registrar reserva
+                    </MudButton>
+                </div>
+            </div>
+        </MudItem>
 
-                </MudCard>
-            </MudItem>
-
-        </MudGrid>
-
-    </MudPaper>
-
+    </MudGrid>
 </MudContainer>
+
+<style>
+    .panel-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .panel-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #E5E7EB; background: #FAFBFC; }
+    .info-box { display: flex; align-items: center; gap: 12px; padding: 14px; background: #FAFBFC; border: 1px solid #E5E7EB; border-radius: 10px; }
+    .resumen-box { background: #FAFBFC; border: 1px solid #E5E7EB; border-radius: 10px; padding: 12px; }
+    .resumen-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 4px; }
+    .resumen-row + .resumen-row { border-top: 1px solid #F0F2F5; }
+    .resumen-label { display: flex; align-items: center; gap: 8px; color: #424E5F; font-weight: 500; font-size: 0.9rem; }
+    .resumen-value { font-weight: 700; font-size: 1rem; }
+    .saldo-banner { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: linear-gradient(135deg, #5C8DC2 0%, #424E5F 100%); border-radius: 12px; }
+</style>
 
 @code {
 
@@ -266,7 +256,6 @@
         {
             _habitacionDTO = response.value;
 
-            // valores por defecto
             fechaInicio = DateTime.Today;
             fechaFin = DateTime.Today.AddDays(1);
 
@@ -320,10 +309,8 @@
         if (fechaInicio == null || fechaFin == null || _habitacionDTO.Precio == null)
             return;
 
-        // Hotel real: se cobra por NOCHES
         var noches = (fechaFin.Value.Date - fechaInicio.Value.Date).Days;
 
-        // Si aún no es válido (misma fecha o fecha fin menor), no calculamos
         if (noches <= 0)
         {
             precioEstimado = 0;
@@ -333,7 +320,6 @@
         precioEstimado = _habitacionDTO.Precio.Value * noches;
     }
 
-    
     private async Task RegistrarReserva()
     {
         if (fechaInicio == null || fechaFin == null)
@@ -347,14 +333,12 @@
             return;
         }
 
-
         if (_clienteDTO == null || string.IsNullOrWhiteSpace(_clienteDTO.NombreCompleto))
         {
             await Swal.FireAsync("Error", "Debe seleccionar o crear un cliente.", "warning");
             return;
         }
 
-        // 👉 Si es cliente nuevo, lo guardamos primero
         if (_crearCliente)
         {
             var respCliente = await _clienteServicio.Crear(_clienteDTO);
@@ -365,15 +349,10 @@
                 return;
             }
 
-            // Aquí ya viene el IdCliente desde la API
             _clienteDTO = respCliente.value;
         }
-        // ================================
-        // ✅ CONTROL ADELANTO vs ESTIMADO
-        // ================================
-        // precioEstimado viene de tu UI (según tu código)
-        // Ajusta esta línea al nombre real del adelanto en tu DTO:
-        var adelanto = _reservaDTO.Adelanto ??0m; // <- CAMBIA si tu propiedad se llama distinto
+
+        var adelanto = _reservaDTO.Adelanto ?? 0m;
 
         if (precioEstimado <= 0)
         {
@@ -392,8 +371,7 @@
             await Swal.FireAsync("Error", "El adelanto no puede ser mayor al valor estimado.", "warning");
             return;
         }
-        //
-        // 👉 Armamos la reserva
+
         _reservaDTO.IdHabitacion = idHabitacion;
         _reservaDTO.IdCliente = _clienteDTO.IdCliente;
 
@@ -412,9 +390,5 @@
         {
             await Swal.FireAsync("No disponible", response.msg, "warning");
         }
-
     }
-
-
 }
-

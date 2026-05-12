@@ -1,0 +1,372 @@
+@page "/page/reservagerencia"
+@using SistemaHotel.Shared
+@inject IPisoServicio _pisoServicio
+@inject IHabitacionServicio _habitacionServicio
+@inject IReservaServicio _reservaServicio
+@inject IDialogService DialogService
+@inject SweetAlertService Swal
+@inject ISnackbar _snackBar
+@inject NavigationManager _navManager
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Reservas,Gerencia")]
+
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-6">
+
+    <!-- HEADER -->
+    <div class="d-flex justify-space-between align-center mb-6 flex-wrap gap-3">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; color: #424E5F;">Reservas Gerencia</MudText>
+            <MudText Typo="Typo.body2" Style="color: #6B7280;">Bloqueo de habitaciones con tarifa especial · Normal $15 · Festivo $20 / persona</MudText>
+        </div>
+    </div>
+
+    <!-- KPIs -->
+    <MudGrid Spacing="3" Class="mb-6">
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #5C8DC2;">
+                <div class="kpi-icon-box" style="background: #EBF2F9;">
+                    <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #5C8DC2; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Habitaciones del Piso</div>
+                    <div class="kpi-value" style="color: #5C8DC2;">@(listaHabitaciones?.Count ?? 0)</div>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #6FA776;">
+                <div class="kpi-icon-box" style="background: #EFF5EF;">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="color: #6FA776; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Disponibles</div>
+                    <div class="kpi-value" style="color: #6FA776;">@HabDisponibles</div>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #E8A668;">
+                <div class="kpi-icon-box" style="background: #FAF1E7;">
+                    <MudIcon Icon="@Icons.Material.Filled.Diamond" Style="color: #E8A668; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Tarifa Normal</div>
+                    <div class="kpi-value" style="color: #E8A668;">$15</div>
+                </div>
+            </div>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="3">
+            <div class="kpi-card-flat" style="border-left: 4px solid #424E5F;">
+                <div class="kpi-icon-box" style="background: #F0F2F5;">
+                    <MudIcon Icon="@Icons.Material.Filled.Star" Style="color: #424E5F; font-size: 28px;" />
+                </div>
+                <div>
+                    <div class="kpi-label">Tarifa Festivo</div>
+                    <div class="kpi-value" style="color: #424E5F;">$20</div>
+                </div>
+            </div>
+        </MudItem>
+    </MudGrid>
+
+    <!-- PANEL FILTRO + HABITACIONES -->
+    <div class="panel-card">
+        <div class="panel-header">
+            <MudIcon Icon="@Icons.Material.Filled.Layers" Style="color: #5C8DC2;" />
+            <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Selecciona un Piso</MudText>
+        </div>
+
+        <div class="pa-4">
+            <MudGrid>
+                <MudItem xs="12" lg="3" md="4" sm="6">
+                    <MudSelect T="PisoDTO"
+                               Label="Piso"
+                               Variant="Variant.Outlined"
+                               AnchorOrigin="Origin.BottomCenter"
+                               Value="pisoSeleccionado"
+                               Margin="Margin.Dense"
+                               ValueChanged="OnSelectedValueChanged"
+                               Disabled="@(listaPisos == null || !listaPisos.Any())">
+                        @if (listaPisos != null && listaPisos.Any())
+                        {
+                            foreach (var item in listaPisos)
+                            {
+                                <MudSelectItem Value="@item">@item.Descripcion</MudSelectItem>
+                            }
+                        }
+                    </MudSelect>
+                </MudItem>
+            </MudGrid>
+
+            <MudGrid Class="mt-3">
+
+                @if (cargando)
+                {
+                    <MudItem xs="12" Class="d-flex justify-center pa-6">
+                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                    </MudItem>
+                }
+                else if (listaHabitaciones == null || !listaHabitaciones.Any())
+                {
+                    <MudItem xs="12">
+                        <div class="empty-state">
+                            <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Style="color: #9CA3AF; font-size: 48px;" />
+                            <MudText Typo="Typo.body1" Style="color: #6B7280;">No hay habitaciones para mostrar en este piso.</MudText>
+                        </div>
+                    </MudItem>
+                }
+                else
+                {
+                    foreach (var item in listaHabitaciones)
+                    {
+                        bool tieneReservaHoy = habitacionesReservadasHoy.Contains(item.Numero);
+                        bool puedeReservar = item.IdEstadoHabitacion == 1;
+
+                        var (bgColor, accentColor, iconBg) =
+                            tieneReservaHoy && item.IdEstadoHabitacion == 1 ? ("#FAF1E7", "#E8A668", "#FAF1E7") :
+                            item.IdEstadoHabitacion == 1 ? ("#fff", "#6FA776", "#EFF5EF") :
+                            item.IdEstadoHabitacion == 2 ? ("#fff", "#5C8DC2", "#EBF2F9") :
+                            ("#fff", "#424E5F", "#F0F2F5");
+
+                        string icono =
+                            tieneReservaHoy && item.IdEstadoHabitacion == 1 ? Icons.Material.Filled.EventAvailable :
+                            item.IdEstadoHabitacion == 1 ? Icons.Material.Filled.KingBed :
+                            item.IdEstadoHabitacion == 2 ? Icons.Material.Filled.CleaningServices :
+                            Icons.Material.Filled.EventBusy;
+
+                        string textoBoton = !puedeReservar
+                            ? (item.IdEstadoHabitacionNavigation?.Descripcion ?? "")
+                            : (tieneReservaHoy ? "Reservada hoy" : "Bloquear");
+
+                        <MudItem xs="12" lg="3" md="4" sm="6" Class="d-flex">
+                            <div class="hab-card" style="border-left: 4px solid @accentColor; background: @bgColor;">
+                                <div class="hab-card-body">
+                                    <div class="d-flex justify-space-between align-start" style="gap: 12px;">
+                                        <div style="flex: 1; min-width: 0;">
+                                            <div class="hab-numero" style="color: @accentColor;">@item.Numero</div>
+                                            <div class="hab-categoria">@item.IdCategoriaNavigation?.Descripcion</div>
+                                            <div style="min-height: 28px; margin-top: 6px;">
+                                                @if (tieneReservaHoy && item.IdEstadoHabitacion == 1)
+                                                {
+                                                    <MudChip Size="Size.Small" Style="background: #FAF1E7; color: #E8A668; font-weight: 600;" Icon="@Icons.Material.Filled.Lock">
+                                                        Reservada hoy
+                                                    </MudChip>
+                                                }
+                                            </div>
+                                        </div>
+                                        <div class="hab-icon-box" style="background: @iconBg;">
+                                            <MudIcon Icon="@icono" Style="@($"color: {accentColor}; font-size: 32px;")" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <button class="hab-btn @(!puedeReservar ? "disabled" : "")"
+                                        style="@($"color: {accentColor}; border-top: 1px solid #E5E7EB;")"
+                                        disabled="@(!puedeReservar)"
+                                        @onclick="@(() => AbrirModalReserva(item))">
+                                    @textoBoton
+                                </button>
+                            </div>
+                        </MudItem>
+                    }
+                }
+            </MudGrid>
+        </div>
+    </div>
+</MudContainer>
+
+<style>
+    .kpi-card-flat { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px; height: 100%; transition: all 0.2s ease; }
+    .kpi-card-flat:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .kpi-icon-box { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .kpi-label { font-size: 0.8rem; color: #6B7280; font-weight: 500; margin-bottom: 4px; }
+    .kpi-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .panel-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .panel-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #E5E7EB; background: #FAFBFC; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 24px; width: 100%; }
+
+    .hab-card { width: 100%; background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s ease; }
+    .hab-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .hab-card-body { padding: 16px; flex: 1; }
+    .hab-numero { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .hab-categoria { font-size: 0.85rem; color: #6B7280; margin-top: 4px; }
+    .hab-icon-box { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .hab-btn { width: 100%; padding: 12px; background: transparent; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: background 0.15s ease; }
+    .hab-btn:hover:not(.disabled) { background: #FAFBFC; }
+    .hab-btn.disabled { opacity: 0.5; cursor: not-allowed; }
+</style>
+
+@code {
+    private List<PisoDTO> listaPisos = new();
+    private PisoDTO? pisoSeleccionado;
+
+    private List<HabitacionDTO>? listaHabitaciones = null;
+    private bool cargando = false;
+
+    private HashSet<string> habitacionesReservadasHoy = new();
+
+    private int HabDisponibles => listaHabitaciones?.Count(h => h.IdEstadoHabitacion == 1 && !habitacionesReservadasHoy.Contains(h.Numero)) ?? 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        cargando = true;
+
+        var responsePiso = await _pisoServicio.Lista();
+        if (responsePiso.status && responsePiso.value != null)
+        {
+            listaPisos = (List<PisoDTO>)responsePiso.value;
+
+            if (listaPisos.Any())
+            {
+                pisoSeleccionado = listaPisos.First();
+                await ObtenerHabitaciones(pisoSeleccionado.IdPiso);
+            }
+            else
+            {
+                listaHabitaciones = new();
+            }
+        }
+        else
+        {
+            listaHabitaciones = new();
+            _snackBar.Add("No se pudo cargar pisos.", Severity.Error, a => a.VisibleStateDuration = 1500);
+        }
+
+        cargando = false;
+
+        await CargarReservasParaHoy();
+    }
+
+    private async Task ObtenerHabitaciones(int idPiso)
+    {
+        cargando = true;
+
+        var response = await _habitacionServicio.Lista();
+
+        if (response.status && response.value != null)
+        {
+            listaHabitaciones = ((List<HabitacionDTO>)response.value)
+                .Where(h => h.IdEstadoHabitacion != 3 && h.IdPiso == idPiso)
+                .ToList();
+        }
+        else
+        {
+            listaHabitaciones = new();
+        }
+
+        cargando = false;
+    }
+
+    private async Task CargarReservasParaHoy()
+    {
+        try
+        {
+            var hoy = DateTime.Today.ToString("dd/MM/yyyy");
+            var resp = await _reservaServicio.FiltrarListado(hoy, hoy);
+
+            if (resp.status && resp.value != null)
+            {
+                habitacionesReservadasHoy = resp.value
+                    .Where(r => r.EstadoReserva == "RESERVADA" || r.EstadoReserva == "CONFIRMADA")
+                    .Select(r => r.NroHabitacion ?? "")
+                    .Where(n => !string.IsNullOrEmpty(n))
+                    .ToHashSet();
+            }
+        }
+        catch
+        {
+            habitacionesReservadasHoy = new();
+        }
+    }
+
+    private async Task OnSelectedValueChanged(PisoDTO value)
+    {
+        pisoSeleccionado = value;
+        await ObtenerHabitaciones(value.IdPiso);
+    }
+
+    private async Task AbrirModalReserva(HabitacionDTO habitacion)
+    {
+        var parameters = new DialogParameters
+        {
+            { nameof(MdReservaGerencia.Habitacion), habitacion }
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            MaxWidth = MaxWidth.Small,
+            FullWidth = true
+        };
+
+        var dialog = DialogService.Show<MdReservaGerencia>("Reserva Gerencia", parameters, options);
+        var result = await dialog.Result;
+
+        if (result.Canceled) return;
+
+        if (result.Data is not MdReservaGerencia.ReservaGerenciaResult data)
+        {
+            await Swal.FireAsync("Error", "No se pudo procesar la reserva.", "error");
+            return;
+        }
+
+        await CrearReservaGerencia(data);
+    }
+
+    private async Task CrearReservaGerencia(MdReservaGerencia.ReservaGerenciaResult data)
+    {
+        try
+        {
+            var reserva = new ReservaDTO
+            {
+                IdCliente = data.IdCliente,
+                IdHabitacion = data.IdHabitacion,
+                FechaEntrada = data.FechaEntrada,
+                FechaSalidaReserva = data.FechaSalida,
+                PrecioInicial = data.MontoTotal,
+                Adelanto = data.Adelanto,
+                Observacion = data.Observacion,
+                EstadoReserva = "RESERVADA"
+            };
+
+            var response = await _reservaServicio.Crear(reserva);
+
+            if (response.status)
+            {
+                string tipoTarifa = data.EsDiaFestivo ? "(Festivo)" : "(Normal)";
+                string fechaEntradaTxt = data.FechaEntrada.ToString("dd/MM/yyyy");
+                string fechaSalidaTxt = data.FechaSalida.ToString("dd/MM/yyyy");
+                string tarifaTxt = data.TarifaPorPersona.ToString("N2");
+                string montoTotalTxt = data.MontoTotal.ToString("N2");
+
+                string htmlMensaje =
+                    "<div style='text-align: left; padding: 10px;'>" +
+                    "<p><strong>Personas:</strong> " + data.CantidadPersonas + "</p>" +
+                    "<p><strong>Tarifa:</strong> $" + tarifaTxt + "/persona " + tipoTarifa + "</p>" +
+                    "<p><strong>Período:</strong> " + fechaEntradaTxt + " - " + fechaSalidaTxt + "</p>" +
+                    "<p><strong>Método de pago:</strong> " + data.MetodoPago + "</p>" +
+                    "<p style='color: #2e7d32; margin-top: 12px;'>" +
+                    "<strong>Total pagado: $" + montoTotalTxt + "</strong>" +
+                    "</p>" +
+                    "</div>";
+
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Reserva Gerencia creada",
+                    Html = htmlMensaje,
+                    Icon = SweetAlertIcon.Success,
+                    ConfirmButtonText = "Excelente"
+                });
+
+                await CargarReservasParaHoy();
+                if (pisoSeleccionado != null)
+                    await ObtenerHabitaciones(pisoSeleccionado.IdPiso);
+            }
+            else
+            {
+                await Swal.FireAsync("Error", response.msg ?? "No se pudo crear la reserva.", "error");
+            }
+        }
+        catch (Exception ex)
+        {
+            await Swal.FireAsync("Error", $"Error al crear la reserva: {ex.Message}", "error");
+        }
+    }
+}

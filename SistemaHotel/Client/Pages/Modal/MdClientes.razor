@@ -2,10 +2,10 @@
 @attribute [Authorize(Roles = "Administrador,Gerencia,Reservas,Recepcionista")]
 @inject ISnackbar _snackBar
 
-<MudDialog Style="width:500px">
+<MudDialog Style="width:700px; height:auto;">
 
     <DialogContent>
-        <MudContainer Style="max-height: 400px; overflow-y: scroll" Class="m-0 p-0">
+        <MudContainer Class="m-0 p-0">
 
             <MudTable Items="@listaModelos"
                       Dense="true"

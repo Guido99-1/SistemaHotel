@@ -35,6 +35,11 @@ namespace SistemaHotel.Server.Models
         public bool Estado { get; set; }
         public string EstadoReserva { get; set; } = null!;
 
+        // ✅ NUEVAS COLUMNAS PARA RESERVA MÚLTIPLE
+        public int? IdReservaGrupo { get; set; }
+        public int CantidadPersonas { get; set; } = 1;
+        public DateTime? FechaCreacion { get; set; }
+
 
         // -----------------------
         // Navigation
@@ -46,6 +51,10 @@ namespace SistemaHotel.Server.Models
 
         [ForeignKey(nameof(IdHabitacion))]
         public virtual Habitacion IdHabitacionNavigation { get; set; }
+
+        [ForeignKey(nameof(IdReservaGrupo))]
+        public virtual ReservaGrupo? ReservaGrupo { get; set; }
+
         public virtual ICollection<Recepcion> Recepcions { get; set; } = new List<Recepcion>();
     }
 }

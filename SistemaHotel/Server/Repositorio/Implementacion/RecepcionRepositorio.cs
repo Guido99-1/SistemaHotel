@@ -27,13 +27,21 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
 
         public async Task<Recepcion> Crear(Recepcion entidad)
         {
-            await using var transaction = await _dbContext.Database.BeginTransactionAsync();
+            // ✅ Aislamiento Serializable previene race conditions de check-in simultáneo
+            await using var transaction = await _dbContext.Database
+                .BeginTransactionAsync(System.Data.IsolationLevel.Serializable);
 
             try
             {
                 // ✅ Validaciones mínimas
                 if (entidad.IdHabitacion == null)
                     throw new Exception("Debe enviar la habitación.");
+
+                if (entidad.FechaEntrada.HasValue)
+                    entidad.FechaEntrada = DateTime.SpecifyKind(entidad.FechaEntrada.Value.Date, DateTimeKind.Unspecified);
+
+                if (entidad.FechaSalida.HasValue)
+                    entidad.FechaSalida = DateTime.SpecifyKind(entidad.FechaSalida.Value.Date, DateTimeKind.Unspecified);
 
                 if (!entidad.FechaEntrada.HasValue || !entidad.FechaSalida.HasValue)
                     throw new Exception("Debe enviar FechaEntrada y FechaSalida.");
@@ -42,6 +50,11 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 // Para 1 noche: Entrada 19, Salida 20  -> OK
                 if (entidad.FechaSalida.Value.Date <= entidad.FechaEntrada.Value.Date)
                     throw new Exception("La fecha de salida debe ser mayor a la fecha de entrada.");
+
+                // ✅ FIX #6: validar fechas pasadas (defensa en backend, no confiar solo en UI)
+                if (entidad.FechaEntrada.Value.Date < DateTime.Today)
+                    throw new Exception("La fecha de entrada no puede ser anterior a hoy.");
+
                 // 🔴 ==============================
                 // 🔴 VALIDAR HABITACIÓN OCUPADA
                 // 🔴 ==============================
@@ -50,6 +63,12 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
 
                 if (habitacion.IdEstadoHabitacion == 3) // <-- OCUPADA
                     throw new Exception("La habitación ya está ocupada.");
+
+                // NOTA: El check defensivo de "Recepcion activa duplicada" se removió porque:
+                //  - La validación IdEstadoHabitacion == 3 (arriba) ya bloquea habitaciones realmente ocupadas.
+                //  - La transacción Serializable previene race conditions entre dos check-ins simultáneos.
+                //  - La validación de IdReserva único (abajo) previene re-uso de la misma reserva.
+                // Este triple bloqueo es suficiente y no genera falsos positivos por datos legacy.
 
                 // 🔴 ==============================
                 // 🔴 VALIDAR CHECK-IN DUPLICADO (por reserva)
@@ -285,10 +304,11 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                     Adelanto = r.Adelanto ?? 0,
                     PrecioRestante = r.PrecioRestante ?? 0,
                     MetodoPago = r.MetodoPago,
+                    NotaMetodoPago = r.NotaMetodoPago,  // ✅ Detalle del método (especialmente para MIXTO)
 
                     CostoPenalidad = r.CostoPenalidad ?? 0,
                     TotalPagado = r.TotalPagado ?? 0,
-                    Observacion =r.Observacion
+                    Observacion = r.Observacion
                 })
                 .ToListAsync();
 
@@ -300,6 +320,7 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
 
             try
             {
+                // 1️⃣ Obtener la recepción (sin tracking de navegaciones)
                 var recepcion = await _dbContext.Recepcions
                     .FirstOrDefaultAsync(r => r.IdRecepcion == idRecepcion);
 
@@ -317,6 +338,7 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 if (idHabitacionAnterior == idNuevaHabitacion)
                     throw new Exception("La nueva habitación no puede ser la misma habitación actual.");
 
+                // 2️⃣ Validar habitaciones
                 var habitacionAnterior = await _dbContext.Habitacions
                     .FirstOrDefaultAsync(h => h.IdHabitacion == idHabitacionAnterior);
 
@@ -333,19 +355,35 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 if (habitacionNueva.IdEstadoHabitacion != 1)
                     throw new Exception("La nueva habitación no está disponible.");
 
-                // Actualizar recepción
+                // 3️⃣ Actualizar la RECEPCIÓN con la nueva habitación
+                // EF Core ya está trackeando la entidad, basta con modificar la propiedad
                 recepcion.IdHabitacion = idNuevaHabitacion;
-                _dbContext.Recepcions.Update(recepcion);
 
-                // Habitación anterior -> Limpieza
+                // 4️⃣ ✅ Actualizar la RESERVA asociada (si existe)
+                // Esto evita inconsistencia: la reserva debe apuntar a la habitación actual
+                if (recepcion.IdReserva.HasValue && recepcion.IdReserva.Value > 0)
+                {
+                    var reserva = await _dbContext.Reservas
+                        .FirstOrDefaultAsync(r => r.IdReserva == recepcion.IdReserva.Value);
+
+                    if (reserva != null)
+                    {
+                        reserva.IdHabitacion = idNuevaHabitacion;
+                    }
+                }
+
+                // 5️⃣ Habitación anterior → Limpieza
                 habitacionAnterior.IdEstadoHabitacion = 2;
-                _dbContext.Habitacions.Update(habitacionAnterior);
 
-                // Habitación nueva -> Ocupada
+                // 6️⃣ Habitación nueva → Ocupada
                 habitacionNueva.IdEstadoHabitacion = 3;
-                _dbContext.Habitacions.Update(habitacionNueva);
 
-                await _dbContext.SaveChangesAsync();
+                // 7️⃣ Guardar TODOS los cambios en una sola transacción
+                var cambios = await _dbContext.SaveChangesAsync();
+
+                if (cambios <= 0)
+                    throw new Exception("No se aplicaron cambios en la base de datos.");
+
                 await tx.CommitAsync();
 
                 return true;

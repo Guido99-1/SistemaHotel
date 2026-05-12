@@ -94,19 +94,18 @@
         myImageClass = "d-block";
         disableButton = true;
 
-        var result = await _usuarioServicio.IniciarSesion(usuarioLogin.correo, usuarioLogin.clave);
-
-        if (result.status)
+        var loginRequest = new LoginRequestDTO
         {
-            SesionDTO sesionUsuario = new SesionDTO
-            {
-                Nombre = result.value!.NombreCompleto,
-                Correo = result.value!.Correo,
-                Rol = result.value!.IdRolUsuarioNavigation.Descripcion,
-            };
+            Correo = usuarioLogin.correo,
+            Clave = usuarioLogin.clave
+        };
 
+        var result = await _usuarioServicio.IniciarSesion(loginRequest);
+
+        if (result.status && result.value != null)
+        {
             var autenticacionExt = (AutenticacionExtension)autenticacionProvider;
-            await autenticacionExt.ActualizarEstadoAutenticacion(sesionUsuario);
+            await autenticacionExt.ActualizarEstadoAutenticacion(result.value);
             _navigationManager.NavigateTo("/page/dashboard");
         }
         else

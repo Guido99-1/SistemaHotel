@@ -1,21 +1,153 @@
-﻿@page "/page/salida"
+@page "/page/salida"
 @inject IPisoServicio _pisoServicio
 @inject IHabitacionServicio _habitacionServicio
 @inject IRecepcionServicio _recepcionServicio
 @inject NavigationManager _navManager
 @attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
-    <MudText Typo="Typo.h5" GutterBottom="true">Salida</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-3 mb-4">
 
-    <MudPaper Elevation="3" Class="pa-4" Width="100%">
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- HEADER MINIMALISTA                                -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; letter-spacing: -0.5px;">
+                Salida
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 13px;">
+                Procesar check-out de habitaciones ocupadas
+            </MudText>
+        </MudStack>
 
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="RecargarDatos"
+                   Disabled="@(listaHabitaciones == null)"
+                   Size="Size.Small"
+                   Style="text-transform: none; border-color: #D1D5DB; color: #374151;">
+            Actualizar
+        </MudButton>
+    </MudStack>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- KPIs RESUMEN                                      -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudGrid Spacing="3" Class="mb-4">
+
+        <!-- Total Habitaciones Ocupadas (AZUL) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div style="background: #EBF2F9; padding: 8px; border-radius: 10px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #5C8DC2; font-size: 24px;" />
+                        </div>
+                    </MudStack>
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">OCUPADAS</MudText>
+                        <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                            @TotalOcupadasGeneral
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">en todo el hotel</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Pendientes de salida en este piso (NARANJA) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div style="background: #FAF1E7; padding: 8px; border-radius: 10px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Logout" Style="color: #E8A668; font-size: 24px;" />
+                        </div>
+                    </MudStack>
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">EN ESTE PISO</MudText>
+                        <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                            @(listaHabitaciones?.Count ?? 0)
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">por procesar salida</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Piso seleccionado (VERDE) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div style="background: #EFF5EF; padding: 8px; border-radius: 10px;">
+                            <MudIcon Icon="@Icons.Material.Filled.Apartment" Style="color: #6FA776; font-size: 24px;" />
+                        </div>
+                    </MudStack>
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">PISO ACTUAL</MudText>
+                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                            @(pisoSeleccionado?.Descripcion ?? "Sin selección")
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">@listaPisos.Count pisos disponibles</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Hora actual (NEGRO/GRIS) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                <MudStack Spacing="2">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                        <div style="background: #F0F2F5; padding: 8px; border-radius: 10px;">
+                            <MudIcon Icon="@Icons.Material.Filled.AccessTime" Style="color: #424E5F; font-size: 24px;" />
+                        </div>
+                    </MudStack>
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">FECHA</MudText>
+                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                            @DateTime.Now.ToString("dd 'de' MMM", new System.Globalization.CultureInfo("es-ES"))
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                            @DateTime.Now.ToString("dddd", new System.Globalization.CultureInfo("es-ES"))
+                        </MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- FILTROS Y CONTENIDO                              -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+
+        <!-- Header de filtros -->
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+            <div style="background: #EBF2F9; padding: 8px; border-radius: 8px;">
+                <MudIcon Icon="@Icons.Material.Filled.FilterList" Style="color: #5C8DC2; font-size: 20px;" />
+            </div>
+            <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Filtrar por Piso</MudText>
+        </MudStack>
 
         <MudGrid>
-            <MudItem xs="12" lg="3" md="4" sm="6">
-                <MudSelect T="PisoDTO" Label="Piso" Variant="Variant.Outlined" AnchorOrigin="Origin.BottomCenter" Class="mb-3"
-                           Value="pisoSeleccionado" Margin="Margin.Dense"
-                           ValueChanged="OnSelectedValueChanged">
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="PisoDTO"
+                           Label="Selecciona un piso"
+                           Variant="Variant.Outlined"
+                           AnchorOrigin="Origin.BottomCenter"
+                           Value="pisoSeleccionado"
+                           Margin="Margin.Dense"
+                           ValueChanged="OnSelectedValueChanged"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.Apartment"
+                           AdornmentColor="Color.Primary">
                     @if (listaPisos.Any())
                     {
                         foreach (var item in listaPisos)
@@ -25,88 +157,279 @@
                     }
                 </MudSelect>
             </MudItem>
-
         </MudGrid>
+    </MudPaper>
 
-        <MudDivider Class="my-2" />
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- HABITACIONES POR PROCESAR SALIDA                 -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
 
-        <MudGrid>
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <div style="background: #FAF1E7; padding: 10px; border-radius: 10px;">
+                    <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Style="color: #E8A668; font-size: 24px;" />
+                </div>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Habitaciones Ocupadas</MudText>
+                    <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                        Click en una habitación para procesar el check-out
+                    </MudText>
+                </MudStack>
+            </MudStack>
 
-            @if (listaHabitaciones != null)
+            @if (listaHabitaciones != null && listaHabitaciones.Any())
             {
+                <MudChip Size="Size.Small" Variant="Variant.Text"
+                         Style="background: #FAF1E7; color: #B97A40; font-weight: 600;">
+                    @listaHabitaciones.Count habitaciones
+                </MudChip>
+            }
+        </MudStack>
 
-                foreach (var item in listaHabitaciones)
+        <MudDivider Class="mb-3" Style="border-color: #E5E7EB;" />
+
+        @if (listaHabitaciones == null)
+        {
+            <!-- ═══ ESTADO: CARGANDO ═══ -->
+            <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+                <MudProgressCircular Style="color: #5C8DC2;" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.body2" Style="color: #6B7280;">Cargando habitaciones...</MudText>
+            </MudStack>
+        }
+        else if (!listaHabitaciones.Any())
+        {
+            <!-- ═══ ESTADO: SIN DATOS ═══ -->
+            <div class="empty-state">
+                <div style="background: #EFF5EF; padding: 16px; border-radius: 50%; margin-bottom: 16px;">
+                    <MudIcon Icon="@Icons.Material.Filled.Hotel"
+                             Style="color: #6FA776; font-size: 56px;" />
+                </div>
+                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">
+                    Sin habitaciones por salir
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color: #6B7280; text-align: center; max-width: 400px;">
+                    No hay habitaciones ocupadas en el <strong style="color: #4A7AAD;">@(pisoSeleccionado?.Descripcion ?? "piso seleccionado")</strong> que requieran procesar salida.
+                </MudText>
+                <MudText Typo="Typo.caption" Style="color: #9CA3AF; margin-top: 8px;">
+                    Selecciona otro piso o espera nuevos check-ins
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <!-- ═══ HABITACIONES OCUPADAS ═══ -->
+            <MudGrid Spacing="3">
+                @foreach (var item in listaHabitaciones)
                 {
-                    string borderTarjeta = item.IdEstadoHabitacion == 1 ? "mud-border-success" : item.IdEstadoHabitacion == 2 ? "mud-border-info" : "mud-border-error";
-                    Color colorTarjeta = item.IdEstadoHabitacion == 1 ? Color.Success : item.IdEstadoHabitacion == 2 ? Color.Info : Color.Error;
+                    <MudItem xs="12" sm="6" md="4" lg="3" Class="d-flex">
+                        <div class="habitacion-card cursor-pointer"
+                             @onclick="@(() => VerDetalle(item))">
 
-                    <MudItem xs="12" lg="3" md="4" sm="6">
-                        <MudCard Class="@(borderTarjeta + " border-solid border-1")">
-                            <MudCardContent Class="d-flex flex-row justify-space-between">
-                                <div>
-                                    <MudText Typo="Typo.h5">@item.Numero</MudText>
-                                    <MudText Typo="Typo.body1">Categoria: @item.IdCategoriaNavigation!.Descripcion</MudText>
+                            <!-- Header con icono y badge -->
+                            <div class="habitacion-header">
+                                <div style="background: #FAF1E7; padding: 10px; border-radius: 10px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.AirlineSeatIndividualSuite"
+                                             Style="color: #E8A668; font-size: 28px;" />
                                 </div>
-                                <MudIcon Icon="@Icons.Material.Filled.AirlineSeatIndividualSuite" Color="colorTarjeta" Class="mx-4" Style="width:54px; height:54px;"></MudIcon>
-                            </MudCardContent>
-                            <MudCardActions>
-                                <MudButton Variant="Variant.Text" Color="colorTarjeta" FullWidth="true"
-                                   OnClick="@(() => VerDetalle(item))">@item.IdEstadoHabitacionNavigation!.Descripcion</MudButton>
-                            </MudCardActions>
-                        </MudCard>
+                                <MudChip Size="Size.Small" Variant="Variant.Text"
+                                         Style="background: #FAF1E7; color: #B97A40; font-weight: 600; font-size: 10px;">
+                                    OCUPADA
+                                </MudChip>
+                            </div>
+
+                            <!-- Cuerpo: número de habitación grande -->
+                            <div class="habitacion-body">
+                                <MudText Typo="Typo.h3" Style="color: #1F2937; font-weight: 800; line-height: 1; letter-spacing: -1px;">
+                                    @item.Numero
+                                </MudText>
+                                <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">HABITACIÓN</MudText>
+                            </div>
+
+                            <!-- Categoría -->
+                            <div class="habitacion-categoria">
+                                <MudIcon Icon="@Icons.Material.Filled.Category" Style="color: #6B7280; font-size: 16px;" />
+                                <MudText Typo="Typo.body2" Style="color: #374151;">
+                                    @item.IdCategoriaNavigation?.Descripcion
+                                </MudText>
+                            </div>
+
+                            <!-- Botón de acción -->
+                            <div class="habitacion-action">
+                                <MudButton Variant="Variant.Filled"
+                                           FullWidth="true"
+                                           Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.Logout"
+                                           Style="background: #E8A668; color: white; text-transform: none; font-weight: 600;">
+                                    Procesar Salida
+                                </MudButton>
+                            </div>
+                        </div>
                     </MudItem>
                 }
-            }
-            else
-            {
-                <MudItem xs="12" lg="3" md="4" sm="6" Class="d-flex justify-center">
-                    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
-                </MudItem>
-
-            }
-
-        </MudGrid>
-
+            </MudGrid>
+        }
     </MudPaper>
 
 </MudContainer>
 
+<style>
+    .cursor-pointer { cursor: pointer; }
+
+    .kpi-card-flat {
+        transition: all 0.2s ease;
+    }
+    .kpi-card-flat:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        border-color: #5C8DC2 !important;
+    }
+
+    /* ════════════════════════════════════════════ */
+    /* TARJETA DE HABITACIÓN                         */
+    /* ════════════════════════════════════════════ */
+    .habitacion-card {
+        background: white;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        padding: 20px;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        transition: all 0.2s ease;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .habitacion-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 4px;
+        height: 100%;
+        background: #E8A668;
+    }
+
+    .habitacion-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 16px rgba(232, 166, 104, 0.15);
+        border-color: #E8A668;
+    }
+
+    .habitacion-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .habitacion-body {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .habitacion-categoria {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 8px 12px;
+        background: #F9FAFB;
+        border-radius: 8px;
+        border: 1px solid #E5E7EB;
+    }
+
+    .habitacion-action {
+        margin-top: auto;
+    }
+
+    /* ════════════════════════════════════════════ */
+    /* ESTADO VACÍO                                  */
+    /* ════════════════════════════════════════════ */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        gap: 8px;
+        background: #F9FAFB;
+        border-radius: 12px;
+        border: 2px dashed #E5E7EB;
+    }
+</style>
 
 @code {
-    List<PisoDTO> listaPisos = new List<PisoDTO>();
-    public PisoDTO pisoSeleccionado;
+    private List<PisoDTO> listaPisos = new List<PisoDTO>();
+    private PisoDTO? pisoSeleccionado;
 
-    List<HabitacionDTO> listaHabitaciones = null;
+    private List<HabitacionDTO>? listaHabitaciones = null;
+
+    // Total ocupadas en todo el hotel (para KPI)
+    private int TotalOcupadasGeneral { get; set; } = 0;
 
     protected override async Task OnInitializedAsync()
     {
         var responsePiso = await _pisoServicio.Lista();
-        if (responsePiso.status)
+        if (responsePiso.status && responsePiso.value != null)
         {
-            listaPisos = (List<PisoDTO>)responsePiso.value!;
-            pisoSeleccionado = listaPisos.First();
-        }
+            listaPisos = (List<PisoDTO>)responsePiso.value;
 
-        await ObtenerHabitaciones(1);
+            if (listaPisos.Any())
+            {
+                pisoSeleccionado = listaPisos.First();
+                await CargarTotalOcupadas();
+                await ObtenerHabitaciones(pisoSeleccionado.IdPiso);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Calcula el total de habitaciones ocupadas en TODO el hotel
+    /// (para mostrar en el KPI principal)
+    /// </summary>
+    private async Task CargarTotalOcupadas()
+    {
+        var response = await _habitacionServicio.Lista();
+        if (response.status && response.value != null)
+        {
+            TotalOcupadasGeneral = ((List<HabitacionDTO>)response.value)
+                .Count(h => h.IdEstadoHabitacion == 3);
+        }
     }
 
     private async Task ObtenerHabitaciones(int idPiso)
     {
-        var response = await _habitacionServicio.Lista();
         listaHabitaciones = null;
-        if (response.status)
-        {
-            listaHabitaciones = ((List<HabitacionDTO>)response.value!).Where(h => h.IdEstadoHabitacion == 3 && h.IdPiso == idPiso).ToList();
-        }
+        StateHasChanged();
 
+        var response = await _habitacionServicio.Lista();
+        if (response.status && response.value != null)
+        {
+            listaHabitaciones = ((List<HabitacionDTO>)response.value)
+                .Where(h => h.IdEstadoHabitacion == 3 && h.IdPiso == idPiso)
+                .ToList();
+        }
+        else
+        {
+            listaHabitaciones = new List<HabitacionDTO>();
+        }
     }
 
+    private async Task RecargarDatos()
+    {
+        if (pisoSeleccionado != null)
+        {
+            await CargarTotalOcupadas();
+            await ObtenerHabitaciones(pisoSeleccionado.IdPiso);
+        }
+    }
 
     private async Task OnSelectedValueChanged(PisoDTO value)
     {
         pisoSeleccionado = value;
-        int idPiso = value.IdPiso;
-        await ObtenerHabitaciones(idPiso);
+        await ObtenerHabitaciones(value.IdPiso);
     }
 
     private async Task VerDetalle(HabitacionDTO modelo)
@@ -118,5 +441,4 @@
             _navManager.NavigateTo($"/page/detalleSalida/{modelo.IdHabitacion}");
         }
     }
-
 }

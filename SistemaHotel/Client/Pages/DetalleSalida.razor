@@ -1,141 +1,398 @@
-﻿@page "/page/detalleSalida/{idHabitacion:int}"
+@page "/page/detalleSalida/{idHabitacion:int}"
 @attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 @inject IRecepcionServicio _recepcionServicio
-@inject SweetAlertService Swal;
-@inject NavigationManager navManager;
+@inject SweetAlertService Swal
+@inject NavigationManager navManager
 @inject IDialogService DialogService
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Detalle</MudText>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-3 mb-4">
 
-    <MudPaper Elevation="3" Class="pa-4" Width="100%">
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- HEADER MINIMALISTA                                -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; letter-spacing: -0.5px;">
+                Procesar Salida
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 13px;">
+                Habitación @_recepcionDTO.IdHabitacionNavigation?.Numero ·
+                @_recepcionDTO.IdClienteNavigation?.NombreCompleto
+            </MudText>
+        </MudStack>
 
+        <MudButton Variant="Variant.Outlined"
+                   StartIcon="@Icons.Material.Filled.ArrowBack"
+                   OnClick="Volver"
+                   Size="Size.Small"
+                   Style="text-transform: none; border-color: #D1D5DB; color: #374151;">
+            Volver
+        </MudButton>
+    </MudStack>
 
-        <MudGrid>
-            <MudItem xs="12">
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- INFORMACIÓN DEL HUÉSPED Y HABITACIÓN              -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudGrid Spacing="3" Class="mb-3">
 
-                <MudCard>
-                    <MudCardHeader Class="pb-0">
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Habitación</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudGrid>
+        <!-- Tarjeta: Cliente -->
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="pa-4 info-card"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                    <div style="background: #EBF2F9; padding: 10px; border-radius: 10px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Person" Style="color: #5C8DC2; font-size: 24px;" />
+                    </div>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Huésped</MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">Información del cliente</MudText>
+                    </MudStack>
+                </MudStack>
 
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="_recepcionDTO.IdHabitacionNavigation.Numero" Label="Numero"
-                                              ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="_recepcionDTO.IdHabitacionNavigation.Detalle" Label="Detalle"
-                                              ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="_recepcionDTO.IdHabitacionNavigation.IdCategoriaNavigation.Descripcion" Label="Categoria"
-                                              ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="_recepcionDTO.IdHabitacionNavigation.IdPisoNavigation.Descripcion" Label="Piso"
-                                              ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
+                <MudDivider Class="mb-3" Style="border-color: #E5E7EB;" />
 
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="_recepcionDTO.IdClienteNavigation.NombreCompleto" Label="Cliente"
-                                              ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="_recepcionDTO.IdClienteNavigation.Documento" Label="Nro Documento"
-                                              ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="fechaEntrada" Label="Fecha Entrada"
-                                              ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="fechaSalida" Label="Fecha Salida"
-                                              ReadOnly="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
-                           
+                <MudStack Spacing="2">
+                    <div class="info-row">
+                        <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Style="color: #6B7280; font-size: 18px;" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.caption" Style="color: #6B7280;">Nombre</MudText>
+                            <MudText Typo="Typo.body2" Style="color: #1F2937; font-weight: 600;">
+                                @(_recepcionDTO.IdClienteNavigation?.NombreCompleto ?? "Sin nombre")
+                            </MudText>
+                        </MudStack>
+                    </div>
 
-                        </MudGrid>
-                    </MudCardContent>
-                </MudCard>
+                    <div class="info-row">
+                        <MudIcon Icon="@Icons.Material.Filled.Badge" Style="color: #6B7280; font-size: 18px;" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.caption" Style="color: #6B7280;">Documento</MudText>
+                            <MudText Typo="Typo.body2" Style="color: #1F2937; font-weight: 600;">
+                                @(_recepcionDTO.IdClienteNavigation?.TipoDocumento ?? "")
+                                @(_recepcionDTO.IdClienteNavigation?.Documento ?? "Sin documento")
+                            </MudText>
+                        </MudStack>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
 
+        <!-- Tarjeta: Habitación -->
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="pa-4 info-card"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                    <div style="background: #FAF1E7; padding: 10px; border-radius: 10px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #E8A668; font-size: 24px;" />
+                    </div>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Habitación</MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">Detalle del alojamiento</MudText>
+                    </MudStack>
+                </MudStack>
 
+                <MudDivider Class="mb-3" Style="border-color: #E5E7EB;" />
+
+                <MudStack Spacing="2">
+                    <div class="info-row">
+                        <MudIcon Icon="@Icons.Material.Filled.Bed" Style="color: #6B7280; font-size: 18px;" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.caption" Style="color: #6B7280;">Número</MudText>
+                            <MudText Typo="Typo.body2" Style="color: #1F2937; font-weight: 600;">
+                                @(_recepcionDTO.IdHabitacionNavigation?.Numero ?? "—")
+                            </MudText>
+                        </MudStack>
+                    </div>
+
+                    <div class="info-row">
+                        <MudIcon Icon="@Icons.Material.Filled.Category" Style="color: #6B7280; font-size: 18px;" />
+                        <MudStack Spacing="0">
+                            <MudText Typo="Typo.caption" Style="color: #6B7280;">Categoría</MudText>
+                            <MudText Typo="Typo.body2" Style="color: #1F2937; font-weight: 600;">
+                                @(_recepcionDTO.IdHabitacionNavigation?.IdCategoriaNavigation?.Descripcion ?? "—")
+                            </MudText>
+                        </MudStack>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- ESTADÍA: 4 KPIs                                   -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudPaper Elevation="0" Class="pa-4 mb-3" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+            <div style="background: #EFF5EF; padding: 10px; border-radius: 10px;">
+                <MudIcon Icon="@Icons.Material.Filled.EventNote" Style="color: #6FA776; font-size: 24px;" />
+            </div>
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Estadía</MudText>
+                <MudText Typo="Typo.caption" Style="color: #6B7280;">Resumen del hospedaje</MudText>
+            </MudStack>
+        </MudStack>
+
+        <MudGrid Spacing="3">
+            <!-- Entrada -->
+            <MudItem xs="6" sm="3">
+                <div class="estadia-stat">
+                    <div style="background: #EBF2F9; padding: 8px; border-radius: 8px; width: fit-content; margin-bottom: 8px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Login" Style="color: #5C8DC2; font-size: 20px;" />
+                    </div>
+                    <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">ENTRADA</MudText>
+                    <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">@fechaEntrada</MudText>
+                </div>
             </MudItem>
 
-            <MudItem xs="12">
-                <MudCard>
-                    <MudCardHeader Class="pb-0">
-                        <CardHeaderContent>
-                            <MudText Typo="Typo.h6">Costo de hospedaje</MudText>
-                        </CardHeaderContent>
-                    </MudCardHeader>
-                    <MudCardContent>
-                        <MudGrid>
+            <!-- Salida -->
+            <MudItem xs="6" sm="3">
+                <div class="estadia-stat">
+                    <div style="background: #FAF1E7; padding: 8px; border-radius: 8px; width: fit-content; margin-bottom: 8px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Logout" Style="color: #E8A668; font-size: 20px;" />
+                    </div>
+                    <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">SALIDA</MudText>
+                    <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">@fechaSalida</MudText>
+                </div>
+            </MudItem>
 
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudNumericField T="decimal?"
-                                                 Value="_recepcionDTO.PrecioInicial"
-                                                 ValueChanged="(_)=>{}"
-                                                 Label="Valor Cancelado"
-                                                 ReadOnly="true"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense" />
-                            </MudItem>
+            <!-- Noches -->
+            <MudItem xs="6" sm="3">
+                <div class="estadia-stat">
+                    <div style="background: #EFF5EF; padding: 8px; border-radius: 8px; width: fit-content; margin-bottom: 8px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #6FA776; font-size: 20px;" />
+                    </div>
+                    <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">NOCHES</MudText>
+                    <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">
+                        @nochesHospedaje <span style="color: #6B7280; font-size: 14px; font-weight: 400;">@(nochesHospedaje == 1 ? "noche" : "noches")</span>
+                    </MudText>
+                </div>
+            </MudItem>
 
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudNumericField T="decimal?"
-                                                 Value="_recepcionDTO.CostoPenalidad"
-                                                 ValueChanged="OnPenalidadChanged"
-                                                 Label="Costo por penalidad"
-                                                 Variant="Variant.Outlined"
-                                                 Margin="Margin.Dense" />
-
-                            </MudItem>
-
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-   
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudTextField @bind-Value="totalPagar" Label="Total final cacelado"
-                                              Disabled="true" Variant="Variant.Outlined" Margin="Margin.Dense" />
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudButton Class="mt-1" 
-                                Variant="Variant.Filled" 
-                                Color="Color.Primary"
-                                           FullWidth="true" 
-                                           Disabled="@(_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)" 
-                                           OnClick="@Finalizar">Finalizar Recepción</MudButton>
-                                
-                            </MudItem>
-                            <MudItem xs="12" lg="3" md="3" sm="6">
-                                <MudButton Class="mt-1"
-                                           Variant="Variant.Outlined"
-                                           Color="Color.Secondary"
-                                           FullWidth="true"
-                                           Disabled="@(_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)"
-                                           OnClick="@AbrirModalCambioHabitacion">
-                                    Cambiar Habitación
-                                </MudButton>
-                            </MudItem>
-                        </MudGrid>
-                    </MudCardContent>
-                </MudCard>
+            <!-- Habitación -->
+            <MudItem xs="6" sm="3">
+                <div class="estadia-stat">
+                    <div style="background: #F0F2F5; padding: 8px; border-radius: 8px; width: fit-content; margin-bottom: 8px;">
+                        <MudIcon Icon="@Icons.Material.Filled.Bed" Style="color: #424E5F; font-size: 20px;" />
+                    </div>
+                    <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">HABITACIÓN</MudText>
+                    <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">
+                        @(_recepcionDTO.IdHabitacionNavigation?.Numero ?? "—")
+                    </MudText>
+                </div>
             </MudItem>
         </MudGrid>
+    </MudPaper>
 
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- VALORES: HOSPEDAJE + CARGOS ADICIONALES           -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudGrid Spacing="3" Class="mb-3">
 
+        <!-- Valor de Hospedaje -->
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="pa-4 valor-card"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                    <div style="background: #EFF5EF; padding: 10px; border-radius: 10px;">
+                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Style="color: #6FA776; font-size: 24px;" />
+                    </div>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Valor de Hospedaje</MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">Precio inicial del alojamiento</MudText>
+                    </MudStack>
+                </MudStack>
 
+                <MudDivider Class="mb-4" Style="border-color: #E5E7EB;" />
 
+                <div class="valor-display" style="background: #EFF5EF; border: 1px solid #6FA776;">
+                    <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                             Style="color: #6FA776; font-size: 32px;" />
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.caption" Style="color: #5C9163;">PRECIO ACORDADO</MudText>
+                        <MudText Typo="Typo.h4" Style="color: #5C9163; font-weight: 700;">
+                            $@((_recepcionDTO.PrecioInicial ?? 0m).ToString("N2"))
+                        </MudText>
+                    </MudStack>
+                </div>
+            </MudPaper>
+        </MudItem>
 
-     </MudPaper>
+        <!-- Cargos Adicionales -->
+        <MudItem xs="12" md="6">
+            <MudPaper Elevation="0" Class="pa-4 valor-card"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                    <div style="background: #FAF1E7; padding: 10px; border-radius: 10px;">
+                        <MudIcon Icon="@Icons.Material.Filled.AddCircle" Style="color: #E8A668; font-size: 24px;" />
+                    </div>
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Cargos Adicionales</MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">Penalidades o servicios extra</MudText>
+                    </MudStack>
+                </MudStack>
+
+                <MudDivider Class="mb-4" Style="border-color: #E5E7EB;" />
+
+                <MudStack Spacing="3">
+                    <MudNumericField T="decimal?"
+                                     Value="_recepcionDTO.CostoPenalidad"
+                                     ValueChanged="OnPenalidadChanged"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="0"
+                                     Format="N2"
+                                     Label="Monto adicional"
+                                     Adornment="Adornment.Start"
+                                     AdornmentText="$"
+                                     FullWidth="true" />
+
+                    @if (_recepcionDTO.CostoPenalidad > 0)
+                    {
+                        <div class="valor-display" style="background: #FAF1E7; border: 1px solid #E8A668;">
+                            <MudIcon Icon="@Icons.Material.Filled.WarningAmber"
+                                     Style="color: #B97A40; font-size: 24px;" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.caption" Style="color: #B97A40;">SE COBRARÁ</MudText>
+                                <MudText Typo="Typo.h6" Style="color: #B97A40; font-weight: 700;">
+                                    $@((_recepcionDTO.CostoPenalidad ?? 0m).ToString("N2")) extra
+                                </MudText>
+                            </MudStack>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="valor-display" style="background: #EFF5EF; border: 1px solid #6FA776;">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle"
+                                     Style="color: #6FA776; font-size: 24px;" />
+                            <MudStack Spacing="0">
+                                <MudText Typo="Typo.caption" Style="color: #5C9163;">SIN CARGOS</MudText>
+                                <MudText Typo="Typo.body1" Style="color: #5C9163; font-weight: 600;">
+                                    Solo se cobra el hospedaje
+                                </MudText>
+                            </MudStack>
+                        </div>
+                    }
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- TOTAL A COBRAR (DESTACADO)                        -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudPaper Elevation="0" Class="pa-4 mb-3 total-card" Style="@GetTotalStyle()">
+        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Wrap="Wrap.Wrap" Spacing="3">
+
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="3">
+                <div style="@GetTotalIconStyle()">
+                    <MudIcon Icon="@GetTotalIcon()" Style="color: white; font-size: 32px;" />
+                </div>
+                <MudStack Spacing="0">
+                    <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 12px;">MONTO TOTAL A COBRAR</MudText>
+                    <MudText Typo="Typo.h3" Style="@GetTotalTextStyle()">
+                        $@(totalPagar.ToString("N2"))
+                    </MudText>
+                    <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                        @if (_recepcionDTO.CostoPenalidad > 0)
+                        {
+                            <span>Hospedaje $@((_recepcionDTO.PrecioInicial ?? 0m).ToString("N2")) + cargos $@((_recepcionDTO.CostoPenalidad ?? 0m).ToString("N2"))</span>
+                        }
+                        else
+                        {
+                            <span>Hospedaje completo, sin cargos adicionales</span>
+                        }
+                    </MudText>
+                </MudStack>
+            </MudStack>
+
+            <MudChip Variant="Variant.Filled"
+                     Style="@GetTotalChipStyle()"
+                     Size="Size.Large">
+                @GetTotalChipText()
+            </MudChip>
+        </MudStack>
+    </MudPaper>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- BOTONES DE ACCIÓN                                 -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+        <MudStack Row="true" Spacing="2" Justify="Justify.Center" Wrap="Wrap.Wrap">
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.TaskAlt"
+                       Disabled="@(_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)"
+                       OnClick="@Finalizar"
+                       Style="background: #6FA776; color: white; text-transform: none; padding: 10px 24px; font-weight: 600;">
+                Finalizar Salida
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.SwapHoriz"
+                       Disabled="@(_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)"
+                       OnClick="@AbrirModalCambioHabitacion"
+                       Style="border-color: #5C8DC2; color: #4A7AAD; text-transform: none; padding: 10px 24px; font-weight: 600;">
+                Cambiar Habitación
+            </MudButton>
+
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.ArrowBack"
+                       OnClick="@Volver"
+                       Style="border-color: #D1D5DB; color: #374151; text-transform: none; padding: 10px 24px; font-weight: 600;">
+                Volver
+            </MudButton>
+        </MudStack>
+    </MudPaper>
+
 </MudContainer>
+
+<style>
+    /* ════════════════════════════════════════════ */
+    /* TARJETAS DE INFORMACIÓN                       */
+    /* ════════════════════════════════════════════ */
+    .info-card {
+        transition: all 0.2s ease;
+    }
+    .info-card:hover {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+
+    .info-row {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        padding: 8px 12px;
+        background: #F9FAFB;
+        border-radius: 8px;
+    }
+
+    /* ════════════════════════════════════════════ */
+    /* ESTADÍA - STATS                               */
+    /* ════════════════════════════════════════════ */
+    .estadia-stat {
+        background: #F9FAFB;
+        padding: 16px;
+        border-radius: 8px;
+        border: 1px solid #E5E7EB;
+        height: 100%;
+    }
+
+    /* ════════════════════════════════════════════ */
+    /* VALOR DISPLAY                                 */
+    /* ════════════════════════════════════════════ */
+    .valor-display {
+        padding: 16px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        gap: 16px;
+    }
+
+    /* ════════════════════════════════════════════ */
+    /* TOTAL CARD                                    */
+    /* ════════════════════════════════════════════ */
+    .total-card {
+        transition: all 0.3s ease;
+    }
+</style>
 
 @code {
     [Parameter]
@@ -143,7 +400,9 @@
 
     private string fechaEntrada = "";
     private string fechaSalida = "";
-    private decimal? totalPagar = 0;
+    private decimal totalPagar = 0;
+    private int nochesHospedaje = 0;
+
     private RecepcionDTO _recepcionDTO = new RecepcionDTO()
     {
         IdHabitacionNavigation = new HabitacionDTO()
@@ -160,11 +419,11 @@
 
         if (!response.status || response.value == null)
         {
-            await Swal.FireAsync("Sin datos",
+            await Swal.FireAsync(
+                "Sin datos",
                 "No existe una recepción activa para esta habitación.\nVerifica que la habitación esté OCUPADA y que se haya registrado la recepción.",
                 "info");
 
-            // Evita NullReference y regresa a la pantalla anterior
             navManager.NavigateTo("/page/salida");
             return;
         }
@@ -173,20 +432,27 @@
 
         fechaEntrada = _recepcionDTO.FechaEntrada.HasValue
             ? _recepcionDTO.FechaEntrada.Value.ToString("dd/MM/yyyy")
-            : "";
+            : "—";
 
         fechaSalida = _recepcionDTO.FechaSalida.HasValue
             ? _recepcionDTO.FechaSalida.Value.ToString("dd/MM/yyyy")
-            : "";
+            : "—";
 
-        totalPagar = (_recepcionDTO.PrecioInicial ?? 0) + (_recepcionDTO.CostoPenalidad ?? 0);
+        // Calcular número de noches
+        if (_recepcionDTO.FechaEntrada.HasValue && _recepcionDTO.FechaSalida.HasValue)
+        {
+            nochesHospedaje = (int)(_recepcionDTO.FechaSalida.Value - _recepcionDTO.FechaEntrada.Value).TotalDays;
+            if (nochesHospedaje <= 0) nochesHospedaje = 1;
+        }
+
+        // Calcular total
+        totalPagar = (_recepcionDTO.PrecioInicial ?? 0m) + (_recepcionDTO.CostoPenalidad ?? 0m);
     }
-
 
     private void OnPenalidadChanged(decimal? value)
     {
-        _recepcionDTO.CostoPenalidad = value ?? 0;
-        totalPagar = (_recepcionDTO.PrecioInicial ?? 0) + (_recepcionDTO.CostoPenalidad ?? 0);
+        _recepcionDTO.CostoPenalidad = value ?? 0m;
+        totalPagar = (_recepcionDTO.PrecioInicial ?? 0m) + (_recepcionDTO.CostoPenalidad ?? 0m);
     }
 
     private async Task AbrirModalCambioHabitacion()
@@ -198,14 +464,14 @@
         }
 
         var parameters = new DialogParameters
-    {
-        { nameof(CambiarHabitacion.IdRecepcion), _recepcionDTO.IdRecepcion },
-        { nameof(CambiarHabitacion.IdHabitacionActual), _recepcionDTO.IdHabitacion ?? 0 },
-        { nameof(CambiarHabitacion.NumeroHabitacionActual), _recepcionDTO.IdHabitacionNavigation?.Numero ?? "" },
-        { nameof(CambiarHabitacion.DetalleHabitacionActual), _recepcionDTO.IdHabitacionNavigation?.Detalle ?? "" },
-        { nameof(CambiarHabitacion.CategoriaActual), _recepcionDTO.IdHabitacionNavigation?.IdCategoriaNavigation?.Descripcion ?? "" },
-        { nameof(CambiarHabitacion.PisoActual), _recepcionDTO.IdHabitacionNavigation?.IdPisoNavigation?.Descripcion ?? "" }
-    };
+        {
+            { nameof(CambiarHabitacion.IdRecepcion), _recepcionDTO.IdRecepcion },
+            { nameof(CambiarHabitacion.IdHabitacionActual), _recepcionDTO.IdHabitacion ?? 0 },
+            { nameof(CambiarHabitacion.NumeroHabitacionActual), _recepcionDTO.IdHabitacionNavigation?.Numero ?? "" },
+            { nameof(CambiarHabitacion.DetalleHabitacionActual), _recepcionDTO.IdHabitacionNavigation?.Detalle ?? "" },
+            { nameof(CambiarHabitacion.CategoriaActual), _recepcionDTO.IdHabitacionNavigation?.IdCategoriaNavigation?.Descripcion ?? "" },
+            { nameof(CambiarHabitacion.PisoActual), _recepcionDTO.IdHabitacionNavigation?.IdPisoNavigation?.Descripcion ?? "" }
+        };
 
         var options = new DialogOptions
         {
@@ -217,60 +483,75 @@
         var dialog = DialogService.Show<CambiarHabitacion>("Cambio de habitación", parameters, options);
         var result = await dialog.Result;
 
-        if (!result.Canceled && result.Data is int nuevaHabitacionId)
+        if (!result.Canceled)
         {
-            navManager.NavigateTo($"/page/detalleSalida/{nuevaHabitacionId}", true);
+            await Swal.FireAsync(
+                "Habitación cambiada",
+                "El cambio se realizó correctamente. La habitación anterior pasó a limpieza.",
+                "success"
+            );
+            navManager.NavigateTo("/page/recepcion", forceLoad: true);
         }
     }
-    // private async Task Finalizar()
-    // {
-    //     // Confirmación
-    //     var confirm = await Swal.FireAsync(new SweetAlertOptions
-    //     {
-    //         Title = "¿Finalizar recepción?",
-    //         Text = "Se realizará el check-out y se liberará la habitación.",
-    //         Icon = SweetAlertIcon.Warning,
-    //         ShowCancelButton = true,
-    //         ConfirmButtonText = "Sí, finalizar",
-    //         CancelButtonText = "Cancelar"
-    //     });
 
-    //     if (!confirm.IsConfirmed)
-    //         return;
+    // ════════════════════════════════════════════════
+    // ESTILOS DEL TOTAL (paleta sin rojo)
+    // ════════════════════════════════════════════════
 
-    //     // Validación: que haya recepción cargada
-    //     if (_recepcionDTO == null || _recepcionDTO.IdRecepcion <= 0)
-    //     {
-    //         await Swal.FireAsync("Error", "No se encontró una recepción activa para finalizar.", "error");
-    //         return;
-    //     }
-    //     //✅ Normalizar penalidad
-    //         var penalidad = _recepcionDTO.CostoPenalidad ?? 0m;
-    //         if (penalidad < 0m) penalidad = 0m;
+    private string GetTotalStyle()
+    {
+        if (_recepcionDTO.CostoPenalidad > 0)
+        {
+            return "background: linear-gradient(135deg, #FAF1E7 0%, #FFFFFF 100%); border: 1px solid #E8A668; border-left: 4px solid #E8A668; border-radius: 12px;";
+        }
+        else
+        {
+            return "background: linear-gradient(135deg, #EFF5EF 0%, #FFFFFF 100%); border: 1px solid #6FA776; border-left: 4px solid #6FA776; border-radius: 12px;";
+        }
+    }
 
-    //         _recepcionDTO.CostoPenalidad = penalidad;
-    //     // ✅ Total final: precio base + penalidad
-    //         var baseHospedaje = _recepcionDTO.PrecioInicial ?? 0m;
-    //         _recepcionDTO.TotalPagado = baseHospedaje + penalidad;
+    private string GetTotalIconStyle()
+    {
+        var bg = _recepcionDTO.CostoPenalidad > 0 ? "#E8A668" : "#6FA776";
+        return $"background: {bg}; padding: 12px; border-radius: 12px; display: flex; align-items: center; justify-content: center;";
+    }
 
-    //     var resp = await _recepcionServicio.Finalizar(_recepcionDTO.IdRecepcion);
+    private string GetTotalIcon()
+    {
+        return _recepcionDTO.CostoPenalidad > 0
+            ? Icons.Material.Filled.PendingActions
+            : Icons.Material.Filled.CheckCircle;
+    }
 
-    //     if (resp.status)
-    //     {
-    //         await Swal.FireAsync("Éxito", resp.msg, "success");
-    //         navManager.NavigateTo("/page/salida");
-    //     }
-    //     else
-    //     {
-    //         await Swal.FireAsync("No se pudo finalizar", resp.msg, "error");
-    //     }
-    // }
+    private string GetTotalTextStyle()
+    {
+        var color = _recepcionDTO.CostoPenalidad > 0 ? "#B97A40" : "#5C9163";
+        return $"color: {color}; font-weight: 800; line-height: 1;";
+    }
+
+    private string GetTotalChipStyle()
+    {
+        if (_recepcionDTO.CostoPenalidad > 0)
+        {
+            return "background: #E8A668; color: white; font-weight: 600;";
+        }
+        else
+        {
+            return "background: #6FA776; color: white; font-weight: 600;";
+        }
+    }
+
+    private string GetTotalChipText()
+    {
+        return _recepcionDTO.CostoPenalidad > 0 ? "CON RECARGO" : "SIN RECARGO";
+    }
+
     private async Task Finalizar()
     {
         var confirm = await Swal.FireAsync(new SweetAlertOptions
         {
-            Title = "¿Finalizar recepción?",
-            Text = "Se realizará el check-out y se liberará la habitación.",
+            Title = "¿Finalizar salida?",
+            Text = $"Total a cobrar: ${totalPagar:N2}. Se liberará la habitación.",
             Icon = SweetAlertIcon.Warning,
             ShowCancelButton = true,
             ConfirmButtonText = "Sí, finalizar",
@@ -288,7 +569,6 @@
 
         decimal penalidad = _recepcionDTO.CostoPenalidad ?? 0m;
 
-        // ✅ AQUÍ ESTÁ LA CORRECCIÓN
         var ok = await _recepcionServicio.Finalizar(
             _recepcionDTO.IdRecepcion,
             DateTime.Now,
@@ -297,16 +577,17 @@
 
         if (ok)
         {
-            await Swal.FireAsync("Check-out realizado", "Habitación liberada correctamente.", "success");
-
-            navManager.NavigateTo("/page/recepcion", true);
+            await Swal.FireAsync("Salida registrada", "Habitación liberada correctamente.", "success");
+            navManager.NavigateTo("/page/salida", true);
         }
         else
         {
             await Swal.FireAsync("Error", "No se pudo finalizar.", "error");
         }
     }
-   
 
-
+    private void Volver()
+    {
+        navManager.NavigateTo("/page/salida");
+    }
 }

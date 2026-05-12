@@ -1,0 +1,318 @@
+@using SistemaHotel.Shared
+@inject SweetAlertService Swal
+@inject IDialogService _dialogServicio
+
+<MudDialog Style="min-width: 520px;">
+    <DialogContent>
+        <MudStack Spacing="3">
+
+            <!-- Información de la habitación -->
+            <MudPaper Elevation="0" Class="pa-3 rounded-lg"
+                      Style="background: linear-gradient(135deg, #e3f2fd 0%, #f5f5f5 100%); border-left: 4px solid #1976d2;">
+                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                    <MudIcon Icon="@Icons.Material.Filled.Bed"
+                             Color="Color.Primary"
+                             Style="font-size: 36px;" />
+                    <MudStack Spacing="0">
+                        <MudText Typo="Typo.body1" Class="fw-700">
+                            Habitación @Habitacion?.Numero
+                        </MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                            @Habitacion?.IdCategoriaNavigation?.Descripcion
+                            @(string.IsNullOrEmpty(Habitacion?.Detalle) ? "" : " · " + Habitacion?.Detalle)
+                        </MudText>
+                    </MudStack>
+                </MudStack>
+            </MudPaper>
+
+            <!-- Cliente (genérico, se puede cambiar) -->
+            <MudGrid Spacing="2">
+                <MudItem xs="12">
+                    @if (ClienteSeleccionado == null)
+                    {
+                        <MudButton Variant="Variant.Outlined"
+                                   Color="Color.Primary"
+                                   FullWidth="true"
+                                   StartIcon="@Icons.Material.Filled.PersonSearch"
+                                   OnClick="BuscarCliente">
+                            Seleccionar Cliente
+                        </MudButton>
+                    }
+                    else
+                    {
+                        <MudPaper Elevation="0" Class="pa-2 rounded-lg" Style="background-color: #f5f5f5;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Color="Color.Primary" />
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.body2" Class="fw-700">
+                                            @ClienteSeleccionado.NombreCompleto
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Color="Color.Secondary">
+                                            @ClienteSeleccionado.TipoDocumento: @ClienteSeleccionado.Documento
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
+                                <MudIconButton Icon="@Icons.Material.Filled.Close"
+                                               Size="Size.Small"
+                                               OnClick="@(() => ClienteSeleccionado = null)" />
+                            </MudStack>
+                        </MudPaper>
+                    }
+                </MudItem>
+
+                <!-- Cantidad de personas -->
+                <MudItem xs="12" sm="6">
+                    <MudNumericField T="int"
+                                     @bind-Value="CantidadPersonas"
+                                     Label="Cantidad de personas"
+                                     Variant="Variant.Outlined"
+                                     Margin="Margin.Dense"
+                                     Min="1"
+                                     Max="20"
+                                     Adornment="Adornment.Start"
+                                     AdornmentIcon="@Icons.Material.Filled.Group" />
+                </MudItem>
+
+                <!-- Día festivo -->
+                <MudItem xs="12" sm="6" Class="d-flex align-center">
+                    <MudCheckBox @bind-Checked="EsDiaFestivo"
+                                 Label="Día festivo"
+                                 Color="Color.Warning" />
+                </MudItem>
+
+                <!-- Fechas -->
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="FechaEntrada"
+                                   Label="Fecha Entrada"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   DateFormat="dd/MM/yyyy"
+                                   MinDate="DateTime.Today" />
+                </MudItem>
+
+                <MudItem xs="12" sm="6">
+                    <MudDatePicker @bind-Date="FechaSalida"
+                                   Label="Fecha Salida"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   DateFormat="dd/MM/yyyy"
+                                   MinDate="@(FechaEntrada?.AddDays(1) ?? DateTime.Today.AddDays(1))" />
+                </MudItem>
+
+                <!-- Observación -->
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="Observacion"
+                                  Label="Observación (opcional)"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@Icons.Material.Filled.Notes" />
+                </MudItem>
+            </MudGrid>
+
+            <!-- Resumen de cálculo -->
+            <MudPaper Elevation="0" Class="pa-3 rounded-lg" Style="@GetEstiloResumen()">
+                <MudStack Spacing="1">
+                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2">Tarifa por persona:</MudText>
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudText Typo="Typo.body2" Class="fw-700">
+                                $@TarifaPorPersona.ToString("N2")
+                            </MudText>
+                            @if (EsDiaFestivo)
+                            {
+                                <MudChip Size="Size.Small"
+                                         Color="Color.Warning"
+                                         Variant="Variant.Filled"
+                                         Icon="@Icons.Material.Filled.Star"
+                                         Style="height: 20px; font-size: 10px;">
+                                    Festivo
+                                </MudChip>
+                            }
+                        </MudStack>
+                    </MudStack>
+
+                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2">Personas:</MudText>
+                        <MudText Typo="Typo.body2" Class="fw-700">@CantidadPersonas</MudText>
+                    </MudStack>
+
+                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.body2">Noches:</MudText>
+                        <MudText Typo="Typo.body2" Class="fw-700">@Noches</MudText>
+                    </MudStack>
+
+                    <MudDivider />
+
+                    <MudStack Row="true" Justify="Justify.SpaceBetween">
+                        <MudText Typo="Typo.h6" Class="fw-700">Total a pagar:</MudText>
+                        <MudText Typo="Typo.h6" Class="fw-700" Style="@GetEstiloTotal()">
+                            $@MontoTotal.ToString("N2")
+                        </MudText>
+                    </MudStack>
+
+                    <MudAlert Severity="Severity.Success" Variant="Variant.Outlined" Dense="true" Class="mt-1">
+                        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Size="Size.Small" />
+                            <MudText Typo="Typo.caption">
+                                <strong>Pagado vía TRANSFERENCIA</strong> (Adelanto = Total)
+                            </MudText>
+                        </MudStack>
+                    </MudAlert>
+                </MudStack>
+            </MudPaper>
+
+        </MudStack>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Outlined" Color="Color.Default" OnClick="Cancel">
+            Cancelar
+        </MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Save"
+                   Disabled="@(!PuedeGuardar)"
+                   OnClick="Guardar">
+            Confirmar Reserva
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] MudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter] public HabitacionDTO? Habitacion { get; set; }
+
+    private ClienteDTO? ClienteSeleccionado;
+    private int CantidadPersonas = 2;
+    private bool EsDiaFestivo = false;
+    private DateTime? FechaEntrada = DateTime.Today;
+    private DateTime? FechaSalida = DateTime.Today.AddDays(1);
+    private string? Observacion;
+
+    // Tarifas fijas de gerencia
+    private const decimal TARIFA_NORMAL = 15m;
+    private const decimal TARIFA_FESTIVO = 20m;
+
+    // Tarifa actual según día festivo
+    private decimal TarifaPorPersona => EsDiaFestivo ? TARIFA_FESTIVO : TARIFA_NORMAL;
+
+    // Cantidad de noches
+    private int Noches
+    {
+        get
+        {
+            if (!FechaEntrada.HasValue || !FechaSalida.HasValue) return 0;
+            int n = (FechaSalida.Value.Date - FechaEntrada.Value.Date).Days;
+            return n > 0 ? n : 0;
+        }
+    }
+
+    // Monto total = personas * tarifa * noches
+    private decimal MontoTotal => CantidadPersonas * TarifaPorPersona * Noches;
+
+    // Validación para habilitar el botón
+    private bool PuedeGuardar =>
+        ClienteSeleccionado != null &&
+        CantidadPersonas > 0 &&
+        FechaEntrada.HasValue &&
+        FechaSalida.HasValue &&
+        Noches > 0 &&
+        MontoTotal > 0;
+
+    /// <summary>
+    /// Retorna el estilo del resumen según si es día festivo o no
+    /// </summary>
+    private string GetEstiloResumen()
+    {
+        if (EsDiaFestivo)
+        {
+            return "background: linear-gradient(135deg, #fff3e0 0%, #fff8e1 100%); border: 1px solid #ff9800;";
+        }
+        return "background: linear-gradient(135deg, #e8f5e9 0%, #f1f8e9 100%); border: 1px solid #4caf50;";
+    }
+
+    /// <summary>
+    /// Retorna el color del total según si es día festivo o no
+    /// </summary>
+    private string GetEstiloTotal()
+    {
+        return EsDiaFestivo ? "color: #e65100;" : "color: #2e7d32;";
+    }
+
+    private async Task BuscarCliente()
+    {
+        var options = new DialogOptions
+        {
+            Position = DialogPosition.TopCenter,
+            NoHeader = true,
+            MaxWidth = MaxWidth.Medium,
+            FullWidth = true
+        };
+
+        var dialogo = _dialogServicio.Show<MdClientes>("", options);
+        var resultado = await dialogo.Result;
+
+        if (!resultado.Canceled && resultado.Data is ClienteDTO cliente)
+        {
+            ClienteSeleccionado = cliente;
+        }
+    }
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task Guardar()
+    {
+        if (!PuedeGuardar)
+        {
+            await Swal.FireAsync("Datos incompletos",
+                "Por favor completa todos los campos requeridos.",
+                "warning");
+            return;
+        }
+
+        // Construir observación simple: GERENCIA + Noches + Observación opcional
+        var partesObservacion = new List<string>
+        {
+            "GERENCIA",
+            Noches == 1 ? "1 noche" : $"{Noches} noches"
+        };
+
+        if (!string.IsNullOrWhiteSpace(Observacion))
+            partesObservacion.Add(Observacion.Trim());
+
+        var resultado = new ReservaGerenciaResult
+        {
+            IdHabitacion = Habitacion!.IdHabitacion,
+            IdCliente = ClienteSeleccionado!.IdCliente,
+            CantidadPersonas = CantidadPersonas,
+            EsDiaFestivo = EsDiaFestivo,
+            TarifaPorPersona = TarifaPorPersona,
+            FechaEntrada = FechaEntrada!.Value,
+            FechaSalida = FechaSalida!.Value,
+            MontoTotal = MontoTotal,
+            Adelanto = MontoTotal,  // Pagado en su totalidad
+            MetodoPago = "TRANSFERENCIA",
+            Observacion = string.Join(" - ", partesObservacion)
+        };
+
+        MudDialog.Close(DialogResult.Ok(resultado));
+    }
+
+    public class ReservaGerenciaResult
+    {
+        public int IdHabitacion { get; set; }
+        public int IdCliente { get; set; }
+        public int CantidadPersonas { get; set; }
+        public bool EsDiaFestivo { get; set; }
+        public decimal TarifaPorPersona { get; set; }
+        public DateTime FechaEntrada { get; set; }
+        public DateTime FechaSalida { get; set; }
+        public decimal MontoTotal { get; set; }
+        public decimal Adelanto { get; set; }
+        public string MetodoPago { get; set; } = "TRANSFERENCIA";
+        public string Observacion { get; set; } = "";
+    }
+}

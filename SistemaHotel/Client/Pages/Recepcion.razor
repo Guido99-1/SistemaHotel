@@ -1,266 +1,390 @@
-﻿@page "/page/recepcion"
+@page "/page/recepcion"
 @inject IPisoServicio _pisoServicio
 @inject IHabitacionServicio _habitacionServicio
 @inject IReservaServicio _reservaServicio
 @inject NavigationManager _navManager
 @inject SweetAlertService Swal
 @inject ISnackbar _snackBar
-@inject IReservaServicio _reservaServicio
 @using System.Globalization
 
-@attribute [Authorize(Roles = "Administrador,Recepcionista,Empleado,Gerencia")]
+@attribute [Authorize(Roles = "Administrador,Recepcionista,Gerencia")]
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-6 mb-6">
 
-    <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
-        <MudText Typo="Typo.h5">Recepción</MudText>
-    </MudStack>
+    <!-- HEADER -->
+    <div class="d-flex justify-space-between align-center mb-6 flex-wrap gap-3">
+        <div>
+            <MudText Typo="Typo.h4" Style="font-weight: 700; color: #424E5F;">Recepción</MudText>
+            <MudText Typo="Typo.body2" Style="color: #6B7280;">Gestión diaria de habitaciones y reservas</MudText>
+        </div>
+    </div>
 
-    <MudTabs Rounded="true" Elevation="1" Class="mt-3">
+    <MudTabs Rounded="true" Elevation="0" PanelClass="pa-0" Class="recepcion-tabs"
+             ApplyEffectsToContainer="true" Color="Color.Default">
 
-        <!-- ========================= -->
-        <!-- TAB 1: HABITACIONES       -->
-        <!-- ========================= -->
-        <MudTabPanel Text="Habitaciones">
+        <!-- ============================ -->
+        <!-- TAB 1: HABITACIONES          -->
+        <!-- ============================ -->
+        <MudTabPanel Text="Habitaciones" Icon="@Icons.Material.Filled.MeetingRoom">
 
-            <MudPaper Elevation="3" Class="pa-4" Width="100%">
+            <!-- KPIs Habitaciones -->
+            <MudGrid Spacing="3" Class="mt-4 mb-6">
+                <MudItem xs="12" sm="6" md="3">
+                    <div class="kpi-card-flat" style="border-left: 4px solid #5C8DC2;">
+                        <div class="kpi-icon-box" style="background: #EBF2F9;">
+                            <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #5C8DC2; font-size: 28px;" />
+                        </div>
+                        <div>
+                            <div class="kpi-label">Habitaciones del Piso</div>
+                            <div class="kpi-value" style="color: #5C8DC2;">@(listaHabitaciones?.Count ?? 0)</div>
+                        </div>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <div class="kpi-card-flat" style="border-left: 4px solid #6FA776;">
+                        <div class="kpi-icon-box" style="background: #EFF5EF;">
+                            <MudIcon Icon="@Icons.Material.Filled.CheckCircle" Style="color: #6FA776; font-size: 28px;" />
+                        </div>
+                        <div>
+                            <div class="kpi-label">Disponibles</div>
+                            <div class="kpi-value" style="color: #6FA776;">@HabDisponibles</div>
+                        </div>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <div class="kpi-card-flat" style="border-left: 4px solid #E8A668;">
+                        <div class="kpi-icon-box" style="background: #FAF1E7;">
+                            <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Style="color: #E8A668; font-size: 28px;" />
+                        </div>
+                        <div>
+                            <div class="kpi-label">Reservadas Hoy</div>
+                            <div class="kpi-value" style="color: #E8A668;">@HabReservadasHoy</div>
+                        </div>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <div class="kpi-card-flat" style="border-left: 4px solid #424E5F;">
+                        <div class="kpi-icon-box" style="background: #F0F2F5;">
+                            <MudIcon Icon="@Icons.Material.Filled.CleaningServices" Style="color: #424E5F; font-size: 28px;" />
+                        </div>
+                        <div>
+                            <div class="kpi-label">En Limpieza</div>
+                            <div class="kpi-value" style="color: #424E5F;">@HabLimpieza</div>
+                        </div>
+                    </div>
+                </MudItem>
+            </MudGrid>
 
-                <MudGrid>
-                    <MudItem xs="12" lg="3" md="4" sm="6">
-                        <MudSelect T="PisoDTO"
-                                   Label="Piso"
-                                   Variant="Variant.Outlined"
-                                   AnchorOrigin="Origin.BottomCenter"
-                                   Class="mb-3"
-                                   Value="pisoSeleccionado"
-                                   Margin="Margin.Dense"
-                                   ValueChanged="OnSelectedValueChanged"
-                                   Disabled="@(listaPisos == null || !listaPisos.Any())">
+            <!-- PANEL FILTRO + HABITACIONES -->
+            <div class="panel-card">
+                <div class="panel-header">
+                    <MudIcon Icon="@Icons.Material.Filled.Layers" Style="color: #5C8DC2;" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Selecciona un Piso</MudText>
+                </div>
 
-                            @if (listaPisos != null && listaPisos.Any())
-                            {
-                                foreach (var item in listaPisos)
+                <div class="pa-4">
+                    <MudGrid>
+                        <MudItem xs="12" lg="3" md="4" sm="6">
+                            <MudSelect T="PisoDTO"
+                                       Label="Piso"
+                                       Variant="Variant.Outlined"
+                                       AnchorOrigin="Origin.BottomCenter"
+                                       Value="pisoSeleccionado"
+                                       Margin="Margin.Dense"
+                                       ValueChanged="OnSelectedValueChanged"
+                                       Disabled="@(listaPisos == null || !listaPisos.Any())">
+                                @if (listaPisos != null && listaPisos.Any())
                                 {
-                                    <MudSelectItem Value="@item">@item.Descripcion</MudSelectItem>
+                                    foreach (var item in listaPisos)
+                                    {
+                                        <MudSelectItem Value="@item">@item.Descripcion</MudSelectItem>
+                                    }
                                 }
-                            }
-
-                        </MudSelect>
-                    </MudItem>
-                </MudGrid>
-
-                <MudDivider Class="my-2" />
-
-                <MudGrid>
-
-                    @if (cargando)
-                    {
-                        <MudItem xs="12" Class="d-flex justify-center">
-                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                            </MudSelect>
                         </MudItem>
-                    }
-                    else if (listaHabitaciones == null || !listaHabitaciones.Any())
-                    {
-                        <MudItem xs="12">
-                            <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
-                                No hay habitaciones para mostrar en este piso.
-                            </MudAlert>
-                        </MudItem>
-                    }
-                    else
-                    {
-                        foreach (var item in listaHabitaciones)
+                    </MudGrid>
+
+                    <MudGrid Class="mt-3">
+                        @if (cargando)
                         {
-                            string borderTarjeta =
-                            item.IdEstadoHabitacion == 1 ? "mud-border-success" :
-                            item.IdEstadoHabitacion == 2 ? "mud-border-info" :
-                                            "mud-border-error";
-
-                            Color colorTarjeta =
-                            item.IdEstadoHabitacion == 1 ? Color.Success :
-                            item.IdEstadoHabitacion == 2 ? Color.Info :
-                            Color.Error;
-
-                            string icono =
-                            item.IdEstadoHabitacion == 1 ? Icons.Material.Filled.KingBed :
-                            item.IdEstadoHabitacion == 2 ? Icons.Material.Filled.CleaningServices :
-                            Icons.Material.Filled.EventBusy;
-
-                            <MudItem xs="12" lg="3" md="4" sm="6">
-                                <MudCard Class="@(borderTarjeta + " border-solid border-1")">
-
-                                    <MudCardContent Class="d-flex flex-row justify-space-between">
-                                        <div>
-                                            <MudText Typo="Typo.h5">@item.Numero</MudText>
-                                            <MudText Typo="Typo.body1">
-                                                Categoría: @item.IdCategoriaNavigation?.Descripcion
-                                            </MudText>
-                                        </div>
-
-                                        <MudIcon Icon="@icono"
-                                                 Color="colorTarjeta"
-                                                 Class="mx-4"
-                                                 Style="width:54px; height:54px;" />
-                                    </MudCardContent>
-
-                                    <MudCardActions>
-                                        <MudButton Variant="Variant.Text"
-                                                   Color="colorTarjeta"
-                                                   FullWidth="true"
-                                                   OnClick="@(() => VerDetalle(item))">
-                                            @item.IdEstadoHabitacionNavigation?.Descripcion
-                                        </MudButton>
-                                    </MudCardActions>
-
-                                </MudCard>
+                            <MudItem xs="12" Class="d-flex justify-center pa-6">
+                                <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
                             </MudItem>
                         }
-                    }
+                        else if (listaHabitaciones == null || !listaHabitaciones.Any())
+                        {
+                            <MudItem xs="12">
+                                <div class="empty-state">
+                                    <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Style="color: #9CA3AF; font-size: 48px;" />
+                                    <MudText Typo="Typo.body1" Style="color: #6B7280;">No hay habitaciones para mostrar en este piso.</MudText>
+                                </div>
+                            </MudItem>
+                        }
+                        else
+                        {
+                            foreach (var item in listaHabitaciones)
+                            {
+                                bool tieneReservaHoy = reservasParaHoy.Any(r => r.NroHabitacion == item.Numero);
 
-                </MudGrid>
+                                var (bgColor, accentColor, iconBg) =
+                                    tieneReservaHoy && item.IdEstadoHabitacion == 1 ? ("#fff", "#E8A668", "#FAF1E7") :
+                                    item.IdEstadoHabitacion == 1 ? ("#fff", "#6FA776", "#EFF5EF") :
+                                    item.IdEstadoHabitacion == 2 ? ("#fff", "#5C8DC2", "#EBF2F9") :
+                                    ("#fff", "#424E5F", "#F0F2F5");
 
-            </MudPaper>
+                                string icono =
+                                    tieneReservaHoy && item.IdEstadoHabitacion == 1 ? Icons.Material.Filled.EventAvailable :
+                                    item.IdEstadoHabitacion == 1 ? Icons.Material.Filled.KingBed :
+                                    item.IdEstadoHabitacion == 2 ? Icons.Material.Filled.CleaningServices :
+                                    Icons.Material.Filled.EventBusy;
+
+                                string textoBoton = tieneReservaHoy && item.IdEstadoHabitacion == 1
+                                    ? "Reservada hoy"
+                                    : (item.IdEstadoHabitacionNavigation?.Descripcion ?? "");
+
+                                <MudItem xs="12" lg="3" md="4" sm="6" Class="d-flex">
+                                    <div class="hab-card" style="border-left: 4px solid @accentColor; background: @bgColor;">
+                                        <div class="hab-card-body">
+                                            <div class="d-flex justify-space-between align-start" style="gap: 12px;">
+                                                <div style="flex: 1; min-width: 0;">
+                                                    <div class="hab-numero" style="color: @accentColor;">@item.Numero</div>
+                                                    <div class="hab-categoria">@item.IdCategoriaNavigation?.Descripcion</div>
+                                                    <div style="min-height: 28px; margin-top: 6px;">
+                                                        @if (tieneReservaHoy && item.IdEstadoHabitacion == 1)
+                                                        {
+                                                            <MudChip Size="Size.Small" Style="background: #FAF1E7; color: #E8A668; font-weight: 600;" Icon="@Icons.Material.Filled.Lock">
+                                                                Reservada hoy
+                                                            </MudChip>
+                                                        }
+                                                    </div>
+                                                </div>
+                                                <div class="hab-icon-box" style="background: @iconBg;">
+                                                    <MudIcon Icon="@icono" Style="@($"color: {accentColor}; font-size: 32px;")" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <button class="hab-btn"
+                                                style="@($"color: {accentColor}; border-top: 1px solid #E5E7EB;")"
+                                                @onclick="@(() => VerDetalle(item))">
+                                            @textoBoton
+                                        </button>
+                                    </div>
+                                </MudItem>
+                            }
+                        }
+                    </MudGrid>
+                </div>
+            </div>
 
         </MudTabPanel>
 
-        <!-- ========================= -->
-        <!-- TAB 2: RESERVAS           -->
-        <!-- ========================= -->
-        <MudTabPanel Text="Reservas">
+        <!-- ============================ -->
+        <!-- TAB 2: RESERVAS              -->
+        <!-- ============================ -->
+        <MudTabPanel Text="Reservas" Icon="@Icons.Material.Filled.EventNote">
 
-            <MudPaper Class="pa-4 mb-4" Elevation="3">
-                <MudGrid AlignItems="AlignItems.FlexEnd" Spacing="2">
-
-                    <MudItem xs="12" sm="4">
-                        <MudDatePicker Label="Desde"
-                                       Date="@fechaInicio"
-                                       DateChanged="OnFechaInicioChanged"
-                                       DateFormat="dd/MM/yyyy"
-                                       Variant="Variant.Outlined"
-                                       Margin="Margin.Dense" />
-                    </MudItem>
-
-                    <MudItem xs="12" sm="4">
-                        <MudDatePicker Label="Hasta"
-                                       Date="@fechaFin"
-                                       DateChanged="OnFechaFinChanged"
-                                       DateFormat="dd/MM/yyyy"
-                                       Variant="Variant.Outlined"
-                                       Margin="Margin.Dense" />
-                    </MudItem>
-
-                    <MudItem xs="12" sm="4" Class="d-flex gap-2">
-                        <MudButton Variant="Variant.Filled"
-                                   Color="Color.Primary"
-                                   OnClick="BuscarReservas"
-                                   FullWidth="true"
-                                   Disabled="@cargandoReservas">
-                            Buscar
-                        </MudButton>
-
-                        <MudButton Variant="Variant.Outlined"
-                                   Color="Color.Secondary"
-                                   OnClick="LimpiarReservas"
-                                   FullWidth="true"
-                                   Disabled="@cargandoReservas">
-                            Limpiar
-                        </MudButton>
-                    </MudItem>
-
-                </MudGrid>
-            </MudPaper>
-
-            <MudPaper Class="pa-4" Elevation="3">
-
-                @if (cargandoReservas)
-                {
-                    <div class="d-flex justify-center pa-6">
-                        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+            <!-- KPIs Reservas -->
+            <MudGrid Spacing="3" Class="mt-4 mb-6">
+                <MudItem xs="12" sm="6" md="3">
+                    <div class="kpi-card-flat" style="border-left: 4px solid #5C8DC2;">
+                        <div class="kpi-icon-box" style="background: #EBF2F9;">
+                            <MudIcon Icon="@Icons.Material.Filled.EventNote" Style="color: #5C8DC2; font-size: 28px;" />
+                        </div>
+                        <div>
+                            <div class="kpi-label">Total Reservas</div>
+                            <div class="kpi-value" style="color: #5C8DC2;">@listaReservas.Count</div>
+                        </div>
                     </div>
-                }
-                else
-                {
-                    <MudTable Items="@listaReservas" Hover="true" Dense="true" Bordered="true" Striped="true">
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <div class="kpi-card-flat" style="border-left: 4px solid #6FA776;">
+                        <div class="kpi-icon-box" style="background: #EFF5EF;">
+                            <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Style="color: #6FA776; font-size: 28px;" />
+                        </div>
+                        <div>
+                            <div class="kpi-label">Total Cancelado</div>
+                            <div class="kpi-value" style="color: #6FA776;">@($"${TotalCancelado:N2}")</div>
+                        </div>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <div class="kpi-card-flat" style="border-left: 4px solid #E8A668;">
+                        <div class="kpi-icon-box" style="background: #FAF1E7;">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Style="color: #E8A668; font-size: 28px;" />
+                        </div>
+                        <div>
+                            <div class="kpi-label">Total Pendiente</div>
+                            <div class="kpi-value" style="color: #E8A668;">@($"${TotalPendiente:N2}")</div>
+                        </div>
+                    </div>
+                </MudItem>
+                <MudItem xs="12" sm="6" md="3">
+                    <div class="kpi-card-flat" style="border-left: 4px solid #424E5F;">
+                        <div class="kpi-icon-box" style="background: #F0F2F5;">
+                            <MudIcon Icon="@Icons.Material.Filled.Today" Style="color: #424E5F; font-size: 28px;" />
+                        </div>
+                        <div>
+                            <div class="kpi-label">Para Hoy</div>
+                            <div class="kpi-value" style="color: #424E5F;">@ReservasHoyCount</div>
+                        </div>
+                    </div>
+                </MudItem>
+            </MudGrid>
 
-                        <HeaderContent>
-                            <MudTh>Cliente</MudTh>
-                            <MudTh>Habitación</MudTh>
-                            <MudTh>Entrada</MudTh>
-                            <MudTh>Salida</MudTh>
-                            <MudTh class="text-right">Total</MudTh>
-                            <MudTh class="text-right">Cancelado</MudTh>
-                            <MudTh class="text-right">Pendiente</MudTh>
-                            <MudTh class="text-right">Observación</MudTh>
-                            <MudTh class="text-right">Acciones</MudTh>
-                        </HeaderContent>
+            <!-- Filtros -->
+            <div class="panel-card mb-4">
+                <div class="panel-header">
+                    <MudIcon Icon="@Icons.Material.Filled.FilterAlt" Style="color: #5C8DC2;" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Filtros</MudText>
+                </div>
 
-                        <RowTemplate>
-                            <MudTd DataLabel="Cliente">@context.NombreCliente</MudTd>
-                            <MudTd DataLabel="Habitación">@context.NroHabitacion</MudTd>
-                            <MudTd DataLabel="Entrada">@context.FechaEntrada</MudTd>
-                            <MudTd DataLabel="Salida">@context.FechaSalida</MudTd>
+                <div class="pa-4">
+                    <MudGrid AlignItems="AlignItems.End" Spacing="2">
+                        <MudItem xs="12" sm="4">
+                            <MudDatePicker Label="Desde"
+                                           Date="@fechaInicio"
+                                           DateChanged="OnFechaInicioChanged"
+                                           DateFormat="dd/MM/yyyy"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4">
+                            <MudDatePicker Label="Hasta"
+                                           Date="@fechaFin"
+                                           DateChanged="OnFechaFinChanged"
+                                           DateFormat="dd/MM/yyyy"
+                                           Variant="Variant.Outlined"
+                                           Margin="Margin.Dense" />
+                        </MudItem>
+                        <MudItem xs="12" sm="4" Class="d-flex" Style="gap: 8px;">
+                            <MudButton Variant="Variant.Filled"
+                                       OnClick="BuscarReservas"
+                                       FullWidth="true"
+                                       Disabled="@cargandoReservas"
+                                       StartIcon="@Icons.Material.Filled.Search"
+                                       Style="background: #5C8DC2; color: #fff; text-transform: none; border-radius: 10px; font-weight: 600;">
+                                Buscar
+                            </MudButton>
+                            <MudButton Variant="Variant.Outlined"
+                                       OnClick="LimpiarReservas"
+                                       FullWidth="true"
+                                       Disabled="@cargandoReservas"
+                                       Style="border-color: #E5E7EB; color: #424E5F; text-transform: none; border-radius: 10px;">
+                                Limpiar
+                            </MudButton>
+                        </MudItem>
+                    </MudGrid>
+                </div>
+            </div>
 
-                            <MudTd DataLabel="Total" Class="text-right">
-                                @context.Total.ToString("N2")
-                            </MudTd>
+            <!-- Tabla -->
+            <div class="panel-card">
+                <div class="panel-header">
+                    <MudIcon Icon="@Icons.Material.Filled.ListAlt" Style="color: #6FA776;" />
+                    <MudText Typo="Typo.h6" Style="font-weight: 600; color: #424E5F;">Listado de Reservas</MudText>
+                </div>
 
-                            <MudTd DataLabel="Cancelado" Class="text-right">
-                                @context.ValorCancelado.ToString("N2")
-                            </MudTd>
+                <div class="pa-4">
+                    @if (cargandoReservas)
+                    {
+                        <div class="d-flex justify-center pa-6">
+                            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="custom-table">
+                            <MudTable Items="@listaReservas" Hover="true" Elevation="0">
+                                <HeaderContent>
+                                    <MudTh>Cliente</MudTh>
+                                    <MudTh Style="text-align: center;">Habitación</MudTh>
+                                    <MudTh Style="text-align: center;">Entrada</MudTh>
+                                    <MudTh Style="text-align: center;">Salida</MudTh>
+                                    <MudTh Style="text-align: right;">Total</MudTh>
+                                    <MudTh Style="text-align: right;">Cancelado</MudTh>
+                                    <MudTh Style="text-align: right;">Pendiente</MudTh>
+                                    <MudTh>Observación</MudTh>
+                                    <MudTh Style="text-align: center;">Acciones</MudTh>
+                                </HeaderContent>
 
-                            <MudTd DataLabel="Pendiente" Class="text-right">
-                                @context.ValorPendiente.ToString("N2")
-                            </MudTd>
-                            <MudTd DataLabel="Opservación">@context.Observacion</MudTd>
-                            <MudTd DataLabel="Acciones">
-                                @{
-                                    DateTime fechaIngreso;
-                                    bool esHoy = DateTime.TryParseExact(
-                                        context.FechaEntrada,
-                                        "dd/MM/yyyy",
-                                        System.Globalization.CultureInfo.InvariantCulture,
-                                        System.Globalization.DateTimeStyles.None,
-                                        out fechaIngreso
-                                    ) && fechaIngreso.Date == DateTime.Today;
+                                <RowTemplate>
+                                    <MudTd DataLabel="Cliente">
+                                        <div class="d-flex align-center" style="gap: 10px;">
+                                            <div class="cell-icon-box" style="background: #EBF2F9;">
+                                                <MudIcon Icon="@Icons.Material.Filled.AccountCircle" Style="color: #5C8DC2; font-size: 18px;" />
+                                            </div>
+                                            <span style="font-weight: 500; color: #424E5F;">@context.NombreCliente</span>
+                                        </div>
+                                    </MudTd>
+                                    <MudTd DataLabel="Habitación" Style="text-align: center;">
+                                        <MudChip Size="Size.Small" Style="background: #EBF2F9; color: #5C8DC2; font-weight: 600;">
+                                            @context.NroHabitacion
+                                        </MudChip>
+                                    </MudTd>
+                                    <MudTd DataLabel="Entrada" Style="text-align: center; color: #424E5F;">@context.FechaEntrada</MudTd>
+                                    <MudTd DataLabel="Salida" Style="text-align: center; color: #424E5F;">@context.FechaSalida</MudTd>
+                                    <MudTd DataLabel="Total" Style="text-align: right; font-weight: 600; color: #424E5F;">
+                                        @($"${context.Total:N2}")
+                                    </MudTd>
+                                    <MudTd DataLabel="Cancelado" Style="text-align: right; font-weight: 600; color: #6FA776;">
+                                        @($"${context.ValorCancelado:N2}")
+                                    </MudTd>
+                                    <MudTd DataLabel="Pendiente" Style="text-align: right; font-weight: 600; color: #E8A668;">
+                                        @($"${context.ValorPendiente:N2}")
+                                    </MudTd>
+                                    <MudTd DataLabel="Observación" Style="color: #6B7280; max-width: 200px;">
+                                        @(string.IsNullOrEmpty(context.Observacion) ? "—" : context.Observacion)
+                                    </MudTd>
+                                    <MudTd DataLabel="Acciones" Style="text-align: center;">
+                                        @{
+                                            DateTime fechaIngreso;
+                                            bool esHoy = DateTime.TryParseExact(
+                                                context.FechaEntrada,
+                                                "dd/MM/yyyy",
+                                                CultureInfo.InvariantCulture,
+                                                DateTimeStyles.None,
+                                                out fechaIngreso
+                                            ) && fechaIngreso.Date == DateTime.Today;
 
-                                    bool yaCheckIn = context.EstadoReserva == "CHECKIN";
-                                }
+                                            bool yaCheckIn = (context.EstadoReserva ?? "").Trim().ToUpper() == "CHECKIN";
+                                        }
 
-                                @if (yaCheckIn)
-                                {
-                                    <MudButton Variant="Variant.Filled"
-                                               Color="Color.Info"
-                                               Disabled="true">
-                                        Check-in realizado
-                                    </MudButton>
-                                }
-                                else if (esHoy)
-                                {
-                                    <MudButton Color="Color.Success"
-                                               Variant="Variant.Filled"
-                                               OnClick="@(() => IrACheckIn(context.IdReserva))">
-                                        Check-in
-                                    </MudButton>
-                                }
-                                else
-                                {
-                                    <MudButton Variant="Variant.Filled"
-                                               Color="Color.Default"
-                                               Disabled="true">
-                                        No disponible
-                                    </MudButton>
-                                }
-                            </MudTd>
-                        </RowTemplate>
+                                        @if (yaCheckIn)
+                                        {
+                                            <MudChip Size="Size.Small" Style="background: #EBF2F9; color: #5C8DC2; font-weight: 600;" Icon="@Icons.Material.Filled.Done">
+                                                Check-in realizado
+                                            </MudChip>
+                                        }
+                                        else if (esHoy)
+                                        {
+                                            <MudButton Size="Size.Small"
+                                                       Variant="Variant.Filled"
+                                                       StartIcon="@Icons.Material.Filled.Login"
+                                                       OnClick="@(() => IrACheckIn(context.IdReserva))"
+                                                       Style="background: #6FA776; color: #fff; text-transform: none; border-radius: 8px; font-weight: 600;">
+                                                Check-in
+                                            </MudButton>
+                                        }
+                                        else
+                                        {
+                                            <MudChip Size="Size.Small" Style="background: #F0F2F5; color: #6B7280; font-weight: 500;">
+                                                No disponible
+                                            </MudChip>
+                                        }
+                                    </MudTd>
+                                </RowTemplate>
 
-                        <NoRecordsContent>
-                            <MudText Class="pa-4">No hay reservas para el rango seleccionado.</MudText>
-                        </NoRecordsContent>
-
-                    </MudTable>
-                }
-
-            </MudPaper>
+                                <NoRecordsContent>
+                                    <div class="empty-state">
+                                        <MudIcon Icon="@Icons.Material.Filled.EventBusy" Style="color: #9CA3AF; font-size: 48px;" />
+                                        <MudText Typo="Typo.body1" Style="color: #6B7280;">No hay reservas para el rango seleccionado.</MudText>
+                                    </div>
+                                </NoRecordsContent>
+                            </MudTable>
+                        </div>
+                    }
+                </div>
+            </div>
 
         </MudTabPanel>
 
@@ -268,23 +392,62 @@
 
 </MudContainer>
 
+<style>
+    .kpi-card-flat { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; padding: 20px; display: flex; align-items: center; gap: 16px; height: 100%; transition: all 0.2s ease; }
+    .kpi-card-flat:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.06); transform: translateY(-2px); }
+    .kpi-icon-box { width: 52px; height: 52px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .kpi-label { font-size: 0.8rem; color: #6B7280; font-weight: 500; margin-bottom: 4px; }
+    .kpi-value { font-size: 1.6rem; font-weight: 700; line-height: 1.2; }
+    .panel-card { background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .panel-header { display: flex; align-items: center; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #E5E7EB; background: #FAFBFC; }
+    .custom-table { border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; }
+    .custom-table .mud-table-head th { background: #FAFBFC !important; color: #424E5F !important; font-weight: 600 !important; font-size: 0.8rem !important; text-transform: uppercase; letter-spacing: 0.5px; }
+    .cell-icon-box { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .empty-state { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 48px 24px; width: 100%; }
+
+    .recepcion-tabs .mud-tabs-toolbar { background: #fff !important; border: 1px solid #E5E7EB; border-radius: 12px; padding: 4px; }
+    .recepcion-tabs .mud-tab { color: #6B7280; text-transform: none; font-weight: 600; border-radius: 8px; }
+    .recepcion-tabs .mud-tab.mud-tab-active { color: #5C8DC2 !important; background: #EBF2F9; }
+
+    .hab-card { width: 100%; background: #fff; border: 1px solid #E5E7EB; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: all 0.2s ease; }
+    .hab-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.08); transform: translateY(-2px); }
+    .hab-card-body { padding: 16px; flex: 1; }
+    .hab-numero { font-size: 1.6rem; font-weight: 700; line-height: 1; }
+    .hab-categoria { font-size: 0.85rem; color: #6B7280; margin-top: 4px; }
+    .hab-icon-box { width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .hab-btn { width: 100%; padding: 12px; background: transparent; font-weight: 600; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; transition: background 0.15s ease; }
+    .hab-btn:hover { background: #FAFBFC; }
+</style>
+
 @code {
-    //check-int reservas hoy
     private void IrACheckIn(int idReserva)
     {
         _navManager.NavigateTo($"/page/checkinreserva/{idReserva}");
     }
+
     private List<PisoDTO> listaPisos = new();
     private PisoDTO? pisoSeleccionado;
 
     private List<HabitacionDTO>? listaHabitaciones = null;
     private bool cargando = false;
 
-    // Reservas
     private DateTime? fechaInicio = DateTime.Today;
     private DateTime? fechaFin = DateTime.Today.AddDays(1);
     private bool cargandoReservas = false;
     private List<ReservaReporteDTO> listaReservas = new();
+    private List<ReservaReporteDTO> reservasParaHoy = new();
+
+    // KPIs Habitaciones
+    private int HabDisponibles => listaHabitaciones?.Count(h => h.IdEstadoHabitacion == 1 && !reservasParaHoy.Any(r => r.NroHabitacion == h.Numero)) ?? 0;
+    private int HabReservadasHoy => listaHabitaciones?.Count(h => h.IdEstadoHabitacion == 1 && reservasParaHoy.Any(r => r.NroHabitacion == h.Numero)) ?? 0;
+    private int HabLimpieza => listaHabitaciones?.Count(h => h.IdEstadoHabitacion == 2) ?? 0;
+
+    // KPIs Reservas
+    private decimal TotalCancelado => listaReservas.Sum(r => r.ValorCancelado);
+    private decimal TotalPendiente => listaReservas.Sum(r => r.ValorPendiente);
+    private int ReservasHoyCount => listaReservas.Count(r =>
+        DateTime.TryParseExact(r.FechaEntrada, "dd/MM/yyyy", CultureInfo.InvariantCulture, DateTimeStyles.None, out var f)
+        && f.Date == DateTime.Today);
 
     protected override async Task OnInitializedAsync()
     {
@@ -313,8 +476,32 @@
 
         cargando = false;
 
-        // (Opcional) cargar reservas al abrir
+        await CargarReservasParaHoy();
         await BuscarReservas();
+    }
+
+    private async Task CargarReservasParaHoy()
+    {
+        try
+        {
+            var hoy = DateTime.Today.ToString("dd/MM/yyyy");
+            var resp = await _reservaServicio.FiltrarListado(hoy, hoy);
+
+            if (resp.status && resp.value != null)
+            {
+                reservasParaHoy = resp.value
+                    .Where(r => r.EstadoReserva == "RESERVADA" || r.EstadoReserva == "CONFIRMADA")
+                    .ToList();
+            }
+            else
+            {
+                reservasParaHoy = new();
+            }
+        }
+        catch
+        {
+            reservasParaHoy = new();
+        }
     }
 
     private async Task ObtenerHabitaciones(int idPiso)
@@ -325,7 +512,6 @@
 
         if (response.status && response.value != null)
         {
-            // ✅ Mostrar disponibles (1) y limpieza (2), excluir ocupadas (3)
             listaHabitaciones = ((List<HabitacionDTO>)response.value)
                 .Where(h => h.IdEstadoHabitacion != 3 && h.IdPiso == idPiso)
                 .ToList();
@@ -383,6 +569,42 @@
             return;
         }
 
+        if (modelo.IdEstadoHabitacion == 1)
+        {
+            var reservaHoy = reservasParaHoy
+                .FirstOrDefault(r => r.NroHabitacion == modelo.Numero);
+
+            if (reservaHoy != null)
+            {
+                await Swal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Habitación reservada",
+                    Html = $@"
+                        <div style='text-align: left; padding: 10px;'>
+                            <p>Esta habitación <b>{modelo.Numero}</b> tiene una reserva para hoy:</p>
+                            <ul>
+                                <li><b>Cliente:</b> {reservaHoy.NombreCliente}</li>
+                                <li><b>Fechas:</b> {reservaHoy.FechaEntrada} - {reservaHoy.FechaSalida}</li>
+                                <li><b>Estado:</b> {reservaHoy.EstadoReserva}</li>
+                            </ul>
+                            <p style='color: #E8A668; margin-top: 12px;'>
+                                <b>No se puede hacer check-in directo a esta habitación.</b>
+                            </p>
+                            <p>Para realizar el check-in:</p>
+                            <ol>
+                                <li>Ve a la pestaña <b>Reservas</b></li>
+                                <li>Encuentra la reserva del cliente</li>
+                                <li>Presiona el botón <b>Check-in</b></li>
+                            </ol>
+                        </div>",
+                    Icon = SweetAlertIcon.Warning,
+                    ConfirmButtonText = "Entendido"
+                });
+
+                return;
+            }
+        }
+
         _navManager.NavigateTo($"/page/detalle/{modelo.IdHabitacion}");
     }
 
@@ -418,7 +640,7 @@
 
         try
         {
-            cargando = true;
+            cargandoReservas = true;
 
             var fi = fechaInicio.Value.ToString("dd/MM/yyyy");
             var ff = fechaFin.Value.ToString("dd/MM/yyyy");
@@ -432,7 +654,7 @@
         }
         finally
         {
-            cargando = false;
+            cargandoReservas = false;
         }
     }
 

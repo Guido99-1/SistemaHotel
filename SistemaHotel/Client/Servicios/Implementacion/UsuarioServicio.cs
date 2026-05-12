@@ -34,16 +34,24 @@ namespace SistemaHotel.Client.Servicios.Implementacion
             return response!.status;
         }
 
-        public async Task<ResponseDTO<UsuarioDTO>> IniciarSesion(string correo, string clave)
+        public async Task<ResponseDTO<LoginResponseDTO>> IniciarSesion(LoginRequestDTO loginRequest)
         {
-            var result = await _http.GetFromJsonAsync<ResponseDTO<UsuarioDTO>>($"api/usuario/IniciarSesion?correo={correo}&clave={clave}");
-            return result!;
+            var result = await _http.PostAsJsonAsync("api/usuario/IniciarSesion", loginRequest);
+            var response = await result.Content.ReadFromJsonAsync<ResponseDTO<LoginResponseDTO>>();
+            return response!;
         }
 
         public async Task<ResponseDTO<List<UsuarioDTO>>> Lista()
         {
             var result = await _http.GetFromJsonAsync<ResponseDTO<List<UsuarioDTO>>>("api/usuario/Lista");
             return result!;
+        }
+
+        public async Task<ResponseDTO<string>> CambiarPassword(CambiarPasswordDTO request)
+        {
+            var result = await _http.PutAsJsonAsync("api/usuario/CambiarPassword", request);
+            var response = await result.Content.ReadFromJsonAsync<ResponseDTO<string>>();
+            return response!;
         }
     }
 }

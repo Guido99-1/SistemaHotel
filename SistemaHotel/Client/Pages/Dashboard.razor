@@ -1,182 +1,1581 @@
-﻿@page "/page/dashboard"
+@page "/page/dashboard"
+@using Microsoft.AspNetCore.Components.Authorization
 @inject IDashBoardServicio _dashboardServicio
+@inject NavigationManager _navManager
 @attribute [Authorize(Roles = "Administrador,Recepcionista,Reservas,Empleado,Gerencia")]
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
-    <MudPaper Elevation="3" Class="pa-4" Width="100%">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-3 mb-4">
 
-        <MudGrid>
-            <MudItem sm="12" md="6" xs="12">
-                <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.MenuBook" Color="Color.Primary" Class="mx-4" Style="width:54px; height:54px;" />
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Total Habitaciones</MudText>
-                        <MudText Typo="Typo.h5">@dashboardDTO.TotalHabitaciones</MudText>
-                    </div>
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- HEADER MINIMALISTA                                -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; letter-spacing: -0.5px;">
+                Dashboard
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 13px;">
+                @DateTime.Now.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("es-ES"))
+            </MudText>
+        </MudStack>
+
+        <MudButton Variant="Variant.Outlined"
+                   Color="Color.Primary"
+                   StartIcon="@Icons.Material.Filled.Refresh"
+                   OnClick="RecargarDatos"
+                   Disabled="@_loading"
+                   Size="Size.Small"
+                   Style="text-transform: none; border-color: #D1D5DB; color: #374151;">
+            Actualizar
+        </MudButton>
+    </MudStack>
+
+    @if (_loading)
+    {
+        <MudStack AlignItems="AlignItems.Center" Class="pa-8">
+            <MudProgressCircular Style="color: #5C8DC2;" Indeterminate="true" Size="Size.Large" />
+            <MudText Typo="Typo.body2" Style="color: #6B7280;">Cargando información...</MudText>
+        </MudStack>
+    }
+    else
+    {
+        <!-- ════════════════════════════════════════════════ -->
+        <!-- KPIs PRINCIPALES (diseño plano y pulcro)          -->
+        <!-- ════════════════════════════════════════════════ -->
+        <MudGrid Spacing="3" Class="mb-4">
+
+            <!-- Ocupación Actual (AZUL) -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="0" Class="kpi-card-flat cursor-pointer pa-4"
+                          Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;"
+                          @onclick="@(() => _navManager.NavigateTo("/page/recepcion"))">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div style="background: #EBF2F9; padding: 8px; border-radius: 10px;">
+                                <MudIcon Icon="@Icons.Material.Filled.Hotel" Style="color: #5C8DC2; font-size: 24px;" />
+                            </div>
+                            <MudChip Size="Size.Small" Variant="Variant.Text"
+                                     Style="background: #EBF2F9; color: #4A7AAD; font-weight: 600; font-size: 11px;">
+                                @dto.TasaOcupacionActual.ToString("F0")%
+                            </MudChip>
+                        </MudStack>
+                        <div>
+                            <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">OCUPACIÓN</MudText>
+                            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                                @dto.TotalHabitacionesOcupadas<span style="color: #9CA3AF; font-size: 18px; font-weight: 400;">/@dto.TotalHabitaciones</span>
+                            </MudText>
+                            <MudText Typo="Typo.caption" Style="color: #6B7280;">habitaciones</MudText>
+                        </div>
+                    </MudStack>
                 </MudPaper>
             </MudItem>
 
-            <MudItem sm="12" md="6" xs="12">
-                <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.Groups" Color="Color.Secondary" Class="mx-4" Style="width:54px; height:54px;" />
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Habitaciones Disponibles</MudText>
-                        <MudText Typo="Typo.h5">@dashboardDTO.TotalHabitacionesDisponibles</MudText>
-                    </div>
+            <!-- Ingresos Hoy (VERDE) -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                          Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div style="background: #EFF5EF; padding: 8px; border-radius: 10px;">
+                                <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Style="color: #6FA776; font-size: 24px;" />
+                            </div>
+                            <MudChip Size="Size.Small" Variant="Variant.Text"
+                                     Style="background: #EFF5EF; color: #5C9163; font-weight: 600; font-size: 11px;">
+                                @dto.CheckOutsHoy check-outs
+                            </MudChip>
+                        </MudStack>
+                        <div>
+                            <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">INGRESOS HOY</MudText>
+                            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                                $@dto.IngresosHoy.ToString("N0")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Style="color: #6B7280;">@DateTime.Now.ToString("dd 'de' MMM", new System.Globalization.CultureInfo("es-ES"))</MudText>
+                        </div>
+                    </MudStack>
                 </MudPaper>
             </MudItem>
 
-            <MudItem sm="12" md="6" xs="12">
-                <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.Assignment" Color="Color.Success" Class="mx-4" Style="width:54px; height:54px;" />
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Habitaciones Ocupadas</MudText>
-                        <MudText Typo="Typo.h5">@dashboardDTO.TotalHabitacionesOcupadas</MudText>
-                    </div>
+            <!-- Reservas Hoy (NARANJA) -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="0" Class="kpi-card-flat cursor-pointer pa-4"
+                          Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;"
+                          @onclick="@(() => _navManager.NavigateTo("/page/reservas"))">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div style="background: #FAF1E7; padding: 8px; border-radius: 10px;">
+                                <MudIcon Icon="@Icons.Material.Filled.EventNote" Style="color: #E8A668; font-size: 24px;" />
+                            </div>
+                            <MudChip Size="Size.Small" Variant="Variant.Text"
+                                     Style="background: #FAF1E7; color: #B97A40; font-weight: 600; font-size: 11px;">
+                                @dto.ReservasPendientesHoy pend.
+                            </MudChip>
+                        </MudStack>
+                        <div>
+                            <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">RESERVAS HOY</MudText>
+                            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                                @dto.TotalReservasHoy
+                            </MudText>
+                            <MudText Typo="Typo.caption" Style="color: #6B7280;">@dto.CheckInsHoy check-ins realizados</MudText>
+                        </div>
+                    </MudStack>
                 </MudPaper>
             </MudItem>
 
-            <MudItem sm="12" md="6" xs="12">
-                <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.AssignmentLate" Color="Color.Error" Class="mx-4" Style="width:54px; height:54px;" />
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Habitaciones Limpieza</MudText>
-                        <MudText Typo="Typo.h5">@dashboardDTO.TotalHabitacionesEnLimpieza</MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
-
-            <MudItem sm="12" md="6" xs="12">
-                <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.EventAvailable" Color="Color.Success" Class="mx-4" Style="width:54px; height:54px;" />
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Reservas de hoy</MudText>
-                        <MudText Typo="Typo.h5">@dashboardDTO.TotalReservasHoy</MudText>
-                    </div>
-                </MudPaper>
-            </MudItem>
-
-            <MudItem sm="12" md="6" xs="12">
-                <MudPaper Elevation="25" Class="d-flex flex-row pt-6 pb-4" Style="height:100px;">
-                    <MudIcon Icon="@Icons.Material.Filled.DateRange" Color="Color.Info" Class="mx-4" Style="width:54px; height:54px;" />
-                    <div>
-                        <MudText Typo="Typo.subtitle1" Class="mud-text-secondary mb-n1">Reservas del mes</MudText>
-                        <MudText Typo="Typo.h5">@dashboardDTO.TotalReservasMes</MudText>
-                    </div>
+            <!-- Ingresos Mes (NEGRO/GRIS OSCURO) -->
+            <MudItem xs="12" sm="6" md="3">
+                <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                          Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                    <MudStack Spacing="2">
+                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                            <div style="background: #F0F2F5; padding: 8px; border-radius: 10px;">
+                                <MudIcon Icon="@Icons.Material.Filled.TrendingUp" Style="color: #424E5F; font-size: 24px;" />
+                            </div>
+                            @if (dto.IngresosMesAnterior > 0)
+                            {
+                                var diff = ((dto.IngresosMes - dto.IngresosMesAnterior) / dto.IngresosMesAnterior) * 100m;
+                                var bg = diff >= 0 ? "#EFF5EF" : "#FAF1E7";
+                                var color = diff >= 0 ? "#5C9163" : "#B97A40";
+                                <MudChip Size="Size.Small" Variant="Variant.Text"
+                                         Style="@($"background: {bg}; color: {color}; font-weight: 600; font-size: 11px;")">
+                                    @(diff >= 0 ? "↑" : "↓") @Math.Abs(diff).ToString("F0")%
+                                </MudChip>
+                            }
+                        </MudStack>
+                        <div>
+                            <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">INGRESOS MES</MudText>
+                            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                                $@dto.IngresosMes.ToString("N0")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Style="color: #6B7280;">$@dto.PromedioIngresoDia.ToString("N0") promedio/día</MudText>
+                        </div>
+                    </MudStack>
                 </MudPaper>
             </MudItem>
         </MudGrid>
 
-        <MudGrid Spacing="2" Class="mt-4">
-            <MudItem xs="12" md="6">
-                <MudPaper Class="pa-4" Elevation="3">
-                    <MudText Typo="Typo.h6">Ocupación del mes (check-ins por día)</MudText>
+        <!-- ════════════════════════════════════════════════ -->
+        <!-- TABS                                              -->
+        <!-- ════════════════════════════════════════════════ -->
+        <MudTabs Outlined="false" Position="Position.Top" Rounded="true" Border="false"
+                 ApplyEffectsToContainer="true" PanelClass="pa-3" Class="mb-3"
+                 Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
 
-                    @if (dashboardDTO.OcupacionMes == null || dashboardDTO.OcupacionMes.Count == 0)
-                    {
-                        <MudText Class="mt-2">No hay datos para mostrar.</MudText>
-                    }
-                    else
-                    {
-                        <MudChart ChartType="ChartType.Line"
-                                  Labels="@LabelsOcup"
-                                  ChartSeries="@SeriesOcupacion"
-                                  Height="320px" />
-                    }
-                </MudPaper>
-            </MudItem>
+            <!-- TAB 1: GRÁFICAS PROFESIONALES -->
+            <MudTabPanel Text="Análisis" Icon="@Icons.Material.Filled.Analytics">
+                <MudGrid Spacing="3">
 
-            <MudItem xs="12" md="6">
-                <MudPaper Class="pa-4" Elevation="3">
-                    <MudText Typo="Typo.h6">Ingresos del mes (checkouts por día)</MudText>
+                    <!-- ═════════════════════════════════════════════ -->
+                    <!-- GRÁFICA DE CHECK-INS PROFESIONAL              -->
+                    <!-- ═════════════════════════════════════════════ -->
+                    <MudItem xs="12">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <!-- Header de la gráfica -->
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <div style="background: #EBF2F9; padding: 10px; border-radius: 10px;">
+                                        <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Style="color: #5C8DC2; font-size: 24px;" />
+                                    </div>
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Check-ins Diarios</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                                            Análisis de afluencia · @TotalCheckIns total · promedio @PromedioCheckIns.ToString("F1")/día
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
 
-                    @if (dashboardDTO.IngresosMesCheckout == null || dashboardDTO.IngresosMesCheckout.Count == 0)
-                    {
-                        <MudText Class="mt-2">No hay datos para mostrar.</MudText>
-                    }
-                    else
-                    {
-                        <MudChart ChartType="ChartType.Line"
-                                  Labels="@LabelsIng"
-                                  ChartSeries="@SeriesIngresos"
-                                  Height="320px" />
-                    }
-                </MudPaper>
-            </MudItem>
-        </MudGrid>
+                                <!-- Selector de tipo de gráfico -->
+                                <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
+                                    <MudButton OnClick="@(() => _tipoGraficaCheckIn = ChartType.Line)"
+                                               Style="@GetEstiloBoton(_tipoGraficaCheckIn == ChartType.Line)">
+                                        <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Small" />
+                                    </MudButton>
+                                    <MudButton OnClick="@(() => _tipoGraficaCheckIn = ChartType.Bar)"
+                                               Style="@GetEstiloBoton(_tipoGraficaCheckIn == ChartType.Bar)">
+                                        <MudIcon Icon="@Icons.Material.Filled.BarChart" Size="Size.Small" />
+                                    </MudButton>
+                                </MudButtonGroup>
+                            </MudStack>
 
-    </MudPaper>
+                            <!-- Stats destacadas en la parte superior -->
+                            <MudGrid Spacing="2" Class="mb-3">
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">TOTAL DEL MES</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #1F2937; font-weight: 700;">@TotalCheckIns</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">check-ins</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #5C8DC2;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">PROMEDIO</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #4A7AAD; font-weight: 700;">@PromedioCheckIns.ToString("F1")</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">por día</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #E8A668;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">DÍA PICO</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #B97A40; font-weight: 700;">@MaximoCheckIns</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">máximo</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #6FA776;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">HOY</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #5C9163; font-weight: 700;">@dto.CheckInsHoy</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">@dto.ReservasPendientesHoy pendientes</MudText>
+                                    </div>
+                                </MudItem>
+                            </MudGrid>
+
+                            @if (dto.OcupacionMes != null && dto.OcupacionMes.Count > 0 && dto.OcupacionMes.Any(x => x.Ocupadas > 0))
+                            {
+                                <div class="chart-container">
+                                    <MudChart ChartType="@_tipoGraficaCheckIn"
+                                              Labels="@LabelsOcup"
+                                              ChartSeries="@SeriesOcupacion"
+                                              Width="100%"
+                                              Height="350px"
+                                              ChartOptions="@OptOcupacion" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-chart">
+                                    <MudIcon Icon="@Icons.Material.Filled.ShowChart" Style="font-size: 64px; color: #D1D5DB;" />
+                                    <MudText Typo="Typo.body2" Style="color: #6B7280;">Sin datos de check-ins en este mes</MudText>
+                                </div>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- ═════════════════════════════════════════════ -->
+                    <!-- GRÁFICA DE INGRESOS PROFESIONAL               -->
+                    <!-- ═════════════════════════════════════════════ -->
+                    <MudItem xs="12">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <div style="background: #EFF5EF; padding: 10px; border-radius: 10px;">
+                                        <MudIcon Icon="@Icons.Material.Filled.AttachMoney" Style="color: #6FA776; font-size: 24px;" />
+                                    </div>
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Ingresos Diarios</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                                            Recaudación por día (checkouts confirmados)
+                                        </MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudButtonGroup Size="Size.Small" Variant="Variant.Text">
+                                    <MudButton OnClick="@(() => _tipoGraficaIngreso = ChartType.Line)"
+                                               Style="@GetEstiloBoton(_tipoGraficaIngreso == ChartType.Line)">
+                                        <MudIcon Icon="@Icons.Material.Filled.ShowChart" Size="Size.Small" />
+                                    </MudButton>
+                                    <MudButton OnClick="@(() => _tipoGraficaIngreso = ChartType.Bar)"
+                                               Style="@GetEstiloBoton(_tipoGraficaIngreso == ChartType.Bar)">
+                                        <MudIcon Icon="@Icons.Material.Filled.BarChart" Size="Size.Small" />
+                                    </MudButton>
+                                </MudButtonGroup>
+                            </MudStack>
+
+                            <MudGrid Spacing="2" Class="mb-3">
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">TOTAL DEL MES</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #1F2937; font-weight: 700;">$@dto.IngresosMes.ToString("N0")</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">recaudado</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #6FA776;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">PROMEDIO/DÍA</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #5C9163; font-weight: 700;">$@dto.PromedioIngresoDia.ToString("N0")</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">por día</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #E8A668;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">DÍA PICO</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #B97A40; font-weight: 700;">$@MaximoIngreso.ToString("N0")</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">máximo del mes</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #5C8DC2;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">PROMEDIO/RESERVA</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #4A7AAD; font-weight: 700;">$@dto.PromedioPorReserva.ToString("N0")</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">por reserva</MudText>
+                                    </div>
+                                </MudItem>
+                            </MudGrid>
+
+                            @if (dto.IngresosMesCheckout != null && dto.IngresosMesCheckout.Count > 0 && dto.IngresosMesCheckout.Any(x => x.Monto > 0))
+                            {
+                                <div class="chart-container">
+                                    <MudChart ChartType="@_tipoGraficaIngreso"
+                                              Labels="@LabelsIng"
+                                              ChartSeries="@SeriesIngresos"
+                                              Width="100%"
+                                              Height="350px"
+                                              ChartOptions="@OptIngresos" />
+                                </div>
+
+                                <!-- Comparativa con mes anterior -->
+                                <MudDivider Class="my-3" Style="border-color: #E5E7EB;" />
+                                <MudGrid Spacing="3">
+                                    <MudItem xs="12" sm="4">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">Mes Anterior</MudText>
+                                            <MudText Typo="Typo.h6" Style="color: #424E5F; font-weight: 600;">
+                                                $@dto.IngresosMesAnterior.ToString("N2")
+                                            </MudText>
+                                        </MudStack>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="4">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">Mes Actual</MudText>
+                                            <MudText Typo="Typo.h6" Style="color: #5C9163; font-weight: 600;">
+                                                $@dto.IngresosMes.ToString("N2")
+                                            </MudText>
+                                        </MudStack>
+                                    </MudItem>
+                                    <MudItem xs="12" sm="4">
+                                        <MudStack Spacing="0">
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">Variación</MudText>
+                                            @if (dto.IngresosMesAnterior > 0)
+                                            {
+                                                var diff = ((dto.IngresosMes - dto.IngresosMesAnterior) / dto.IngresosMesAnterior) * 100m;
+                                                var color = diff >= 0 ? "#5C9163" : "#B97A40";
+                                                <MudText Typo="Typo.h6" Style="@($"color: {color}; font-weight: 600;")">
+                                                    @(diff >= 0 ? "↑" : "↓") @Math.Abs(diff).ToString("F1")%
+                                                </MudText>
+                                            }
+                                            else
+                                            {
+                                                <MudText Typo="Typo.h6" Style="color: #6B7280;">Sin datos previos</MudText>
+                                            }
+                                        </MudStack>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                            else
+                            {
+                                <div class="empty-chart">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Style="font-size: 64px; color: #D1D5DB;" />
+                                    <MudText Typo="Typo.body2" Style="color: #6B7280;">Sin datos de ingresos en este mes</MudText>
+                                </div>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- ═════════════════════════════════════════════ -->
+                    <!-- ESTADO DE HABITACIONES                        -->
+                    <!-- ═════════════════════════════════════════════ -->
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <div style="background: #F0F2F5; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.MeetingRoom" Style="color: #424E5F; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Estado de Habitaciones</MudText>
+                            </MudStack>
+
+                            <MudStack Spacing="3">
+                                <!-- Disponibles -->
+                                <div>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+                                        <MudText Typo="Typo.body2" Style="color: #374151;">Disponibles</MudText>
+                                        <MudText Typo="Typo.body2" Style="color: #5C9163; font-weight: 700;">@dto.TotalHabitacionesDisponibles</MudText>
+                                    </MudStack>
+                                    <div class="bar-bg">
+                                        <div class="bar-fill" style="@($"width: {(dto.TotalHabitaciones > 0 ? (dto.TotalHabitacionesDisponibles * 100.0 / dto.TotalHabitaciones) : 0)}%; background: #6FA776;")"></div>
+                                    </div>
+                                </div>
+
+                                <!-- Ocupadas -->
+                                <div>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+                                        <MudText Typo="Typo.body2" Style="color: #374151;">Ocupadas</MudText>
+                                        <MudText Typo="Typo.body2" Style="color: #4A7AAD; font-weight: 700;">@dto.TotalHabitacionesOcupadas</MudText>
+                                    </MudStack>
+                                    <div class="bar-bg">
+                                        <div class="bar-fill" style="@($"width: {(dto.TotalHabitaciones > 0 ? (dto.TotalHabitacionesOcupadas * 100.0 / dto.TotalHabitaciones) : 0)}%; background: #5C8DC2;")"></div>
+                                    </div>
+                                </div>
+
+                                <!-- En limpieza -->
+                                <div>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+                                        <MudText Typo="Typo.body2" Style="color: #374151;">En limpieza</MudText>
+                                        <MudText Typo="Typo.body2" Style="color: #B97A40; font-weight: 700;">@dto.TotalHabitacionesEnLimpieza</MudText>
+                                    </MudStack>
+                                    <div class="bar-bg">
+                                        <div class="bar-fill" style="@($"width: {(dto.TotalHabitaciones > 0 ? (dto.TotalHabitacionesEnLimpieza * 100.0 / dto.TotalHabitaciones) : 0)}%; background: #E8A668;")"></div>
+                                    </div>
+                                </div>
+                            </MudStack>
+
+                            <MudDivider Class="my-3" Style="border-color: #E5E7EB;" />
+
+                            <MudGrid Spacing="2">
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.caption" Style="color: #6B7280;">Tasa actual</MudText>
+                                    <MudText Typo="Typo.h6" Style="color: #4A7AAD; font-weight: 700;">@dto.TasaOcupacionActual.ToString("F0")%</MudText>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.caption" Style="color: #6B7280;">Promedio mes</MudText>
+                                    <MudText Typo="Typo.h6" Style="color: #5C9163; font-weight: 700;">@dto.TasaOcupacionPromedioMes.ToString("F1")%</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- ═════════════════════════════════════════════ -->
+                    <!-- MÉTODOS DE PAGO                               -->
+                    <!-- ═════════════════════════════════════════════ -->
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <div style="background: #EBF2F9; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Payments" Style="color: #5C8DC2; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Métodos de Pago</MudText>
+                            </MudStack>
+
+                            @if (dto.DistribucionMetodosPago.Any())
+                            {
+                                <div class="donut-container">
+                                    <MudChart ChartType="ChartType.Donut"
+                                              InputData="@MetodosPagoData"
+                                              InputLabels="@MetodosPagoLabels"
+                                              ChartOptions="@OptMetodosPago"
+                                              Width="180px"
+                                              Height="180px" />
+                                </div>
+
+                                <MudStack Spacing="2" Class="mt-3">
+                                    @foreach (var m in dto.DistribucionMetodosPago)
+                                    {
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="1">
+                                                <div style="@($"width: 10px; height: 10px; border-radius: 50%; background: {GetColorMetodo(m.Metodo)};")"></div>
+                                                <MudText Typo="Typo.body2" Style="color: #374151;">@m.Metodo</MudText>
+                                            </MudStack>
+                                            <MudText Typo="Typo.body2" Style="color: #1F2937; font-weight: 600;">
+                                                $@m.MontoTotal.ToString("N0") <span style="color: #6B7280;">(@m.Porcentaje.ToString("F0")%)</span>
+                                            </MudText>
+                                        </MudStack>
+                                    }
+                                </MudStack>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Style="color: #6B7280;">Sin datos disponibles este mes</MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- ═════════════════════════════════════════════ -->
+                    <!-- OCUPACIÓN POR CATEGORÍA                       -->
+                    <!-- ═════════════════════════════════════════════ -->
+                    <MudItem xs="12">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <div style="background: #FAF1E7; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Category" Style="color: #E8A668; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Ocupación por Categoría</MudText>
+                            </MudStack>
+
+                            @if (dto.OcupacionPorCategoria.Any())
+                            {
+                                <MudGrid Spacing="3">
+                                    @foreach (var cat in dto.OcupacionPorCategoria)
+                                    {
+                                        <MudItem xs="12" sm="6" md="4">
+                                            <div class="categoria-card">
+                                                <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-2">
+                                                    <MudText Typo="Typo.body1" Style="color: #1F2937; font-weight: 700;">@cat.Categoria</MudText>
+                                                    <MudText Typo="Typo.body2" Style="@($"color: {GetColorPorcentaje(cat.Porcentaje)}; font-weight: 700;")">
+                                                        @cat.Porcentaje.ToString("F0")%
+                                                    </MudText>
+                                                </MudStack>
+                                                <div class="bar-bg mb-2">
+                                                    <div class="bar-fill" style="@($"width: {cat.Porcentaje}%; background: {GetColorPorcentaje(cat.Porcentaje)};")"></div>
+                                                </div>
+                                                <MudStack Row="true" Justify="Justify.SpaceBetween">
+                                                    <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                                                        @cat.Ocupadas / @cat.Total
+                                                    </MudText>
+                                                    <MudText Typo="Typo.caption" Style="color: #5C9163; font-weight: 600;">
+                                                        $@cat.IngresoMes.ToString("N0")
+                                                    </MudText>
+                                                </MudStack>
+                                            </div>
+                                        </MudItem>
+                                    }
+                                </MudGrid>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Style="color: #6B7280;">Sin datos disponibles</MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                </MudGrid>
+            </MudTabPanel>
+
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- TAB 2: GERENCIA - INGRESOS                           -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            <MudTabPanel Text="Gerencia" Icon="@Icons.Material.Filled.Diamond">
+                <MudGrid Spacing="3">
+
+                    <!-- KPIs de Gerencia -->
+                    <MudItem xs="12">
+                        <MudGrid Spacing="3">
+                            <!-- Total Reservas Mes -->
+                            <MudItem xs="6" sm="3">
+                                <MudPaper Elevation="0" Class="pa-4 kpi-gerencia"
+                                          Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                                    <MudStack Spacing="2">
+                                        <div style="background: #F0F2F5; padding: 8px; border-radius: 10px; width: fit-content;">
+                                            <MudIcon Icon="@Icons.Material.Filled.BusinessCenter" Style="color: #424E5F; font-size: 24px;" />
+                                        </div>
+                                        <div>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">RESERVAS MES</MudText>
+                                            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                                                @dto.TotalReservasGerenciaMes
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">@dto.TotalReservasGerenciaAnio en el año</MudText>
+                                        </div>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+
+                            <!-- Ingresos Mes -->
+                            <MudItem xs="6" sm="3">
+                                <MudPaper Elevation="0" Class="pa-4 kpi-gerencia"
+                                          Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                                    <MudStack Spacing="2">
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center">
+                                            <div style="background: #EFF5EF; padding: 8px; border-radius: 10px;">
+                                                <MudIcon Icon="@Icons.Material.Filled.AccountBalance" Style="color: #6FA776; font-size: 24px;" />
+                                            </div>
+                                            @if (dto.IngresosGerenciaMesAnterior > 0)
+                                            {
+                                                var diff = ((dto.IngresosGerenciaMes - dto.IngresosGerenciaMesAnterior) / dto.IngresosGerenciaMesAnterior) * 100m;
+                                                var bg = diff >= 0 ? "#EFF5EF" : "#FAF1E7";
+                                                var color = diff >= 0 ? "#5C9163" : "#B97A40";
+                                                <MudChip Size="Size.Small" Variant="Variant.Text"
+                                                         Style="@($"background: {bg}; color: {color}; font-weight: 600; font-size: 11px;")">
+                                                    @(diff >= 0 ? "↑" : "↓") @Math.Abs(diff).ToString("F0")%
+                                                </MudChip>
+                                            }
+                                        </MudStack>
+                                        <div>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">INGRESOS MES</MudText>
+                                            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                                                $@dto.IngresosGerenciaMes.ToString("N0")
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">vs $@dto.IngresosGerenciaMesAnterior.ToString("N0") anterior</MudText>
+                                        </div>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+
+                            <!-- Días Normales -->
+                            <MudItem xs="6" sm="3">
+                                <MudPaper Elevation="0" Class="pa-4 kpi-gerencia"
+                                          Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                                    <MudStack Spacing="2">
+                                        <div style="background: #EBF2F9; padding: 8px; border-radius: 10px; width: fit-content;">
+                                            <MudIcon Icon="@Icons.Material.Filled.CalendarToday" Style="color: #5C8DC2; font-size: 24px;" />
+                                        </div>
+                                        <div>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">DÍAS NORMALES</MudText>
+                                            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                                                @dto.ReservasGerenciaNormal
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">tarifa $15/persona</MudText>
+                                        </div>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+
+                            <!-- Días Festivos -->
+                            <MudItem xs="6" sm="3">
+                                <MudPaper Elevation="0" Class="pa-4 kpi-gerencia"
+                                          Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                                    <MudStack Spacing="2">
+                                        <div style="background: #FAF1E7; padding: 8px; border-radius: 10px; width: fit-content;">
+                                            <MudIcon Icon="@Icons.Material.Filled.Star" Style="color: #E8A668; font-size: 24px;" />
+                                        </div>
+                                        <div>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">DÍAS FESTIVOS</MudText>
+                                            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                                                @dto.ReservasGerenciaFestivo
+                                            </MudText>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">tarifa $20/persona</MudText>
+                                        </div>
+                                    </MudStack>
+                                </MudPaper>
+                            </MudItem>
+                        </MudGrid>
+                    </MudItem>
+
+                    <!-- Resumen financiero gerencia -->
+                    <MudItem xs="12">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-3" Wrap="Wrap.Wrap">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <div style="background: #F0F2F5; padding: 10px; border-radius: 10px;">
+                                        <MudIcon Icon="@Icons.Material.Filled.MonetizationOn" Style="color: #424E5F; font-size: 24px;" />
+                                    </div>
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Ingresos de Gerencia</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">Distribución diaria de reservas con tarifa especial</MudText>
+                                    </MudStack>
+                                </MudStack>
+
+                                <MudButton Variant="Variant.Filled"
+                                           Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.Add"
+                                           OnClick="@(() => _navManager.NavigateTo("/page/reservagerencia"))"
+                                           Style="background: #424E5F; color: white; text-transform: none;">
+                                    Nueva Reserva
+                                </MudButton>
+                            </MudStack>
+
+                            <!-- Stats de gerencia -->
+                            <MudGrid Spacing="2" Class="mb-3">
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">TOTAL MES</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #1F2937; font-weight: 700;">$@dto.IngresosGerenciaMes.ToString("N0")</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">@dto.TotalReservasGerenciaMes reservas</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #6FA776;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">TOTAL AÑO</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #5C9163; font-weight: 700;">$@dto.IngresosGerenciaAnio.ToString("N0")</MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">@dto.TotalReservasGerenciaAnio reservas</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #5C8DC2;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">PROMEDIO/RESERVA</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #4A7AAD; font-weight: 700;">
+                                            $@(dto.TotalReservasGerenciaMes > 0 ? (dto.IngresosGerenciaMes / dto.TotalReservasGerenciaMes).ToString("N0") : "0")
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">por reserva</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #E8A668;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">% DEL TOTAL</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #B97A40; font-weight: 700;">
+                                            @(dto.IngresosMes > 0 ? ((dto.IngresosGerenciaMes / dto.IngresosMes) * 100).ToString("F0") : "0")%
+                                        </MudText>
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">del ingreso total</MudText>
+                                    </div>
+                                </MudItem>
+                            </MudGrid>
+
+                            @if (dto.IngresosGerenciaDiarios != null && dto.IngresosGerenciaDiarios.Count > 0 && dto.IngresosGerenciaDiarios.Any(x => x.Monto > 0))
+                            {
+                                <div class="chart-container">
+                                    <MudChart ChartType="ChartType.Bar"
+                                              Labels="@LabelsGerencia"
+                                              ChartSeries="@SeriesGerencia"
+                                              Width="100%"
+                                              Height="320px"
+                                              ChartOptions="@OptGerencia" />
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="empty-chart">
+                                    <MudIcon Icon="@Icons.Material.Filled.BusinessCenter" Style="font-size: 64px; color: #D1D5DB;" />
+                                    <MudText Typo="Typo.body2" Style="color: #6B7280;">No hay reservas de gerencia este mes</MudText>
+                                    <MudText Typo="Typo.caption" Style="color: #9CA3AF;">Click en "Nueva Reserva" para crear una</MudText>
+                                </div>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- Comparativa Normal vs Festivo -->
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <div style="background: #FAF1E7; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.PieChart" Style="color: #E8A668; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Distribución de Tarifas</MudText>
+                            </MudStack>
+
+                            @if (dto.ReservasGerenciaNormal + dto.ReservasGerenciaFestivo > 0)
+                            {
+                                int total = dto.ReservasGerenciaNormal + dto.ReservasGerenciaFestivo;
+                                double pctNormal = (dto.ReservasGerenciaNormal * 100.0) / total;
+                                double pctFestivo = (dto.ReservasGerenciaFestivo * 100.0) / total;
+
+                                <MudStack Spacing="3">
+                                    <!-- Normal -->
+                                    <div>
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+                                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                                <div style="width: 12px; height: 12px; background: #5C8DC2; border-radius: 3px;"></div>
+                                                <MudText Typo="Typo.body2" Style="color: #374151;">Días Normales ($15/persona)</MudText>
+                                            </MudStack>
+                                            <MudText Typo="Typo.body2" Style="color: #4A7AAD; font-weight: 700;">
+                                                @dto.ReservasGerenciaNormal (@pctNormal.ToString("F0")%)
+                                            </MudText>
+                                        </MudStack>
+                                        <div class="bar-bg">
+                                            <div class="bar-fill" style="@($"width: {pctNormal}%; background: #5C8DC2;")"></div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Festivo -->
+                                    <div>
+                                        <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-1">
+                                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                                <div style="width: 12px; height: 12px; background: #E8A668; border-radius: 3px;"></div>
+                                                <MudText Typo="Typo.body2" Style="color: #374151;">Días Festivos ($20/persona)</MudText>
+                                            </MudStack>
+                                            <MudText Typo="Typo.body2" Style="color: #B97A40; font-weight: 700;">
+                                                @dto.ReservasGerenciaFestivo (@pctFestivo.ToString("F0")%)
+                                            </MudText>
+                                        </MudStack>
+                                        <div class="bar-bg">
+                                            <div class="bar-fill" style="@($"width: {pctFestivo}%; background: #E8A668;")"></div>
+                                        </div>
+                                    </div>
+                                </MudStack>
+
+                                <MudDivider Class="my-3" Style="border-color: #E5E7EB;" />
+
+                                <MudGrid>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">Total reservas</MudText>
+                                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">@total</MudText>
+                                    </MudItem>
+                                    <MudItem xs="6">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">Total recaudado</MudText>
+                                        <MudText Typo="Typo.h6" Style="color: #5C9163; font-weight: 700;">$@dto.IngresosGerenciaMes.ToString("N0")</MudText>
+                                    </MudItem>
+                                </MudGrid>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Style="color: #6B7280;">Sin reservas de gerencia este mes</MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- Comparativa Gerencia vs Total -->
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <div style="background: #EFF5EF; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.CompareArrows" Style="color: #6FA776; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Gerencia vs Ingresos Totales</MudText>
+                            </MudStack>
+
+                            <MudGrid Spacing="3">
+                                <MudItem xs="12">
+                                    <MudStack Spacing="0">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280;">Ingresos del Mes</MudText>
+                                        <MudText Typo="Typo.h5" Style="color: #1F2937; font-weight: 700;">
+                                            $@dto.IngresosMes.ToString("N0") <span style="color: #6B7280; font-size: 14px; font-weight: 400;">total</span>
+                                        </MudText>
+                                    </MudStack>
+                                </MudItem>
+
+                                <MudItem xs="12">
+                                    <div style="background: #F0F2F5; border-radius: 8px; height: 32px; position: relative; overflow: hidden;">
+                                        @{
+                                            double pctGerencia = dto.IngresosMes > 0 ? (double)((dto.IngresosGerenciaMes / dto.IngresosMes) * 100m) : 0;
+                                            double pctOtros = 100 - pctGerencia;
+                                        }
+                                        <div style="@($"width: {pctGerencia}%; height: 100%; background: linear-gradient(90deg, #424E5F 0%, #2E3744 100%); display: inline-block;")"></div>
+                                    </div>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-2">
+                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                            <div style="width: 10px; height: 10px; background: #424E5F; border-radius: 2px;"></div>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">Gerencia</MudText>
+                                        </MudStack>
+                                        <MudText Typo="Typo.body2" Style="color: #424E5F; font-weight: 700;">
+                                            $@dto.IngresosGerenciaMes.ToString("N0") (@pctGerencia.ToString("F0")%)
+                                        </MudText>
+                                    </MudStack>
+                                    <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mt-1">
+                                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                            <div style="width: 10px; height: 10px; background: #6FA776; border-radius: 2px;"></div>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;">Otros ingresos</MudText>
+                                        </MudStack>
+                                        <MudText Typo="Typo.body2" Style="color: #5C9163; font-weight: 700;">
+                                            $@((dto.IngresosMes - dto.IngresosGerenciaMes).ToString("N0")) (@pctOtros.ToString("F0")%)
+                                        </MudText>
+                                    </MudStack>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- Reservas de Gerencia recientes -->
+                    <MudItem xs="12">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <div style="background: #F0F2F5; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.History" Style="color: #424E5F; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Reservas de Gerencia Recientes</MudText>
+                            </MudStack>
+
+                            @if (dto.ReservasGerenciaRecientes.Any())
+                            {
+                                <MudTable Items="@dto.ReservasGerenciaRecientes" Hover="true" Dense="true">
+                                    <HeaderContent>
+                                        <MudTh>Cliente</MudTh>
+                                        <MudTh>Habitación</MudTh>
+                                        <MudTh>Entrada</MudTh>
+                                        <MudTh>Salida</MudTh>
+                                        <MudTh>Estado</MudTh>
+                                        <MudTh Style="text-align: right;">Total</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd>@context.Cliente</MudTd>
+                                        <MudTd>@context.Habitacion</MudTd>
+                                        <MudTd>@context.FechaEntrada.ToString("dd/MM/yyyy")</MudTd>
+                                        <MudTd>@context.FechaSalida.ToString("dd/MM/yyyy")</MudTd>
+                                        <MudTd>
+                                            <MudChip Size="Size.Small" Variant="Variant.Text"
+                                                     Style="@GetEstiloEstadoChip(context.Estado)">
+                                                @context.Estado
+                                            </MudChip>
+                                        </MudTd>
+                                        <MudTd Style="text-align: right; color: #5C9163; font-weight: 700;">
+                                            $@context.Total.ToString("N2")
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                    No hay reservas de gerencia registradas.
+                                </MudAlert>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                </MudGrid>
+            </MudTabPanel>
+
+            <!-- TAB 3: ESTADOS Y RESERVAS -->
+            <MudTabPanel Text="Estados" Icon="@Icons.Material.Filled.PieChart">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;" Class="mb-3">Estados de Reservas (Mes)</MudText>
+                            <MudGrid Spacing="3">
+                                <MudItem xs="6" sm="3">
+                                    <MudPaper Class="pa-3 text-center" Elevation="0"
+                                              Style="background: #FAF1E7; border-left: 3px solid #E8A668; border-radius: 8px;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">RESERVADAS</MudText>
+                                        <MudText Typo="Typo.h4" Style="color: #B97A40; font-weight: 700;">@dto.ReservasReservadas</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <MudPaper Class="pa-3 text-center" Elevation="0"
+                                              Style="background: #EBF2F9; border-left: 3px solid #5C8DC2; border-radius: 8px;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">CONFIRMADAS</MudText>
+                                        <MudText Typo="Typo.h4" Style="color: #4A7AAD; font-weight: 700;">@dto.ReservasConfirmadas</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <MudPaper Class="pa-3 text-center" Elevation="0"
+                                              Style="background: #EFF5EF; border-left: 3px solid #6FA776; border-radius: 8px;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">FINALIZADAS</MudText>
+                                        <MudText Typo="Typo.h4" Style="color: #5C9163; font-weight: 700;">@dto.ReservasFinalizadas</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <MudPaper Class="pa-3 text-center" Elevation="0"
+                                              Style="background: #F0F2F5; border-left: 3px solid #424E5F; border-radius: 8px;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px; letter-spacing: 0.5px;">CANCELADAS</MudText>
+                                        <MudText Typo="Typo.h4" Style="color: #424E5F; font-weight: 700;">@dto.ReservasCanceladas</MudText>
+                                    </MudPaper>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudItem>
+
+                    <!-- Próximos Check-ins -->
+                    <MudItem xs="12">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3">
+                                <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                                    <div style="background: #EBF2F9; padding: 8px; border-radius: 8px;">
+                                        <MudIcon Icon="@Icons.Material.Filled.Schedule" Style="color: #5C8DC2; font-size: 20px;" />
+                                    </div>
+                                    <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Próximos Check-ins (7 días)</MudText>
+                                </MudStack>
+                                <MudButton Variant="Variant.Outlined"
+                                           Size="Size.Small"
+                                           OnClick="@(() => _navManager.NavigateTo("/page/reservas"))"
+                                           Style="border-color: #D1D5DB; color: #374151; text-transform: none;">
+                                    Ver todas
+                                </MudButton>
+                            </MudStack>
+
+                            @if (dto.ProximosCheckIns.Any())
+                            {
+                                <MudTable Items="@dto.ProximosCheckIns" Hover="true" Dense="true">
+                                    <HeaderContent>
+                                        <MudTh>Cliente</MudTh>
+                                        <MudTh>Habitación</MudTh>
+                                        <MudTh>Entrada</MudTh>
+                                        <MudTh>Salida</MudTh>
+                                        <MudTh>Estado</MudTh>
+                                        <MudTh Style="text-align: right;">Total</MudTh>
+                                    </HeaderContent>
+                                    <RowTemplate>
+                                        <MudTd>@context.Cliente</MudTd>
+                                        <MudTd>@context.Habitacion</MudTd>
+                                        <MudTd>
+                                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                                <MudText Typo="Typo.body2">@context.FechaEntrada.ToString("dd/MM/yyyy")</MudText>
+                                                @if (context.FechaEntrada.Date == DateTime.Today)
+                                                {
+                                                    <MudChip Size="Size.Small" Variant="Variant.Text"
+                                                             Style="background: #FAF1E7; color: #B97A40; font-weight: 600; font-size: 10px;">
+                                                        HOY
+                                                    </MudChip>
+                                                }
+                                            </MudStack>
+                                        </MudTd>
+                                        <MudTd>@context.FechaSalida.ToString("dd/MM/yyyy")</MudTd>
+                                        <MudTd>
+                                            <MudChip Size="Size.Small" Variant="Variant.Text"
+                                                     Style="@GetEstiloEstadoChip(context.Estado)">
+                                                @context.Estado
+                                            </MudChip>
+                                        </MudTd>
+                                        <MudTd Style="text-align: right; font-weight: 600;">
+                                            $@context.Total.ToString("N2")
+                                        </MudTd>
+                                    </RowTemplate>
+                                </MudTable>
+                            }
+                            else
+                            {
+                                <MudAlert Severity="Severity.Info" Variant="Variant.Outlined">
+                                    No hay check-ins programados en los próximos 7 días.
+                                </MudAlert>
+                            }
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <!-- TAB 4: RANKINGS -->
+            <MudTabPanel Text="Rankings" Icon="@Icons.Material.Filled.Leaderboard">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <div style="background: #FAF1E7; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Style="color: #E8A668; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Top 5 Clientes</MudText>
+                            </MudStack>
+
+                            @if (dto.TopClientes.Any())
+                            {
+                                <MudList Clickable="false" DisablePadding="true">
+                                    @{ int idx = 1; }
+                                    @foreach (var c in dto.TopClientes)
+                                    {
+                                        <MudListItem Class="pa-2">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width: 100%;">
+                                                <div style="@GetEstiloAvatar(idx)">@idx</div>
+                                                <MudStack Spacing="0" Style="flex: 1;">
+                                                    <MudText Typo="Typo.body2" Style="color: #1F2937; font-weight: 600;">@c.Nombre</MudText>
+                                                    <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                                                        @c.CantidadReservas reservas
+                                                    </MudText>
+                                                </MudStack>
+                                                <MudText Typo="Typo.body2" Style="color: #5C9163; font-weight: 700;">
+                                                    $@c.TotalGastado.ToString("N0")
+                                                </MudText>
+                                            </MudStack>
+                                        </MudListItem>
+                                        idx++;
+                                    }
+                                </MudList>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Style="color: #6B7280;">Sin datos disponibles</MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <div style="background: #EBF2F9; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Star" Style="color: #5C8DC2; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Top 5 Habitaciones</MudText>
+                            </MudStack>
+
+                            @if (dto.TopHabitaciones.Any())
+                            {
+                                <MudList Clickable="false" DisablePadding="true">
+                                    @{ int idx = 1; }
+                                    @foreach (var h in dto.TopHabitaciones)
+                                    {
+                                        <MudListItem Class="pa-2">
+                                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Style="width: 100%;">
+                                                <div style="@GetEstiloAvatar(idx)">@idx</div>
+                                                <MudStack Spacing="0" Style="flex: 1;">
+                                                    <MudText Typo="Typo.body2" Style="color: #1F2937; font-weight: 600;">Habitación @h.Numero</MudText>
+                                                    <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                                                        @h.Categoria · @h.VecesOcupada veces
+                                                    </MudText>
+                                                </MudStack>
+                                                <MudText Typo="Typo.body2" Style="color: #4A7AAD; font-weight: 700;">
+                                                    $@h.IngresoTotal.ToString("N0")
+                                                </MudText>
+                                            </MudStack>
+                                        </MudListItem>
+                                        idx++;
+                                    }
+                                </MudList>
+                            }
+                            else
+                            {
+                                <MudText Typo="Typo.body2" Style="color: #6B7280;">Sin datos disponibles</MudText>
+                            }
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3">
+                                <div style="background: #EFF5EF; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Apartment" Style="color: #6FA776; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Ocupación por Piso</MudText>
+                            </MudStack>
+
+                            <MudGrid Spacing="2">
+                                @foreach (var piso in dto.OcupacionPorPiso)
+                                {
+                                    <MudItem xs="12" sm="6" md="4">
+                                        <div class="categoria-card">
+                                            <MudStack Row="true" Justify="Justify.SpaceBetween" Class="mb-2">
+                                                <MudText Typo="Typo.body1" Style="color: #1F2937; font-weight: 700;">@piso.Piso</MudText>
+                                                <MudText Typo="Typo.body2" Style="@($"color: {GetColorPorcentaje(piso.TasaOcupacion)}; font-weight: 700;")">
+                                                    @piso.TasaOcupacion.ToString("F0")%
+                                                </MudText>
+                                            </MudStack>
+                                            <MudText Typo="Typo.caption" Style="color: #6B7280;" Class="mb-1">
+                                                @piso.HabitacionesOcupadas / @piso.TotalHabitaciones habitaciones
+                                            </MudText>
+                                            <div class="bar-bg">
+                                                <div class="bar-fill" style="@($"width: {piso.TasaOcupacion}%; background: {GetColorPorcentaje(piso.TasaOcupacion)};")"></div>
+                                            </div>
+                                        </div>
+                                    </MudItem>
+                                }
+                            </MudGrid>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+            <!-- TAB 5: FINANZAS -->
+            <MudTabPanel Text="Finanzas" Icon="@Icons.Material.Filled.AccountBalance">
+                <MudGrid Spacing="3">
+                    <MudItem xs="12">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+                            <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;" Class="mb-3">Resumen Financiero</MudText>
+                            <MudGrid Spacing="3">
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #5C8DC2;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px;">HOY</MudText>
+                                        <MudText Typo="Typo.h6" Style="color: #4A7AAD; font-weight: 700;">$@dto.IngresosHoy.ToString("N2")</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #6FA776;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px;">MES ACTUAL</MudText>
+                                        <MudText Typo="Typo.h6" Style="color: #5C9163; font-weight: 700;">$@dto.IngresosMes.ToString("N2")</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #424E5F;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px;">MES ANTERIOR</MudText>
+                                        <MudText Typo="Typo.h6" Style="color: #424E5F; font-weight: 700;">$@dto.IngresosMesAnterior.ToString("N2")</MudText>
+                                    </div>
+                                </MudItem>
+                                <MudItem xs="6" sm="3">
+                                    <div class="stat-block" style="border-left: 3px solid #E8A668;">
+                                        <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 11px;">AÑO @DateTime.Now.Year</MudText>
+                                        <MudText Typo="Typo.h6" Style="color: #B97A40; font-weight: 700;">$@dto.IngresosAnio.ToString("N2")</MudText>
+                                    </div>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                                <div style="background: #FAF1E7; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.AccountBalanceWallet" Style="color: #E8A668; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Adelantos Pendientes</MudText>
+                            </MudStack>
+                            <MudText Typo="Typo.h3" Style="color: #B97A40; font-weight: 700;">
+                                $@dto.AdelantosPendientes.ToString("N2")
+                            </MudText>
+                            <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                                Pagos anticipados de reservas que aún no han hecho check-in
+                            </MudText>
+                        </MudPaper>
+                    </MudItem>
+
+                    <MudItem xs="12" md="6">
+                        <MudPaper Elevation="0" Class="pa-4" Style="border: 1px solid #E5E7EB; border-radius: 12px; height: 100%;">
+                            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-2">
+                                <div style="background: #EBF2F9; padding: 8px; border-radius: 8px;">
+                                    <MudIcon Icon="@Icons.Material.Filled.Group" Style="color: #5C8DC2; font-size: 20px;" />
+                                </div>
+                                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Clientes</MudText>
+                            </MudStack>
+                            <MudGrid>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.caption" Style="color: #6B7280;">Total</MudText>
+                                    <MudText Typo="Typo.h4" Style="color: #4A7AAD; font-weight: 700;">@dto.TotalClientes</MudText>
+                                </MudItem>
+                                <MudItem xs="6">
+                                    <MudText Typo="Typo.caption" Style="color: #6B7280;">Nuevos este mes</MudText>
+                                    <MudText Typo="Typo.h4" Style="color: #5C9163; font-weight: 700;">+@dto.ClientesNuevosMes</MudText>
+                                </MudItem>
+                            </MudGrid>
+                        </MudPaper>
+                    </MudItem>
+                </MudGrid>
+            </MudTabPanel>
+
+        </MudTabs>
+    }
+
 </MudContainer>
 
+<style>
+    .cursor-pointer { cursor: pointer; }
+
+    .kpi-card-flat {
+        transition: all 0.2s ease;
+    }
+    .kpi-card-flat:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        border-color: #5C8DC2 !important;
+    }
+
+    .stat-block {
+        background: #F9FAFB;
+        padding: 12px 16px;
+        border-radius: 8px;
+        border-left: 3px solid #424E5F;
+    }
+
+    .bar-bg {
+        background: #F0F2F5;
+        border-radius: 4px;
+        height: 8px;
+        overflow: hidden;
+    }
+    .bar-fill {
+        height: 100%;
+        border-radius: 4px;
+        transition: width 0.5s ease;
+    }
+
+    .categoria-card {
+        background: #F9FAFB;
+        padding: 16px;
+        border-radius: 8px;
+        border: 1px solid #E5E7EB;
+    }
+
+    /* ════════════════════════════════════════════ */
+    /* CONTENEDORES DE GRÁFICOS                     */
+    /* ════════════════════════════════════════════ */
+    .chart-container {
+        padding: 16px 0;
+        background: white;
+        border-radius: 8px;
+        position: relative;
+    }
+
+    .empty-chart {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        height: 280px;
+        background: #F9FAFB;
+        border-radius: 8px;
+        border: 2px dashed #E5E7EB;
+    }
+
+    /* ════════════════════════════════════════════ */
+    /* CONTENEDOR DEL DONUT (Métodos de Pago)        */
+    /* ════════════════════════════════════════════ */
+    .donut-container {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        max-height: 200px;
+        width: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+
+    /* Limita el tamaño del SVG del donut para que no se desborde */
+    .donut-container svg {
+        max-width: 180px !important;
+        max-height: 180px !important;
+        width: 180px !important;
+        height: 180px !important;
+    }
+
+    /* Oculta la leyenda del MudChart Donut (ya tenemos lista personalizada) */
+    .donut-container .mud-chart-legend,
+    .donut-container .mud-chart-legend-item {
+        display: none !important;
+    }
+
+    /* ════════════════════════════════════════════ */
+    /* AJUSTES VISUALES PARA MUDCHART               */
+    /* ════════════════════════════════════════════ */
+
+    /* Etiquetas de eje X (fechas) */
+    .mud-charts-xaxis text {
+        font-size: 11px !important;
+        fill: #6B7280 !important;
+        font-family: 'Roboto', sans-serif;
+    }
+
+    /* Etiquetas de eje Y (valores) */
+    .mud-charts-yaxis text {
+        font-size: 11px !important;
+        fill: #6B7280 !important;
+        font-family: 'Roboto', sans-serif;
+    }
+
+    /* Líneas de la grilla suaves */
+    .mud-charts-gridlines line,
+    .mud-charts-yaxis line {
+        stroke: #E5E7EB !important;
+        stroke-dasharray: 3, 3;
+    }
+
+    /* Líneas del gráfico más visibles */
+    .mud-chart-line path {
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
+
+    /* Barras con bordes redondeados */
+    .mud-chart-bar rect {
+        rx: 4px;
+        ry: 4px;
+    }
+
+    /* Leyenda */
+    .mud-chart-legend-item {
+        font-size: 12px !important;
+        color: #374151 !important;
+    }
+
+    /* Tooltip */
+    .mud-chart-tooltip {
+        background: rgba(31, 41, 55, 0.95) !important;
+        color: white !important;
+        border-radius: 6px;
+        padding: 8px 12px;
+        font-size: 12px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+</style>
+
 @code {
-    private DashBoardDTO dashboardDTO = new();
+    private DashBoardDTO dto = new();
+    private bool _loading = true;
+
+    private ChartType _tipoGraficaCheckIn = ChartType.Line;
+    private ChartType _tipoGraficaIngreso = ChartType.Bar;
 
     private string[] LabelsOcup = Array.Empty<string>();
-    private double[][] DataOcup = Array.Empty<double[]>();
-
     private string[] LabelsIng = Array.Empty<string>();
-    private double[][] DataIng = Array.Empty<double[]>();
-
+    private string[] LabelsGerencia = Array.Empty<string>();
     private List<ChartSeries> SeriesOcupacion = new();
     private List<ChartSeries> SeriesIngresos = new();
+    private List<ChartSeries> SeriesGerencia = new();
+
+    private ChartOptions OptOcupacion = new();
+    private ChartOptions OptIngresos = new();
+    private ChartOptions OptGerencia = new();
+    private ChartOptions OptMetodosPago = new();
+
+    private double[] MetodosPagoData = Array.Empty<double>();
+    private string[] MetodosPagoLabels = Array.Empty<string>();
+
+    private int TotalCheckIns => dto.OcupacionMes?.Sum(x => x.Ocupadas) ?? 0;
+    private double PromedioCheckIns => dto.OcupacionMes?.Count > 0 ? dto.OcupacionMes.Average(x => x.Ocupadas) : 0;
+    private int MaximoCheckIns => dto.OcupacionMes?.Count > 0 ? dto.OcupacionMes.Max(x => x.Ocupadas) : 0;
+    private decimal MaximoIngreso => dto.IngresosMesCheckout?.Count > 0 ? dto.IngresosMesCheckout.Max(x => x.Monto) : 0;
 
     protected override async Task OnInitializedAsync()
     {
-        var resp = await _dashboardServicio.ResumenDashboard();
+        await CargarDatos();
+    }
 
-        dashboardDTO = (resp.status && resp.value != null) ? resp.value : new DashBoardDTO();
+    private async Task RecargarDatos() => await CargarDatos();
 
-        BuildCharts();
+    private async Task CargarDatos()
+    {
+        _loading = true;
+        StateHasChanged();
+
+        try
+        {
+            var resp = await _dashboardServicio.ResumenDashboard();
+            dto = (resp.status && resp.value != null) ? resp.value : new DashBoardDTO();
+            ConfigureChartOptions();
+            BuildCharts();
+        }
+        catch
+        {
+            dto = new DashBoardDTO();
+        }
+        finally
+        {
+            _loading = false;
+        }
+    }
+
+    private void ConfigureChartOptions()
+    {
+        // Calcular máximos para escalar correctamente el eje Y
+        int maxCheckIns = dto.OcupacionMes?.Count > 0 ? dto.OcupacionMes.Max(x => x.Ocupadas) : 0;
+        decimal maxIngresos = dto.IngresosMesCheckout?.Count > 0 ? dto.IngresosMesCheckout.Max(x => x.Monto) : 0m;
+        decimal maxGerencia = dto.IngresosGerenciaDiarios?.Count > 0 ? dto.IngresosGerenciaDiarios.Max(x => x.Monto) : 0m;
+
+        // ═══════════════════════════════════════════════
+        // CHECK-INS (Línea/Barras azul)
+        // ═══════════════════════════════════════════════
+        OptOcupacion = new ChartOptions
+        {
+            DisableLegend = false,
+            LineStrokeWidth = 4,
+            ChartPalette = new[] { "#5C8DC2", "#4A7AAD" },
+            YAxisFormat = "0",                              // Solo enteros
+            YAxisTicks = CalcularTicksEnteros(maxCheckIns), // Espaciado dinámico
+            MaxNumYAxisTicks = 6,                           // Máx 6 ticks
+            XAxisLines = false,                             // Sin líneas verticales
+            YAxisLines = true,                              // Líneas horizontales suaves
+            InterpolationOption = InterpolationOption.NaturalSpline  // Línea suave
+        };
+
+        // ═══════════════════════════════════════════════
+        // INGRESOS (Línea/Barras verde)
+        // ═══════════════════════════════════════════════
+        OptIngresos = new ChartOptions
+        {
+            DisableLegend = false,
+            LineStrokeWidth = 4,
+            ChartPalette = new[] { "#6FA776", "#5C9163" },
+            YAxisFormat = "C0",                              // Formato moneda sin decimales
+            YAxisTicks = CalcularTicksMoneda(maxIngresos),
+            MaxNumYAxisTicks = 6,
+            XAxisLines = false,
+            YAxisLines = true,
+            InterpolationOption = InterpolationOption.NaturalSpline
+        };
+
+        // ═══════════════════════════════════════════════
+        // GERENCIA (Barras gris oscuro)
+        // ═══════════════════════════════════════════════
+        OptGerencia = new ChartOptions
+        {
+            DisableLegend = false,
+            LineStrokeWidth = 3,
+            ChartPalette = new[] { "#424E5F", "#2E3744" },
+            YAxisFormat = "C0",
+            YAxisTicks = CalcularTicksMoneda(maxGerencia),
+            MaxNumYAxisTicks = 6,
+            XAxisLines = false,
+            YAxisLines = true,
+            InterpolationOption = InterpolationOption.NaturalSpline
+        };
+    }
+
+    /// <summary>
+    /// Calcula el espaciado de ticks para valores enteros (check-ins)
+    /// </summary>
+    private int CalcularTicksEnteros(int max)
+    {
+        if (max <= 0) return 1;
+        if (max <= 5) return 1;
+        if (max <= 10) return 2;
+        if (max <= 25) return 5;
+        if (max <= 50) return 10;
+        if (max <= 100) return 20;
+        return (int)(max / 5);
+    }
+
+    /// <summary>
+    /// Calcula el espaciado de ticks para valores monetarios
+    /// </summary>
+    private int CalcularTicksMoneda(decimal max)
+    {
+        if (max <= 0) return 100;
+        if (max <= 100) return 20;
+        if (max <= 500) return 100;
+        if (max <= 1000) return 200;
+        if (max <= 5000) return 1000;
+        if (max <= 10000) return 2000;
+        if (max <= 50000) return 10000;
+        return (int)(max / 5);
     }
 
     private void BuildCharts()
     {
-        // ===== Ocupación =====
-        if (dashboardDTO.OcupacionMes != null && dashboardDTO.OcupacionMes.Count > 0)
+        if (dto.OcupacionMes?.Count > 0)
         {
-            var orderedO = dashboardDTO.OcupacionMes
-                .OrderBy(x => x.FechaDate)
-                .ToList();
-
-            LabelsOcup = orderedO.Select(x => x.FechaDate.ToString("dd/MM")).ToArray();
-
+            var ordered = dto.OcupacionMes.OrderBy(x => x.FechaDate).ToList();
+            LabelsOcup = ordered.Select(x => x.FechaDate.ToString("dd/MM")).ToArray();
             SeriesOcupacion = new List<ChartSeries>
-        {
-            new ChartSeries
             {
-                Name = "Check-ins",
-                Data = orderedO.Select(x => (double)x.Ocupadas).ToArray()
-            }
-        };
-        }
-        else
-        {
-            LabelsOcup = Array.Empty<string>();
-            SeriesOcupacion = new();
+                new ChartSeries { Name = "Check-ins", Data = ordered.Select(x => (double)x.Ocupadas).ToArray() }
+            };
         }
 
-        // ===== Ingresos =====
-        if (dashboardDTO.IngresosMesCheckout != null && dashboardDTO.IngresosMesCheckout.Count > 0)
+        if (dto.IngresosMesCheckout?.Count > 0)
         {
-            var orderedI = dashboardDTO.IngresosMesCheckout
-                .OrderBy(x => x.FechaDate)
-                .ToList();
-
-            LabelsIng = orderedI.Select(x => x.FechaDate.ToString("dd/MM")).ToArray();
-
+            var ordered = dto.IngresosMesCheckout.OrderBy(x => x.FechaDate).ToList();
+            LabelsIng = ordered.Select(x => x.FechaDate.ToString("dd/MM")).ToArray();
             SeriesIngresos = new List<ChartSeries>
-        {
-            new ChartSeries
             {
-                Name = "Ingresos",
-                Data = orderedI.Select(x => (double)x.Monto).ToArray()
-            }
-        };
+                new ChartSeries { Name = "Ingresos", Data = ordered.Select(x => (double)x.Monto).ToArray() }
+            };
         }
-        else
+
+        if (dto.IngresosGerenciaDiarios?.Count > 0)
         {
-            LabelsIng = Array.Empty<string>();
-            SeriesIngresos = new();
+            var ordered = dto.IngresosGerenciaDiarios.OrderBy(x => x.FechaDate).ToList();
+            LabelsGerencia = ordered.Select(x => x.FechaDate.ToString("dd/MM")).ToArray();
+            SeriesGerencia = new List<ChartSeries>
+            {
+                new ChartSeries { Name = "Gerencia", Data = ordered.Select(x => (double)x.Monto).ToArray() }
+            };
         }
+
+        if (dto.DistribucionMetodosPago?.Count > 0)
+        {
+            MetodosPagoData = dto.DistribucionMetodosPago.Select(m => (double)m.MontoTotal).ToArray();
+            MetodosPagoLabels = dto.DistribucionMetodosPago.Select(m => $"{m.Metodo}").ToArray();
+
+            // Paleta del donut en el MISMO orden que los datos para que el color coincida con la leyenda
+            var paletaMetodos = dto.DistribucionMetodosPago.Select(m => GetColorMetodo(m.Metodo)).ToArray();
+            OptMetodosPago = new ChartOptions
+            {
+                DisableLegend = true,
+                ChartPalette = paletaMetodos
+            };
+        }
+    }
+
+    /// <summary>
+    /// Color suave según porcentaje (paleta sin rojo)
+    /// </summary>
+    private string GetColorPorcentaje(double porcentaje)
+    {
+        if (porcentaje > 80) return "#B97A40";  // Naranja oscuro (alta demanda)
+        if (porcentaje > 60) return "#E8A668";  // Naranja
+        if (porcentaje > 30) return "#5C8DC2";  // Azul
+        return "#6FA776";                        // Verde (baja, hay disponibilidad)
+    }
+
+    /// <summary>
+    /// Color para método de pago
+    /// </summary>
+    private string GetColorMetodo(string metodo)
+    {
+        return metodo?.ToUpper() switch
+        {
+            "EFECTIVO" => "#6FA776",
+            "TRANSFERENCIA" => "#5C8DC2",
+            "MIXTO" => "#E8A668",
+            _ => "#424E5F"
+        };
+    }
+
+    /// <summary>
+    /// Estilo para botones de selector de gráfico
+    /// </summary>
+    private string GetEstiloBoton(bool activo)
+    {
+        return activo
+            ? "background: #EBF2F9; color: #4A7AAD; border-color: #5C8DC2;"
+            : "background: white; color: #6B7280; border-color: #E5E7EB;";
+    }
+
+    /// <summary>
+    /// Estilo para chip de estado (sin rojo)
+    /// </summary>
+    private string GetEstiloEstadoChip(string estado)
+    {
+        return estado switch
+        {
+            "RESERVADA" => "background: #FAF1E7; color: #B97A40; font-weight: 600;",
+            "CONFIRMADA" => "background: #EBF2F9; color: #4A7AAD; font-weight: 600;",
+            "CHECKIN" => "background: #EBF2F9; color: #5C8DC2; font-weight: 600;",
+            "FINALIZADA" => "background: #EFF5EF; color: #5C9163; font-weight: 600;",
+            "CANCELADA" => "background: #F0F2F5; color: #424E5F; font-weight: 600;",
+            _ => "background: #F0F2F5; color: #6B7280; font-weight: 600;"
+        };
+    }
+
+    /// <summary>
+    /// Estilo del avatar para rankings (paleta naranja, azul, verde, gris)
+    /// </summary>
+    private string GetEstiloAvatar(int posicion)
+    {
+        string bg = posicion switch
+        {
+            1 => "#E8A668",   // Naranja
+            2 => "#5C8DC2",   // Azul
+            3 => "#6FA776",   // Verde
+            _ => "#424E5F"    // Gris oscuro
+        };
+        return $"background-color: {bg}; color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px;";
     }
 }

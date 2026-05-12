@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using SistemaHotel.Server.Models;
 using SistemaHotel.Server.Repositorio.Contratos;
+using SistemaHotel.Server.Utilidades;
 using System.Linq.Expressions;
 
 namespace SistemaHotel.Server.Repositorio.Implementacion
@@ -8,10 +9,12 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
     public class UsuarioRepositorio : IUsuarioRepositorio
     {
         private readonly DbhotelBlazorContext _dbContext;
+        private readonly IPasswordHashingService _passwordHashingService;
 
-        public UsuarioRepositorio(DbhotelBlazorContext dbContext)
+        public UsuarioRepositorio(DbhotelBlazorContext dbContext, IPasswordHashingService passwordHashingService)
         {
             _dbContext = dbContext;
+            _passwordHashingService = passwordHashingService;
         }
 
 
@@ -25,6 +28,10 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
         {
             try
             {
+                if (!string.IsNullOrEmpty(entidad.Clave))
+                {
+                    entidad.Clave = _passwordHashingService.HashPassword(entidad.Clave);
+                }
                 _dbContext.Set<Usuario>().Add(entidad);
                 await _dbContext.SaveChangesAsync();
                 return entidad;
@@ -39,6 +46,10 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
         {
             try
             {
+                if (!string.IsNullOrEmpty(entidad.Clave) && !entidad.Clave.StartsWith("$2"))
+                {
+                    entidad.Clave = _passwordHashingService.HashPassword(entidad.Clave);
+                }
                 _dbContext.Update(entidad);
                 await _dbContext.SaveChangesAsync();
                 return true;

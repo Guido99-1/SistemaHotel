@@ -14,6 +14,7 @@ namespace SistemaHotel.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class ReservasController : ControllerBase
     {
         private readonly IMapper _mapper;
@@ -118,7 +119,7 @@ namespace SistemaHotel.Server.Controllers
             }
         }
 
-        //[Authorize(Roles = "Administrador")]
+        [Authorize(Roles = "Administrador,Gerencia")]
         [HttpPut("Editar/{idReserva}")]
         public async Task<IActionResult> Editar(int idReserva, [FromBody] ReservaDTO request)
         {
@@ -192,7 +193,7 @@ namespace SistemaHotel.Server.Controllers
                 return StatusCode(500, response);
             }
         }
-        //[Authorize(Roles = "Administrador")]
+        [Authorize(Roles = "Administrador,Gerencia")]
         [HttpDelete("Eliminar/{idReserva}")]
         public async Task<IActionResult> Eliminar(int idReserva)
         {
@@ -295,12 +296,23 @@ namespace SistemaHotel.Server.Controllers
 
             return Ok(response);
         }
+        [Authorize(Roles = "Administrador,Gerencia")]
         [HttpPut("CambiarEstado/{idReserva}")]
         public async Task<IActionResult> CambiarEstado(int idReserva, [FromBody] string estadoReserva)
         {
             ResponseDTO<bool> resp = new();
             try
             {
+                // ✅ Whitelist de estados válidos (evita guardar valores arbitrarios)
+                var estadosValidos = new[] { "RESERVADA", "CONFIRMADA", "CHECKIN", "CANCELADA", "FINALIZADA" };
+                if (string.IsNullOrWhiteSpace(estadoReserva) ||
+                    !estadosValidos.Contains(estadoReserva.Trim().ToUpper()))
+                {
+                    resp.status = false;
+                    resp.msg = $"Estado inválido. Valores permitidos: {string.Join(", ", estadosValidos)}";
+                    return BadRequest(resp);
+                }
+
                 var reserva = await _reservaRepositorio.Obtener(r => r.IdReserva == idReserva);
                 if (reserva == null)
                 {
@@ -309,7 +321,7 @@ namespace SistemaHotel.Server.Controllers
                     return NotFound(resp);
                 }
 
-                reserva.EstadoReserva = estadoReserva; // "RESERVADA", "CONFIRMADA", "CANCELADA"...
+                reserva.EstadoReserva = estadoReserva.Trim().ToUpper();
                 var ok = await _reservaRepositorio.EditarReserva(reserva);
 
                 resp.status = ok;
@@ -325,6 +337,7 @@ namespace SistemaHotel.Server.Controllers
             }
         }
 
+        [Authorize(Roles = "Administrador,Gerencia")]
         [HttpPut("Cancelar/{idReserva}")]
         public async Task<IActionResult> Cancelar(int idReserva)
         {

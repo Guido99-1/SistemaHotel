@@ -221,6 +221,17 @@ namespace SistemaHotel.Server.Utilidades
 
             #endregion
 
+            #region ReservaGrupo
+
+            CreateMap<ReservaGrupo, ReservaGrupoDTO>()
+                .ForMember(d => d.Reservas, opt => opt.MapFrom(s => s.Reservas));
+
+            CreateMap<ReservaGrupoDTO, ReservaGrupo>()
+                .ForMember(d => d.Reservas, opt => opt.Ignore())
+                .ForMember(d => d.IdClienteNavigation, opt => opt.Ignore());
+
+            #endregion
+
 
         }
     }

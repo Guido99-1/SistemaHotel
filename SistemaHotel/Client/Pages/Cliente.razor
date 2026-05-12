@@ -1,111 +1,428 @@
-﻿@page "/page/cliente"
+@page "/page/cliente"
 @attribute [Authorize(Roles = "Administrador,Recepcionista,Reservas,Gerencia")]
-
-@using ClosedXML.Excel
-@using System.IO
+@using Microsoft.AspNetCore.Components.Authorization
+@using SistemaHotel.Client.Servicios.Implementacion
 
 @inject IClienteServicio _clienteServicio
 @inject IDialogService _dialogServicio
 @inject ISnackbar _snackBar
 @inject SweetAlertService Swal
 @inject IJSRuntime _jsServicio
+@inject ReporteExcelService _excelService
+@inject ReportePdfService _pdfService
+@inject AuthenticationStateProvider _authProvider
 
-<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-5">
+<MudContainer MaxWidth="MaxWidth.ExtraLarge" Class="mt-3 mb-4">
 
-    <MudText Typo="Typo.h5" GutterBottom="true">Clientes</MudText>
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- HEADER MINIMALISTA                                -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudStack Row="true" Justify="Justify.SpaceBetween" AlignItems="AlignItems.Center" Class="mb-4" Wrap="Wrap.Wrap">
+        <MudStack Spacing="0">
+            <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; letter-spacing: -0.5px;">
+                Clientes
+            </MudText>
+            <MudText Typo="Typo.caption" Style="color: #6B7280; font-size: 13px;">
+                Gestión completa de huéspedes registrados
+            </MudText>
+        </MudStack>
 
-    <MudPaper Elevation="3" Class="pa-4" Width="100%">
-        <MudGrid>
-            <MudItem xs="12" Class="d-flex gap-2">
-                <MudButton Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Filled.Add"
-                           Color="Color.Primary"
-                           OnClick="AbrirNuevoModelo">
-                    Nuevo Cliente
-                </MudButton>
+        <MudStack Row="true" Spacing="2">
+            <MudButton Variant="Variant.Outlined"
+                       StartIcon="@Icons.Material.Filled.Refresh"
+                       OnClick="RecargarDatos"
+                       Disabled="@_loading"
+                       Size="Size.Small"
+                       Style="text-transform: none; border-color: #D1D5DB; color: #374151;">
+                Actualizar
+            </MudButton>
 
-                <MudButton Variant="Variant.Filled"
-                           StartIcon="@Icons.Material.Filled.DataThresholding"
-                           Color="Color.Success"Z
-                           Disabled="@desactivarBoton"
-                           OnClick="ExportarExcelClientes">
-                    Exportar Excel
-                </MudButton>
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.PersonAdd"
+                       OnClick="AbrirNuevoModelo"
+                       Size="Size.Small"
+                       Style="background: #5C8DC2; color: white; text-transform: none; font-weight: 600;">
+                Nuevo Cliente
+            </MudButton>
+        </MudStack>
+    </MudStack>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- KPIs RESUMEN                                      -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudGrid Spacing="3" Class="mb-4">
+
+        <!-- Total Clientes (AZUL) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                <MudStack Spacing="2">
+                    <div style="background: #EBF2F9; padding: 8px; border-radius: 10px; width: fit-content;">
+                        <MudIcon Icon="@Icons.Material.Filled.Group" Style="color: #5C8DC2; font-size: 24px;" />
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">TOTAL CLIENTES</MudText>
+                        <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                            @listaModelos.Count
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">registrados en el sistema</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Cédulas (VERDE) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                <MudStack Spacing="2">
+                    <div style="background: #EFF5EF; padding: 8px; border-radius: 10px; width: fit-content;">
+                        <MudIcon Icon="@Icons.Material.Filled.Badge" Style="color: #6FA776; font-size: 24px;" />
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">CÉDULAS</MudText>
+                        <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                            @TotalCedulas
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">@PorcentajeCedulas.ToString("F0")% del total</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- RUC (NARANJA) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                <MudStack Spacing="2">
+                    <div style="background: #FAF1E7; padding: 8px; border-radius: 10px; width: fit-content;">
+                        <MudIcon Icon="@Icons.Material.Filled.Business" Style="color: #E8A668; font-size: 24px;" />
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">RUC</MudText>
+                        <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                            @TotalRuc
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">@PorcentajeRuc.ToString("F0")% del total</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+
+        <!-- Pasaportes (NEGRO/GRIS) -->
+        <MudItem xs="12" sm="6" md="3">
+            <MudPaper Elevation="0" Class="kpi-card-flat pa-4"
+                      Style="background: white; border: 1px solid #E5E7EB; border-radius: 12px;">
+                <MudStack Spacing="2">
+                    <div style="background: #F0F2F5; padding: 8px; border-radius: 10px; width: fit-content;">
+                        <MudIcon Icon="@Icons.Material.Filled.AirplanemodeActive" Style="color: #424E5F; font-size: 24px;" />
+                    </div>
+                    <div>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280; letter-spacing: 0.5px; font-size: 11px;">PASAPORTES</MudText>
+                        <MudText Typo="Typo.h4" Style="color: #1F2937; font-weight: 700; line-height: 1.2;">
+                            @TotalPasaportes
+                        </MudText>
+                        <MudText Typo="Typo.caption" Style="color: #6B7280;">@PorcentajePasaportes.ToString("F0")% del total</MudText>
+                    </div>
+                </MudStack>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- FILTROS Y EXPORTACIÓN                            -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudPaper Elevation="0" Class="pa-4 mb-4" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2" Class="mb-3" Wrap="Wrap.Wrap">
+            <div style="background: #EBF2F9; padding: 8px; border-radius: 8px;">
+                <MudIcon Icon="@Icons.Material.Filled.FilterList" Style="color: #5C8DC2; font-size: 20px;" />
+            </div>
+            <MudStack Spacing="0">
+                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Filtros y Exportación</MudText>
+                <MudText Typo="Typo.caption" Style="color: #6B7280;">
+                    Mostrando @ListaFiltrada.Count de @listaModelos.Count clientes
+                </MudText>
+            </MudStack>
+        </MudStack>
+
+        <MudGrid Spacing="2" AlignItems="AlignItems.Center">
+            <MudItem xs="12" sm="6" md="4">
+                <MudSelect T="string"
+                           @bind-Value="filtroTipoDocumento"
+                           Label="Tipo de Documento"
+                           Variant="Variant.Outlined"
+                           Margin="Margin.Dense"
+                           Clearable="true"
+                           Adornment="Adornment.Start"
+                           AdornmentIcon="@Icons.Material.Filled.Badge">
+                    <MudSelectItem Value="@((string?)null)">Todos los tipos</MudSelectItem>
+                    <MudSelectItem Value="@("Cédula")">Cédula</MudSelectItem>
+                    <MudSelectItem Value="@("RUC")">RUC</MudSelectItem>
+                    <MudSelectItem Value="@("Pasaporte")">Pasaporte</MudSelectItem>
+                </MudSelect>
             </MudItem>
 
-            <MudItem xs="12">
+            <MudItem xs="12" sm="6" md="4">
+                <MudTextField @bind-Value="searchString1"
+                              Placeholder="Buscar por nombre, documento, correo..."
+                              Adornment="Adornment.Start"
+                              AdornmentIcon="@Icons.Material.Filled.Search"
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Clearable="true" />
+            </MudItem>
 
-                <MudTable Items="@listaModelos"
-                          Dense="true"
-                          Striped="true" Bordered="true"
-                          Filter="new Func<ClienteDTO, bool>(FilterFunc1)"
-                          @bind-SelectedItem="selectedItem1"
-                          Loading="@_loading" LoadingProgressColor="Color.Info">
+            <MudItem xs="12" md="4" Class="d-flex justify-end gap-2">
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.GridOn"
+                           Size="Size.Small"
+                           Disabled="@(!ListaFiltrada.Any())"
+                           OnClick="ExportarExcel"
+                           Style="border-color: #6FA776; color: #5C9163; text-transform: none; font-weight: 600;">
+                    Excel
+                </MudButton>
 
-                    <ToolBarContent>
-                        <MudSpacer />
-                        <MudTextField @bind-Value="searchString1"
-                                      Placeholder="Buscar"
-                                      Adornment="Adornment.Start"
-                                      AdornmentIcon="@Icons.Material.Filled.Search"
-                                      IconSize="Size.Medium"
-                                      Class="mt-0" />
-                    </ToolBarContent>
-
-                    <HeaderContent>
-                        <MudTh>Tipo Documento</MudTh>
-                        <MudTh>Documento</MudTh>
-                        <MudTh>Nombre Completo</MudTh>
-                        <MudTh>Correo</MudTh>
-                        <MudTh>Teléfono</MudTh>
-                        <MudTh>Dirección</MudTh>
-                        <MudTh></MudTh>
-                    </HeaderContent>
-
-                    <RowTemplate Context="modeloRow">
-                        <MudTd DataLabel="Tipo Documento">@modeloRow.TipoDocumento</MudTd>
-                        <MudTd DataLabel="Documento">@modeloRow.Documento</MudTd>
-                        <MudTd DataLabel="Nombre Completo">@modeloRow.NombreCompleto</MudTd>
-                        <MudTd DataLabel="Correo">@modeloRow.Correo</MudTd>
-
-                        @* ✅ CORREGIDO: antes estabas mostrando Correo *@
-                        <MudTd DataLabel="Teléfono">@modeloRow.Telefono</MudTd>
-                        <MudTd DataLabel="Dirección">@modeloRow.Direccion</MudTd>
-
-                        <MudTd DataLabel="">
-                            <MudFab Color="Color.Primary"
-                                    StartIcon="@Icons.Material.Filled.Edit"
-                                    Size="Size.Small"
-                                    IconSize="Size.Small"
-                                    OnClick="@(() => AbrirEditarModelo(modeloRow))" />
-                            <MudFab Color="Color.Error"
-                                    StartIcon="@Icons.Material.Filled.Delete"
-                                    Size="Size.Small"
-                                    IconSize="Size.Small"
-                                    OnClick="@(() => EliminarModelo(modeloRow))" />
-                        </MudTd>
-                    </RowTemplate>
-
-                    <PagerContent>
-                        <MudTablePager />
-                    </PagerContent>
-
-                </MudTable>
-
+                <MudButton Variant="Variant.Outlined"
+                           StartIcon="@Icons.Material.Filled.PictureAsPdf"
+                           Size="Size.Small"
+                           Disabled="@(!ListaFiltrada.Any())"
+                           OnClick="ExportarPdf"
+                           Style="border-color: #E8A668; color: #B97A40; text-transform: none; font-weight: 600;">
+                    PDF
+                </MudButton>
             </MudItem>
         </MudGrid>
     </MudPaper>
 
+    <!-- ════════════════════════════════════════════════ -->
+    <!-- TABLA DE CLIENTES                                -->
+    <!-- ════════════════════════════════════════════════ -->
+    <MudPaper Elevation="0" Class="pa-3" Style="border: 1px solid #E5E7EB; border-radius: 12px;">
+
+        <MudStack Row="true" AlignItems="AlignItems.Center" Justify="Justify.SpaceBetween" Class="mb-3" Wrap="Wrap.Wrap">
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <div style="background: #EFF5EF; padding: 8px; border-radius: 8px;">
+                    <MudIcon Icon="@Icons.Material.Filled.PeopleAlt" Style="color: #6FA776; font-size: 20px;" />
+                </div>
+                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">Listado de Clientes</MudText>
+            </MudStack>
+
+            @if (ListaFiltrada.Any())
+            {
+                <MudChip Size="Size.Small" Variant="Variant.Text"
+                         Style="background: #EFF5EF; color: #5C9163; font-weight: 600;">
+                    @ListaFiltrada.Count clientes
+                </MudChip>
+            }
+        </MudStack>
+
+        @if (_loading)
+        {
+            <MudStack AlignItems="AlignItems.Center" Class="pa-8" Spacing="2">
+                <MudProgressCircular Style="color: #5C8DC2;" Indeterminate="true" Size="Size.Large" />
+                <MudText Typo="Typo.body2" Style="color: #6B7280;">Cargando clientes...</MudText>
+            </MudStack>
+        }
+        else if (!listaModelos.Any())
+        {
+            <div class="empty-state">
+                <div style="background: #EBF2F9; padding: 16px; border-radius: 50%; margin-bottom: 16px;">
+                    <MudIcon Icon="@Icons.Material.Filled.PersonOff"
+                             Style="color: #5C8DC2; font-size: 56px;" />
+                </div>
+                <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">
+                    Sin clientes registrados
+                </MudText>
+                <MudText Typo="Typo.body2" Style="color: #6B7280; text-align: center; max-width: 400px;">
+                    Aún no hay clientes en el sistema. Click en "Nuevo Cliente" para agregar el primero.
+                </MudText>
+            </div>
+        }
+        else
+        {
+            <MudTable Items="@ListaFiltrada"
+                      Dense="true"
+                      Hover="true"
+                      Striped="false"
+                      Bordered="false"
+                      Filter="new Func<ClienteDTO, bool>(FilterFunc1)"
+                      @bind-SelectedItem="selectedItem1"
+                      Class="custom-table">
+
+                <HeaderContent>
+                    <MudTh Style="background: #F9FAFB; color: #374151; font-weight: 700;">Tipo</MudTh>
+                    <MudTh Style="background: #F9FAFB; color: #374151; font-weight: 700;">Documento</MudTh>
+                    <MudTh Style="background: #F9FAFB; color: #374151; font-weight: 700;">Nombre Completo</MudTh>
+                    <MudTh Style="background: #F9FAFB; color: #374151; font-weight: 700;">Correo</MudTh>
+                    <MudTh Style="background: #F9FAFB; color: #374151; font-weight: 700;">Teléfono</MudTh>
+                    <MudTh Style="background: #F9FAFB; color: #374151; font-weight: 700;">Dirección</MudTh>
+                    <MudTh Style="background: #F9FAFB; color: #374151; font-weight: 700; text-align: center;">Acciones</MudTh>
+                </HeaderContent>
+
+                <RowTemplate Context="modeloRow">
+                    <MudTd DataLabel="Tipo">
+                        <MudChip Size="Size.Small" Variant="Variant.Text"
+                                 Style="@GetEstiloTipoDocumento(modeloRow.TipoDocumento)">
+                            @modeloRow.TipoDocumento
+                        </MudChip>
+                    </MudTd>
+                    <MudTd DataLabel="Documento" Style="font-family: monospace; color: #374151;">
+                        @modeloRow.Documento
+                    </MudTd>
+                    <MudTd DataLabel="Nombre" Style="color: #1F2937; font-weight: 600;">
+                        <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                            <MudIcon Icon="@Icons.Material.Filled.AccountCircle"
+                                     Style="color: #5C8DC2; font-size: 20px;" />
+                            <span>@modeloRow.NombreCompleto</span>
+                        </MudStack>
+                    </MudTd>
+                    <MudTd DataLabel="Correo" Style="color: #6B7280; font-size: 13px;">
+                        @if (!string.IsNullOrEmpty(modeloRow.Correo))
+                        {
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.Email"
+                                         Style="color: #9CA3AF; font-size: 16px;" />
+                                <span>@modeloRow.Correo</span>
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <span style="color: #D1D5DB;">—</span>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Teléfono" Style="color: #374151;">
+                        @if (!string.IsNullOrEmpty(modeloRow.Telefono))
+                        {
+                            <MudStack Row="true" Spacing="1" AlignItems="AlignItems.Center">
+                                <MudIcon Icon="@Icons.Material.Filled.Phone"
+                                         Style="color: #6FA776; font-size: 16px;" />
+                                <span>@modeloRow.Telefono</span>
+                            </MudStack>
+                        }
+                        else
+                        {
+                            <span style="color: #D1D5DB;">—</span>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Dirección" Style="color: #6B7280; font-size: 13px;">
+                        @if (!string.IsNullOrEmpty(modeloRow.Direccion))
+                        {
+                            @modeloRow.Direccion
+                        }
+                        else
+                        {
+                            <span style="color: #D1D5DB;">—</span>
+                        }
+                    </MudTd>
+                    <MudTd DataLabel="Acciones" Style="text-align: center;">
+                        <MudStack Row="true" Spacing="1" Justify="Justify.Center">
+                            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                                           Size="Size.Small"
+                                           OnClick="@(() => AbrirEditarModelo(modeloRow))"
+                                           Style="color: #5C8DC2; background: #EBF2F9;"
+                                           Title="Editar cliente" />
+                            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                                           Size="Size.Small"
+                                           OnClick="@(() => EliminarModelo(modeloRow))"
+                                           Style="color: #B97A40; background: #FAF1E7;"
+                                           Title="Eliminar cliente" />
+                        </MudStack>
+                    </MudTd>
+                </RowTemplate>
+
+                <PagerContent>
+                    <MudTablePager />
+                </PagerContent>
+
+                <NoRecordsContent>
+                    <div class="empty-state">
+                        <div style="background: #FAF1E7; padding: 16px; border-radius: 50%; margin-bottom: 16px;">
+                            <MudIcon Icon="@Icons.Material.Filled.SearchOff"
+                                     Style="color: #E8A668; font-size: 56px;" />
+                        </div>
+                        <MudText Typo="Typo.h6" Style="color: #1F2937; font-weight: 700;">
+                            Sin resultados
+                        </MudText>
+                        <MudText Typo="Typo.body2" Style="color: #6B7280;">
+                            No se encontraron clientes con los filtros aplicados.
+                        </MudText>
+                    </div>
+                </NoRecordsContent>
+
+            </MudTable>
+        }
+    </MudPaper>
+
 </MudContainer>
+
+<style>
+    .kpi-card-flat {
+        transition: all 0.2s ease;
+    }
+    .kpi-card-flat:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08) !important;
+        border-color: #5C8DC2 !important;
+    }
+
+    /* Tabla personalizada */
+    .custom-table .mud-table-row:hover {
+        background: #F9FAFB !important;
+    }
+
+    .custom-table .mud-table-cell {
+        border-bottom: 1px solid #F3F4F6 !important;
+        padding: 12px 16px !important;
+    }
+
+    .custom-table .mud-table-toolbar {
+        padding: 0 !important;
+    }
+
+    .custom-table .mud-table-pager {
+        background: #F9FAFB;
+        border-top: 1px solid #E5E7EB;
+    }
+
+    /* Estado vacío */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 48px 24px;
+        gap: 8px;
+        background: #F9FAFB;
+        border-radius: 12px;
+        border: 2px dashed #E5E7EB;
+    }
+</style>
 
 @code {
     List<ClienteDTO> listaModelos = new();
     private string searchString1 = "";
+    private string? filtroTipoDocumento;
     private ClienteDTO selectedItem1 = null;
     private bool _loading = true;
 
-    // ✅ igual que Reportes.razor
-    private bool desactivarBoton = true;
+    // KPIs calculados
+    private int TotalCedulas => listaModelos.Count(c => c.TipoDocumento == "Cédula");
+    private int TotalRuc => listaModelos.Count(c => c.TipoDocumento == "RUC");
+    private int TotalPasaportes => listaModelos.Count(c => c.TipoDocumento == "Pasaporte");
+    private double PorcentajeCedulas => listaModelos.Count > 0 ? (TotalCedulas * 100.0) / listaModelos.Count : 0;
+    private double PorcentajeRuc => listaModelos.Count > 0 ? (TotalRuc * 100.0) / listaModelos.Count : 0;
+    private double PorcentajePasaportes => listaModelos.Count > 0 ? (TotalPasaportes * 100.0) / listaModelos.Count : 0;
+
+    private List<ClienteDTO> ListaFiltrada
+    {
+        get
+        {
+            if (string.IsNullOrEmpty(filtroTipoDocumento))
+                return listaModelos;
+            return listaModelos.Where(c => c.TipoDocumento == filtroTipoDocumento).ToList();
+        }
+    }
 
     private async Task ObtenerData()
     {
@@ -115,9 +432,14 @@
             listaModelos = (List<ClienteDTO>)result.value!;
         else
             listaModelos = new();
+    }
 
-        // ✅ habilita/deshabilita Excel
-        desactivarBoton = !listaModelos.Any();
+    private async Task RecargarDatos()
+    {
+        _loading = true;
+        StateHasChanged();
+        await ObtenerData();
+        _loading = false;
     }
 
     protected override async Task OnInitializedAsync()
@@ -168,11 +490,11 @@
     {
         SweetAlertResult result = await Swal.FireAsync(new SweetAlertOptions
         {
-            Title = "Esta seguro?",
+            Title = "¿Está seguro?",
             Text = $"Eliminar cliente: {modelo.NombreCompleto}",
             Icon = SweetAlertIcon.Warning,
             ShowCancelButton = true,
-            ConfirmButtonText = "Si, eliminar",
+            ConfirmButtonText = "Sí, eliminar",
             CancelButtonText = "No, volver"
         });
 
@@ -190,148 +512,106 @@
         }
     }
 
-    // ✅ NUEVO: Exportar Excel igual que Reportes.razor
-    private async Task ExportarExcelClientes()
+    private async Task<string> ObtenerUsuario()
     {
-        var data = string.IsNullOrWhiteSpace(searchString1)
-            ? listaModelos
-            : listaModelos.Where(c => FilterFunc(c, searchString1)).ToList();
+        var authState = await _authProvider.GetAuthenticationStateAsync();
+        return authState.User?.Identity?.Name ?? "Sistema";
+    }
 
-        if (data == null || data.Count == 0)
+    private string ConstruirSubtitulo()
+    {
+        if (!string.IsNullOrEmpty(filtroTipoDocumento))
+            return $"Filtro: Tipo Documento = {filtroTipoDocumento}";
+        return "Listado completo de clientes";
+    }
+
+    /// <summary>
+    /// Estilo del chip según el tipo de documento (paleta sin rojo)
+    /// </summary>
+    private string GetEstiloTipoDocumento(string? tipo)
+    {
+        return tipo switch
+        {
+            "Cédula" => "background: #EFF5EF; color: #5C9163; font-weight: 600;",
+            "RUC" => "background: #FAF1E7; color: #B97A40; font-weight: 600;",
+            "Pasaporte" => "background: #F0F2F5; color: #424E5F; font-weight: 600;",
+            _ => "background: #EBF2F9; color: #4A7AAD; font-weight: 600;"
+        };
+    }
+
+    private async Task ExportarExcel()
+    {
+        var data = ListaFiltrada;
+        if (!data.Any())
         {
             await Swal.FireAsync("Sin datos", "No hay clientes para exportar.", "info");
             return;
         }
 
-        using var libro = new XLWorkbook();
-        var hoja = libro.Worksheets.Add("Clientes");
-
-        // =========================
-        // 1) Título + metadata
-        // =========================
-        hoja.Cell("A1").Value = "REPORTE DE CLIENTES";
-        hoja.Range("A1:F1").Merge();
-
-        hoja.Cell("A2").Value = $"Generado: {DateTime.Now:dd/MM/yyyy HH:mm}";
-        hoja.Range("A2:F2").Merge();
-
-        hoja.Cell("A3").Value = $"Total clientes: {data.Count}";
-        hoja.Range("A3:F3").Merge();
-
-        var titulo = hoja.Range("A1:F1");
-        titulo.Style.Font.Bold = true;
-        titulo.Style.Font.FontSize = 16;
-        titulo.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        titulo.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-        var meta = hoja.Range("A2:F3");
-        meta.Style.Font.FontSize = 11;
-        meta.Style.Font.Italic = true;
-        meta.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-
-        hoja.Row(1).Height = 26;
-        hoja.Row(2).Height = 18;
-        hoja.Row(3).Height = 18;
-
-        // =========================
-        // 2) Encabezados (fila 5)
-        // =========================
-        int headerRow = 5;
-
-        hoja.Cell(headerRow, 1).Value = "Tipo Documento";
-        hoja.Cell(headerRow, 2).Value = "Documento";
-        hoja.Cell(headerRow, 3).Value = "Nombre Completo";
-        hoja.Cell(headerRow, 4).Value = "Correo";
-        hoja.Cell(headerRow, 5).Value = "Teléfono";
-        hoja.Cell(headerRow, 6).Value = "Dirección";
-
-        var headerRange = hoja.Range(headerRow, 1, headerRow, 6);
-        headerRange.Style.Font.Bold = true;
-        headerRange.Style.Font.FontSize = 12;
-        headerRange.Style.Alignment.Horizontal = XLAlignmentHorizontalValues.Center;
-        headerRange.Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-        headerRange.Style.Fill.BackgroundColor = XLColor.FromHtml("#5B4BDB"); // morado pro
-        headerRange.Style.Font.FontColor = XLColor.White;
-        headerRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-        headerRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-
-        hoja.Row(headerRow).Height = 20;
-
-        // =========================
-        // 3) Datos (desde fila 6)
-        // =========================
-        var export = data.Select(c => new
+        var encabezados = new List<string>
         {
-            TipoDocumento = c.TipoDocumento ?? "",
-            Documento = c.Documento ?? "",
-            NombreCompleto = c.NombreCompleto ?? "",
-            Correo = c.Correo ?? "",
-            Telefono = c.Telefono ?? "",
-            Direccion = c.Direccion ?? ""
+            "Tipo Documento", "Documento", "Nombre Completo", "Correo", "Teléfono", "Dirección"
+        };
+
+        var datos = data.Select(c => new object[]
+        {
+            c.TipoDocumento ?? "",
+            c.Documento ?? "",
+            c.NombreCompleto ?? "",
+            c.Correo ?? "",
+            c.Telefono ?? "",
+            c.Direccion ?? ""
         }).ToList();
 
-        int startDataRow = headerRow + 1;
-        hoja.Cell(startDataRow, 1).InsertData(export);
+        var anchos = new double[] { 16, 16, 28, 26, 16, 28 };
+        var colsMoneda = Array.Empty<int>();
 
-        // =========================
-        // 4) Formatos pro
-        // =========================
-        int endRow = startDataRow + export.Count - 1;
-        var tableRange = hoja.Range(headerRow, 1, endRow, 6);
-
-        // Bordes tabla completa
-        tableRange.Style.Border.OutsideBorder = XLBorderStyleValues.Thin;
-        tableRange.Style.Border.InsideBorder = XLBorderStyleValues.Thin;
-
-        // Congelar encabezado
-        hoja.SheetView.FreezeRows(headerRow);
-
-        // AutoFilter
-        tableRange.SetAutoFilter();
-        // Ajuste de columnas (con mínimos para que se vea bien)
-        hoja.Column(1).Width = 16; // Tipo Documento
-        hoja.Column(2).Width = 16; // Documento
-        hoja.Column(3).Width = 28; // Nombre
-        hoja.Column(4).Width = 28; // Correo
-        hoja.Column(5).Width = 16; // Teléfono
-        hoja.Column(6).Width = 28; // Dirección
-
-        // Formato texto para Documento y Teléfono (evita perder ceros)
-        hoja.Column(2).Style.NumberFormat.Format = "@";
-        hoja.Column(5).Style.NumberFormat.Format = "@";
-
-        
-
-        SetMinWidth(hoja.Column(1), 16);
-        SetMinWidth(hoja.Column(2), 16);
-        SetMinWidth(hoja.Column(3), 26);
-        SetMinWidth(hoja.Column(4), 26);
-        SetMinWidth(hoja.Column(5), 16);
-        SetMinWidth(hoja.Column(6), 24);
-
-        // Margen visual
-        hoja.Range(headerRow, 1, endRow, 6).Style.Alignment.WrapText = true;
-        hoja.Range(headerRow, 1, endRow, 6).Style.Alignment.Vertical = XLAlignmentVerticalValues.Center;
-
-        // =========================
-        // 5) Descargar
-        // =========================
-        using var memoria = new MemoryStream();
-        libro.SaveAs(memoria);
-
-        var nombreExcel = $"Clientes_{DateTime.Now:yyyyMMdd_HHmm}.xlsx";
-
-        await _jsServicio.InvokeAsync<object>(
-            "DescargarExcel",
-            nombreExcel,
-            Convert.ToBase64String(memoria.ToArray())
+        await _excelService.GenerarReporte(
+            titulo: "Reporte de Clientes",
+            subtitulo: ConstruirSubtitulo(),
+            encabezados: encabezados,
+            datos: datos,
+            anchosColumnas: anchos,
+            columnasMoneda: colsMoneda,
+            usuarioGenerador: await ObtenerUsuario(),
+            nombreArchivo: "Reporte_Clientes",
+            incluirTotales: false
         );
     }
 
-    // helper para anchos mínimos
-    private static void SetMinWidth(IXLColumn col, double minWidth)
+    private async Task ExportarPdf()
     {
-        if (col.Width < minWidth)
-            col.Width = minWidth;
+        var data = ListaFiltrada;
+        if (!data.Any())
+        {
+            await Swal.FireAsync("Sin datos", "No hay clientes para exportar.", "info");
+            return;
+        }
+
+        var encabezados = new List<string>
+        {
+            "Tipo Doc", "Documento", "Nombre Completo", "Correo", "Teléfono", "Dirección"
+        };
+
+        var datos = data.Select(c => new object[]
+        {
+            c.TipoDocumento ?? "",
+            c.Documento ?? "",
+            c.NombreCompleto ?? "",
+            c.Correo ?? "",
+            c.Telefono ?? "",
+            c.Direccion ?? ""
+        }).ToList();
+
+        await _pdfService.GenerarReporte(
+            titulo: "Reporte de Clientes",
+            subtitulo: ConstruirSubtitulo(),
+            encabezados: encabezados,
+            datos: datos,
+            usuarioGenerador: await ObtenerUsuario(),
+            nombreArchivo: "Reporte_Clientes",
+            totales: null,
+            orientacion: "landscape"
+        );
     }
 }

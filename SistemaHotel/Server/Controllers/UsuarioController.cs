@@ -1,23 +1,30 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SistemaHotel.Server.Models;
 using SistemaHotel.Server.Repositorio.Contratos;
+using SistemaHotel.Server.Utilidades;
 using SistemaHotel.Shared;
 
 namespace SistemaHotel.Server.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UsuarioController : ControllerBase
     {
         private readonly IMapper _mapper;
         private readonly IUsuarioRepositorio _usuarioRepositorio;
-        public UsuarioController(IUsuarioRepositorio usuarioRepositorio, IMapper mapper)
+        private readonly IPasswordHashingService _passwordHashingService;
+        private readonly IJwtService _jwtService;
+        public UsuarioController(IUsuarioRepositorio usuarioRepositorio, IMapper mapper, IPasswordHashingService passwordHashingService, IJwtService jwtService)
         {
             _mapper = mapper;
             _usuarioRepositorio = usuarioRepositorio;
+            _passwordHashingService = passwordHashingService;
+            _jwtService = jwtService;
         }
 
 
@@ -46,29 +53,49 @@ namespace SistemaHotel.Server.Controllers
             }
         }
 
-        [HttpGet]
+        [HttpPost]
         [Route("IniciarSesion")]
-        public async Task<IActionResult> IniciarSesion(string correo, string clave)
+        [AllowAnonymous]
+        public async Task<IActionResult> IniciarSesion([FromBody] LoginRequestDTO loginRequest)
         {
-            ResponseDTO<UsuarioDTO> _ResponseDTO = new ResponseDTO<UsuarioDTO>();
+            var _ResponseDTO = new ResponseDTO<LoginResponseDTO>();
             try
             {
-                UsuarioDTO _usuario = new UsuarioDTO(); 
-                IQueryable<Usuario> query = await _usuarioRepositorio.Consultar(u => u.Correo == correo && u.Clave == clave);
+                if (!ModelState.IsValid)
+                {
+                    _ResponseDTO = new ResponseDTO<LoginResponseDTO>() { status = false, msg = "Datos inválidos", value = null };
+                    return StatusCode(StatusCodes.Status400BadRequest, _ResponseDTO);
+                }
+
+                IQueryable<Usuario> query = await _usuarioRepositorio.Consultar(u => u.Correo == loginRequest.Correo);
                 query = query.Include(r => r.IdRolUsuarioNavigation);
 
-                _usuario  = _mapper.Map<UsuarioDTO>(query.FirstOrDefault());
+                Usuario usuarioEncontrado = query.FirstOrDefault();
 
-                if (_usuario != null)
-                    _ResponseDTO = new ResponseDTO<UsuarioDTO>() { status = true, msg = "ok", value = _usuario };
+                if (usuarioEncontrado != null && _passwordHashingService.VerifyPassword(loginRequest.Clave, usuarioEncontrado.Clave))
+                {
+                    string token = _jwtService.GenerateToken(usuarioEncontrado.IdUsuario, usuarioEncontrado.Correo, usuarioEncontrado.IdRolUsuarioNavigation.Descripcion);
+                    UsuarioDTO usuarioDTO = _mapper.Map<UsuarioDTO>(usuarioEncontrado);
+
+                    var loginResponse = new LoginResponseDTO
+                    {
+                        Token = token,
+                        ExpiresIn = _jwtService.GetTokenExpirationMinutes() * 60,
+                        Usuario = usuarioDTO
+                    };
+
+                    _ResponseDTO = new ResponseDTO<LoginResponseDTO>() { status = true, msg = "ok", value = loginResponse };
+                }
                 else
-                    _ResponseDTO = new ResponseDTO<UsuarioDTO>() { status = false, msg = "no encontrado", value = null };
+                {
+                    _ResponseDTO = new ResponseDTO<LoginResponseDTO>() { status = false, msg = "Credenciales inválidas", value = null };
+                }
 
                 return StatusCode(StatusCodes.Status200OK, _ResponseDTO);
             }
             catch (Exception ex)
             {
-                _ResponseDTO = new ResponseDTO<UsuarioDTO>() { status = false, msg = ex.Message, value = null };
+                _ResponseDTO = new ResponseDTO<LoginResponseDTO>() { status = false, msg = ex.Message, value = null };
                 return StatusCode(StatusCodes.Status500InternalServerError, _ResponseDTO);
             }
         }
@@ -158,6 +185,46 @@ namespace SistemaHotel.Server.Controllers
                     else
                         _ResponseDTO = new ResponseDTO<string>() { status = false, msg = "No se pudo eliminar el usuario", value = "" };
                 }
+
+                return StatusCode(StatusCodes.Status200OK, _ResponseDTO);
+            }
+            catch (Exception ex)
+            {
+                _ResponseDTO = new ResponseDTO<string>() { status = false, msg = ex.Message };
+                return StatusCode(StatusCodes.Status500InternalServerError, _ResponseDTO);
+            }
+        }
+
+        [HttpPut]
+        [Route("CambiarPassword")]
+        public async Task<IActionResult> CambiarPassword([FromBody] CambiarPasswordDTO request)
+        {
+            ResponseDTO<string> _ResponseDTO = new ResponseDTO<string>();
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    _ResponseDTO = new ResponseDTO<string>() { status = false, msg = "Datos inválidos", value = "" };
+                    return StatusCode(StatusCodes.Status400BadRequest, _ResponseDTO);
+                }
+
+                Usuario _usuarioEncontrado = await _usuarioRepositorio.Obtener(u => u.IdUsuario == request.IdUsuario);
+
+                if (_usuarioEncontrado == null)
+                {
+                    _ResponseDTO = new ResponseDTO<string>() { status = false, msg = "Usuario no encontrado", value = "" };
+                    return StatusCode(StatusCodes.Status404NotFound, _ResponseDTO);
+                }
+
+                // Hash de la nueva contraseña
+                _usuarioEncontrado.Clave = _passwordHashingService.HashPassword(request.NuevaClave);
+
+                bool respuesta = await _usuarioRepositorio.Editar(_usuarioEncontrado);
+
+                if (respuesta)
+                    _ResponseDTO = new ResponseDTO<string>() { status = true, msg = "Contraseña actualizada correctamente", value = "" };
+                else
+                    _ResponseDTO = new ResponseDTO<string>() { status = false, msg = "No se pudo actualizar la contraseña", value = "" };
 
                 return StatusCode(StatusCodes.Status200OK, _ResponseDTO);
             }

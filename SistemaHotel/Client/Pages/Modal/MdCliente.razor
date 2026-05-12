@@ -2,54 +2,80 @@
 @attribute [Authorize(Roles = "Administrador,Gerencia,Reservas,Recepcionista")]
 @inject ISnackbar _snackBar
 
-<MudDialog Style="width:400px">
+<MudDialog Style="width: 500px;">
 
     <DialogContent>
-        <MudContainer Style="max-height: 400px; overflow-y: scroll" Class="m-0 p-0">
+        <MudContainer Class="m-0 p-0">
 
             <EditForm Model="@_cliente">
 
-                <MudTextField @bind-Value="@_cliente.TipoDocumento" Class="mb-3"
-                              Label="Tipo Documento" 
-                              Variant="Variant.Outlined" 
-                              Adornment="Adornment.End" 
-                              AdornmentIcon="@Icons.Material.Filled.Badge"
-                              For="@(() => _cliente.TipoDocumento)" />
+                <MudGrid Spacing="2">
+                    <MudItem xs="12" sm="6">
+                        <MudSelect T="string"
+                                   @bind-Value="@_cliente.TipoDocumento"
+                                   Label="Tipo Documento"
+                                   Variant="Variant.Outlined"
+                                   Margin="Margin.Dense"
+                                   Adornment="Adornment.End"
+                                   AdornmentIcon="@Icons.Material.Filled.Badge"
+                                   AnchorOrigin="Origin.BottomCenter"
+                                   For="@(() => _cliente.TipoDocumento)">
+                            <MudSelectItem Value="@("Cédula")">Cédula</MudSelectItem>
+                            <MudSelectItem Value="@("RUC")">RUC</MudSelectItem>
+                            <MudSelectItem Value="@("Pasaporte")">Pasaporte</MudSelectItem>
+                        </MudSelect>
+                    </MudItem>
 
-                <MudTextField @bind-Value="@_cliente.Documento" Class="mb-3"
-                              Label="Documento" 
-                              Variant="Variant.Outlined" 
-                              Adornment="Adornment.End" 
-                              AdornmentIcon="@Icons.Material.Filled.Badge"
-                              For="@(() => _cliente.Documento)" />
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="@_cliente.Documento"
+                                      Label="Documento"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Filled.Badge"
+                                      For="@(() => _cliente.Documento)" />
+                    </MudItem>
 
-                <MudTextField @bind-Value="@_cliente.NombreCompleto" Class="mb-3"
-                              Label="Nombre Completo" 
-                              Variant="Variant.Outlined" 
-                              Adornment="Adornment.End" 
-                              AdornmentIcon="@Icons.Material.Filled.Badge"
-                              For="@(() => _cliente.NombreCompleto)" />
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="@_cliente.NombreCompleto"
+                                      Label="Nombre Completo"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Filled.Person"
+                                      For="@(() => _cliente.NombreCompleto)" />
+                    </MudItem>
 
-                <MudTextField @bind-Value="@_cliente.Correo" Class="mb-3"
-                              Label="Correo" 
-                              Variant="Variant.Outlined" 
-                              Adornment="Adornment.End" 
-                              AdornmentIcon="@Icons.Material.Filled.Badge"
-                              For="@(() => _cliente.Correo)" />
+                    <MudItem xs="12">
+                        <MudTextField @bind-Value="@_cliente.Correo"
+                                      Label="Correo"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Filled.Email"
+                                      For="@(() => _cliente.Correo)" />
+                    </MudItem>
 
-                <MudTextField @bind-Value="@_cliente.Telefono" Class="mb-3"
-                              Label="Telefono"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Filled.Badge"
-                              For="@(() => _cliente.Telefono)" />
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="@_cliente.Telefono"
+                                      Label="Telefono"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Filled.Phone"
+                                      For="@(() => _cliente.Telefono)" />
+                    </MudItem>
 
-                <MudTextField @bind-Value="@_cliente.Direccion" Class="mb-3"
-                              Label="Direccion"
-                              Variant="Variant.Outlined"
-                              Adornment="Adornment.End"
-                              AdornmentIcon="@Icons.Material.Filled.Badge"
-                              For="@(() => _cliente.Direccion)" />
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="@_cliente.Direccion"
+                                      Label="Direccion"
+                                      Variant="Variant.Outlined"
+                                      Margin="Margin.Dense"
+                                      Adornment="Adornment.End"
+                                      AdornmentIcon="@Icons.Material.Filled.LocationOn"
+                                      For="@(() => _cliente.Direccion)" />
+                    </MudItem>
+                </MudGrid>
 
             </EditForm>
 

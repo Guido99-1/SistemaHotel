@@ -13,7 +13,19 @@ var builder = WebAssemblyHostBuilder.CreateDefault(args);
 builder.RootComponents.Add<App>("#app");
 builder.RootComponents.Add<HeadOutlet>("head::after");
 
-builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+builder.Services.AddScoped<HttpClientInterceptor>();
+builder.Services.AddScoped(sp =>
+{
+    var httpClientHandler = new HttpClientHandler();
+    var interceptor = sp.GetRequiredService<HttpClientInterceptor>();
+    interceptor.InnerHandler = httpClientHandler;
+
+    var httpClient = new HttpClient(interceptor)
+    {
+        BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
+    };
+    return httpClient;
+});
 
 builder.Services.AddScoped<IUsuarioServicio, UsuarioServicio>();
 builder.Services.AddScoped<IRolUsuarioServicio, RolUsuarioServicio>();
@@ -23,7 +35,12 @@ builder.Services.AddScoped<IClienteServicio, ClienteServicio>();
 builder.Services.AddScoped<IHabitacionServicio, HabitacionServicio>();
 builder.Services.AddScoped<IRecepcionServicio, RecepcionServicio>();
 builder.Services.AddScoped<IReservaServicio, ReservaServicio>();
+builder.Services.AddScoped<IReservaGrupoServicio, ReservaGrupoServicio>();
 builder.Services.AddScoped<IDashBoardServicio, DashBoardServicio>();
+
+// Servicios de reportes unificados (Excel + PDF) con plantilla del hotel
+builder.Services.AddScoped<ReporteExcelService>();
+builder.Services.AddScoped<ReportePdfService>();
 
 builder.Services.AddBlazoredSessionStorage();
 builder.Services.AddScoped<AuthenticationStateProvider, AutenticacionExtension>();

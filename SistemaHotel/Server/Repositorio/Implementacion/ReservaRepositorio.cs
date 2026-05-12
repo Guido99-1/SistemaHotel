@@ -46,6 +46,10 @@ namespace SistemaHotel.Server.Repositorio.Implementacion
                 if (salida <= entrada)
                     throw new InvalidOperationException("La fecha de salida debe ser mayor a la fecha de entrada.");
 
+                // ✅ FIX #6: validar fechas pasadas (defensa en backend, no confiar solo en UI)
+                if (entrada < DateTime.Today)
+                    throw new InvalidOperationException("La fecha de entrada no puede ser anterior a hoy.");
+
                 // ✅ Validar solapamiento (Recepción activa + Reservas)
                 var haySolapamiento = await ExisteSolapamiento(entidad.IdHabitacion.Value, entrada, salida);
 

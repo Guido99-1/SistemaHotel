@@ -17,9 +17,30 @@ namespace SistemaHotel.Shared
         public decimal? Adelanto { get; set; }
         public decimal? PrecioRestante { get; set; }
         public string? MetodoPago { get; set; } = "";
+        public string? NotaMetodoPago { get; set; }  // Detalle del método de pago (especialmente útil para pagos MIXTOS)
         public decimal? CostoPenalidad { get; set; }
         public decimal? TotalPagado { get; set; }
         public string? Observacion { get; set; }
 
+        /// <summary>
+        /// Devuelve el método de pago formateado para reportes.
+        /// Si es MIXTO, muestra el desglose completo. Si es OTRO, muestra el detalle.
+        /// </summary>
+        public string MetodoPagoDetallado
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(MetodoPago))
+                    return "";
+
+                if (MetodoPago == "MIXTO" && !string.IsNullOrEmpty(NotaMetodoPago))
+                    return NotaMetodoPago;
+
+                if (MetodoPago == "OTRO" && !string.IsNullOrEmpty(NotaMetodoPago))
+                    return $"OTRO ({NotaMetodoPago})";
+
+                return MetodoPago;
+            }
+        }
     }
 }

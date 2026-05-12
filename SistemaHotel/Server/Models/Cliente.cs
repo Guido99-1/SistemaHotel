@@ -23,4 +23,6 @@ public partial class Cliente
     
 
     public virtual ICollection<Recepcion> Recepcions { get; } = new List<Recepcion>();
+    public virtual ICollection<Reserva> Reservas { get; } = new List<Reserva>();
+    public virtual ICollection<ReservaGrupo> ReservaGrupos { get; } = new List<ReservaGrupo>();
 }
